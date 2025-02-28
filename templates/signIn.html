@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; width: 100%; background-color: #000; color: white; padding: 0; margin: 0; position: fixed; top: 0; left: 0; right: 0; bottom: 0; overflow: auto;">
+    <div style="display: flex; width: 100%; height: 100vh;">
+        <!-- Left Side (Text Section) -->
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 50px; overflow: auto;">
+            <h1 style="font-weight: bold; font-size: 3rem; text-align: center; max-width: 600px;">Stay Connected, Anytime, Anywhere</h1>
+            <p style="font-size: 1.2rem; line-height: 1.5; text-align: center; max-width: 600px;">
+                Seamless communication made simple. Whether you're catching up with friends,
+                coordinating with your team, or sharing special moments, LUMA keeps you connected in real time.
+            </p>
+        </div>
+        <!-- Right Side (Sign In Form) -->
+        <div style="flex: 1; display: flex; justify-content: center; align-items: center; background-color: #1a1a1a; overflow: auto;">
+            <div style="width: 100%; max-width: 400px; background-color: white; padding: 40px; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2); margin: 20px;">
+                <h1 style="text-align: center; font-weight: bold; font-size: 2.5rem; color: black;">LUMA</h1>
+                <h4 style="text-align: center; font-weight: bold; margin-bottom: 20px; color: black;">Sign In</h4>
+                <form method="POST">
+                    {% csrf_token %}
+                    <div style="margin-bottom: 15px;">
+                        <label for="username" style="display: block; font-weight: bold; color: black;">Username</label>
+                        <input type="text" id="username" name="username" required
+                            style="width: 100%; padding: 12px; border: 2px solid #3a3a3a; border-radius: 5px; font-size: 1rem;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label for="password" style="display: block; font-weight: bold; color: black;">Password</label>
+                        <input type="password" id="password" name="password" required
+                            style="width: 100%; padding: 12px; border: 2px solid #3a3a3a; border-radius: 5px; font-size: 1rem;">
+                    </div>
+                    <button type="submit"
+                        style="width: 100%; padding: 12px; background-color: #007bff; color: white; font-weight: bold; border: none; border-radius: 5px; font-size: 1rem; cursor: pointer;">
+                        Sign In
+                    </button>
+                    <div style="text-align: center; margin-top: 15px;">
+                        <a href="#" style="color: #007bff;">Forgot Password?</a>
+                    </div>
+                    <div style="text-align: center; margin-top: 10px;">
+                        <a href="{% url 'register' %}" style="color: #007bff;">Don't Have An Account?</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

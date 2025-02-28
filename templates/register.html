@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; width: 100%; background-color: #000; color: white; padding: 0; margin: 0; position: fixed; top: 0; left: 0; right: 0; bottom: 0; overflow: auto;">
+    <div style="display: flex; width: 100%; height: 100vh;">
+        <!-- Left Side (Sign Up Form) - Switched from right to left -->
+        <div style="flex: 1; display: flex; justify-content: center; align-items: center; background-color: #1a1a1a; overflow: auto;">
+            <div style="width: 100%; max-width: 400px; background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2); margin: 20px;">
+                <h1 style="text-align: center; font-weight: bold; font-size: 2.5rem; color: black;">LUMA</h1>
+                <h4 style="text-align: center; font-weight: bold; margin-bottom: 20px; color: black;">Create Account</h4>
+                <form method="POST">
+                    {% csrf_token %}
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <div style="flex: 1;">
+                            <label for="firstname" style="display: block; font-weight: bold; color: black; font-size: 0.9rem;">First Name</label>
+                            <input type="text" id="firstname" name="firstname" required
+                                style="width: 100%; padding: 10px; border: 2px solid #3a3a3a; border-radius: 5px; font-size: 0.9rem;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label for="lastname" style="display: block; font-weight: bold; color: black; font-size: 0.9rem;">Last Name</label>
+                            <input type="text" id="lastname" name="lastname" required
+                                style="width: 100%; padding: 10px; border: 2px solid #3a3a3a; border-radius: 5px; font-size: 0.9rem;">
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <label for="email" style="display: block; font-weight: bold; color: black; font-size: 0.9rem;">Email</label>
+                        <input type="email" id="email" name="email" required
+                            style="width: 100%; padding: 10px; border: 2px solid #3a3a3a; border-radius: 5px; font-size: 0.9rem;">
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <label for="username" style="display: block; font-weight: bold; color: black; font-size: 0.9rem;">Username</label>
+                        <input type="text" id="username" name="username" required
+                            style="width: 100%; padding: 10px; border: 2px solid #3a3a3a; border-radius: 5px; font-size: 0.9rem;">
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <label for="password" style="display: block; font-weight: bold; color: black; font-size: 0.9rem;">Password</label>
+                        <input type="password" id="password" name="password" required
+                            style="width: 100%; padding: 10px; border: 2px solid #3a3a3a; border-radius: 5px; font-size: 0.9rem;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label for="confirm_password" style="display: block; font-weight: bold; color: black; font-size: 0.9rem;">Confirm Password</label>
+                        <input type="password" id="confirm_password" name="confirm_password" required
+                            style="width: 100%; padding: 10px; border: 2px solid #3a3a3a; border-radius: 5px; font-size: 0.9rem;">
+                    </div>
+                    <button type="submit"
+                        style="width: 100%; padding: 10px; background-color: #007bff; color: white; font-weight: bold; border: none; border-radius: 5px; font-size: 1rem; cursor: pointer;">
+                        Register
+                    </button>
+                    <div style="text-align: center; margin-top: 10px;">
+                        <a href="" style="color: #007bff;">Already Have An Account?</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- Right Side (Text Section) - Switched from left to right -->
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 50px;">
+            <h1 style="font-weight: bold; font-size: 3rem; text-align: center; max-width: 600px;">Join Our Community Today</h1>
+            <p style="font-size: 1.2rem; line-height: 1.5; text-align: center; max-width: 600px;">
+                Create your LUMA account and start connecting with friends, family, and colleagues.
+                Experience communication that's secure, reliable, and designed for you.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

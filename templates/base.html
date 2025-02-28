@@ -1,0 +1,90 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}LUMA{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: #121212; /* Dark background */
+            color: white;
+        }
+
+        /* Navbar Styling */
+        .navbar {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.5); /* Black with 50% opacity */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+        }
+
+        .navbar .logo {
+            font-size: 1.3rem;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .navbar .nav-links {
+            list-style: none;
+            display: flex;
+            gap: 20px;
+        }
+
+        .navbar .nav-links li {
+            display: inline;
+        }
+
+        .navbar .nav-links a {
+            text-decoration: none;
+            color: white;
+            font-size: 1rem;
+            font-weight: 400;
+            transition: 0.3s;
+        }
+
+        .navbar .nav-links a:hover {
+            opacity: 0.7;
+        }
+
+        /* Page Content */
+        .content {
+            margin-top: 80px; /* To avoid overlap with fixed navbar */
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="logo">LUMA</div>
+        <ul class="nav-links">
+            <li><a href="{% url 'home' %}">HOME</a></li>
+            <li><a href="{% url 'about' %}">ABOUT</a></li>
+            <li><a href="{% url 'signin' %}">SIGN IN</a></li>
+            <li><a href="{% url 'register' %}">REGISTER</a></li>
+        </ul>
+    </nav>
+
+    <div class="content">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+</body>
+</html>

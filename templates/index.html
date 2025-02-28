@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% block title %}LUMA - Private Messaging App{% endblock %}
+
+{% block content %}
+    <style>
+        * {
+            scrollbar-width: none;
+        }
+
+        body {
+            background-color: #121212;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: calc(100vh - 80px);
+            width: 100%;
+        }
+
+        /* Background Animation */
+        .background-waves {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url("{% static 'images/waves.svg' %}") no-repeat center;
+            background-size: cover;
+            z-index: -1;
+            opacity: 0.3;
+        }
+
+        /* Blur Text Animation */
+        .blur-text {
+            font-size: 6rem;
+            font-weight: 900;
+            opacity: 0;
+            animation: fadeIn 1.5s forwards;
+        }
+
+        /* Rotating Text */
+        .rotating-text-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            opacity: 0;
+            animation: fadeIn 2s forwards;
+        }
+
+        .rotating-text {
+            font-weight: bold;
+            color: cyan;
+            animation: rotateText 6s infinite;
+        }
+
+        .blur-text.small {
+            font-size: 1rem;
+            opacity: 0.7;
+        }
+
+        /* Get Started Button */
+        .btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            color: #121212;
+            background: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .btn:hover {
+            background: #ddd;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes rotateText {
+            0%, 100% {
+                content: "Private";
+            }
+            33% {
+                content: "Secure";
+            }
+            66% {
+                content: "Fast";
+            }
+        }
+    </style>
+
+    <div class="container">
+        <!-- Background Animation -->
+        <div class="background-waves"></div>
+
+        <!-- LUMA Title -->
+        <h1 class="blur-text">LUMA</h1>
+
+        <!-- Rotating Text -->
+        <div class="rotating-text-container">
+            <span class="blur-text small">A</span>
+            <span class="rotating-text">Private</span>
+            <span class="blur-text small">Messaging App</span>
+        </div>
+
+        <!-- Get Started Button -->
+        <a href="{% url 'signin' %}" class="btn">Get Started!</a>
+    </div>
+{% endblock %}
