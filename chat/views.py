@@ -21,22 +21,22 @@ def signin(request):
         password = request.POST.get('password')
 
         try:
-            # Fetch user from chat_user table (your custom model)
             user = User.objects.get(username=username)
         except User.DoesNotExist:
             user = None
 
         if user is not None and user.check_password(password):
-            login(request, user)  # Log the user in
-            request.session['is_logged_in'] = True  # Set session variable
-            request.session['username'] = user.username  # Store username in session
+            login(request, user)
+            request.session['is_logged_in'] = True
+            request.session['username'] = user.username
             messages.success(request, "Signed in successfully")
-            return redirect('chat')  # Redirect to chat page after sign-in
+            return redirect('chat')
         else:
             messages.error(request, "Invalid Username or Password")
             return render(request, 'signin.html')
 
     return render(request, 'signin.html')
+
 
 from django.contrib import messages
 from django.contrib.auth import logout
@@ -92,6 +92,3 @@ def register(request):
 
 def chat(request):
     return render(request, 'chat.html')
-
-
-

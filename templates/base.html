@@ -116,48 +116,48 @@
       <div class="logo"><a href="{% url 'home' %}">LUMA</a></div>
       <ul class="nav-links">
         <li>
-          <a href="{% url 'chat' %}" data-tooltip="Home"
-            ><i class="fa-solid fa-house"></i
-          ></a>
+          <a href="{% if request.session.is_logged_in %}{% url 'chat' %}{% else %}{% url 'home' %}{% endif %}" data-tooltip="Home">
+            <i class="fa-solid fa-house"></i>
+          </a>
         </li>
 
         <li>
-            <a href="{% url 'about' %}" data-tooltip="About Us"
-              ><i class="fa-solid fa-question"></i
-            ></a>
-          </li>
+            <a href="{% url 'about' %}" data-tooltip="About Us">
+              <i class="fa-solid fa-question"></i>
+            </a>
+        </li>
 
         {% if request.session.is_logged_in %}
         <li>
-          <a href="" data-tooltip="Add Friend"
-            ><i class="fa-solid fa-plus"></i
-          ></a>
+          <a href="" data-tooltip="Add Friend">
+            <i class="fa-solid fa-plus"></i>
+          </a>
         </li>
         <li>
-          <a href="" data-tooltip="Notifications"
-            ><i class="fa-solid fa-bell"></i
-          ></a>
+          <a href="" data-tooltip="Notifications">
+            <i class="fa-solid fa-bell"></i>
+          </a>
         </li>
         <li>
-          <a href="" data-tooltip="Profile"
-            ><i class="fa-solid fa-user"></i
-          ></a>
+          <a href="" data-tooltip="Profile">
+            <i class="fa-solid fa-user"></i>
+          </a>
         </li>
         <li>
-          <a href="{% url 'logout' %}" data-tooltip="Logout"
-            ><i class="fa-solid fa-right-from-bracket"></i
-          ></a>
+          <a href="{% url 'logout' %}" data-tooltip="Logout">
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </a>
         </li>
         {% else %}
         <li>
-          <a href="{% url 'signin' %}" data-tooltip="Sign In"
-            ><i class="fa-solid fa-right-to-bracket"></i
-          ></a>
+          <a href="{% url 'signin' %}" data-tooltip="Sign In">
+            <i class="fa-solid fa-right-to-bracket"></i>
+          </a>
         </li>
         <li>
-          <a href="{% url 'register' %}" data-tooltip="Register"
-            ><i class="fa-solid fa-user-plus"></i
-          ></a>
+          <a href="{% url 'register' %}" data-tooltip="Register">
+            <i class="fa-solid fa-user-plus"></i>
+          </a>
         </li>
         {% endif %}
       </ul>
