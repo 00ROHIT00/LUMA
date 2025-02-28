@@ -116,26 +116,43 @@
       <div class="logo"><a href="{% url 'home' %}">LUMA</a></div>
       <ul class="nav-links">
         <li>
-          <a href="{% if request.session.is_logged_in %}{% url 'chat' %}{% else %}{% url 'home' %}{% endif %}" data-tooltip="Home">
+          <a
+            href="{% if request.session.is_logged_in %}{% url 'chat' %}{% else %}{% url 'home' %}{% endif %}"
+            data-tooltip="Home"
+          >
             <i class="fa-solid fa-house"></i>
           </a>
         </li>
 
         <li>
-            <a href="{% url 'about' %}" data-tooltip="About Us">
-              <i class="fa-solid fa-question"></i>
-            </a>
+          <a href="{% url 'about' %}" data-tooltip="About Us">
+            <i class="fa-solid fa-question"></i>
+          </a>
         </li>
 
         {% if request.session.is_logged_in %}
         <li>
-          <a href="" data-tooltip="Add Friend">
+          <a href="#" data-tooltip="Add Friend">
             <i class="fa-solid fa-plus"></i>
           </a>
         </li>
+
         <li>
-          <a href="" data-tooltip="Notifications">
-            <i class="fa-solid fa-bell"></i>
+          <a href="#" data-tooltip="Notifications" id="notificationBell">
+            <i class="fa-solid fa-bell" id="bellIcon"></i>
+            <span
+              id="notificationIndicator"
+              style="
+                position: absolute;
+                top: -5px;
+                right: -5px;
+                width: 8px;
+                height: 8px;
+                background-color: gold;
+                border-radius: 50%;
+                display: none;
+              "
+            ></span>
           </a>
         </li>
         <li>
@@ -163,5 +180,320 @@
       </ul>
     </nav>
     <div class="content">{% block content %} {% endblock %}</div>
+
+    <!-- Modal Popup Code Start -->
+    <div
+      class="modal"
+      id="friendModal"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        justify-content: center;
+        align-items: center;
+        z-index: 200;
+      "
+    >
+      <div
+        style="
+          background: #1e1e1e;
+          padding: 20px;
+          border-radius: 10px;
+          text-align: center;
+          width: 300px;
+          position: relative;
+        "
+      >
+        <span
+          onclick="closeModal()"
+          style="
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            cursor: pointer;
+            color: white;
+            font-size: 20px;
+          "
+          >&times;</span
+        >
+        <h2 style="margin-bottom: 20px">Add Friend</h2>
+        <input
+          type="text"
+          id="friendUsername"
+          placeholder="Enter Friend's Username"
+          style="
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: none;
+            border-radius: 5px;
+            outline: none;
+          "
+        />
+        <button
+          onclick="sendFriendRequest()"
+          style="
+            padding: 10px;
+            background: #007bff;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+          "
+        >
+          Send Request
+        </button>
+      </div>
+    </div>
+    <!-- Modal Popup Code End -->
+
+    <!-- NOTIFICATIONS POP UP -->
+    <div
+      class="modal"
+      id="notificationsModal"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        justify-content: center;
+        align-items: center;
+        z-index: 200;
+      "
+    >
+      <div
+        style="
+          background: #1e1e1e;
+          padding: 20px;
+          border-radius: 10px;
+          text-align: center;
+          width: 350px;
+          max-height: 80vh;
+          overflow-y: auto;
+          position: relative;
+        "
+      >
+        <span
+          onclick="closeNotificationsModal()"
+          style="
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            cursor: pointer;
+            color: white;
+            font-size: 20px;
+          "
+          >&times;</span
+        >
+        <h2 style="margin-bottom: 20px">Friend Requests</h2>
+        <div id="friendRequestsContainer" style="text-align: left">
+          <!-- Friend requests will be loaded here dynamically -->
+          <div
+            class="loading-spinner"
+            style="text-align: center; padding: 20px"
+          >
+            Loading...
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Open Modal
+      document.querySelector("a[data-tooltip='Add Friend']").onclick =
+        function (e) {
+          e.preventDefault();
+          document.getElementById("friendModal").style.display = "flex";
+        };
+
+      // Close Modal
+      function closeModal() {
+        document.getElementById("friendModal").style.display = "none";
+      }
+
+      // Send Friend Request
+      function sendFriendRequest() {
+        const username = document.getElementById("friendUsername").value.trim();
+        if (username === "") {
+          alert("Username cannot be empty!");
+          return;
+        }
+
+        fetch(`/send_friend_request/?username=${username}`)
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            alert(data.message);
+            closeModal();
+          })
+          .catch((error) => {
+            alert("Error: " + error.message);
+          });
+      }
+    </script>
+    <script>
+      // Add this to your existing script tag
+      // Update the bell icon click handler
+      document.querySelector("a[data-tooltip='Notifications']").onclick =
+        function (e) {
+          e.preventDefault();
+          document.getElementById("notificationsModal").style.display = "flex";
+          loadFriendRequests();
+        };
+
+      // Close Notifications Modal
+      function closeNotificationsModal() {
+        document.getElementById("notificationsModal").style.display = "none";
+      }
+
+      // Load Friend Requests
+      function loadFriendRequests() {
+        const container = document.getElementById("friendRequestsContainer");
+
+        fetch("/get_friend_requests/")
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            if (data.requests.length === 0) {
+              container.innerHTML =
+                '<p style="text-align: center; padding: 20px;">No pending friend requests</p>';
+              return;
+            }
+
+            let requestsHTML = "";
+            data.requests.forEach((request) => {
+              requestsHTML += `
+          <div style="
+            background: #2a2a2a;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          ">
+            <div>
+              <strong>${request.sender}</strong> wants to be your friend
+            </div>
+            <div>
+              <button onclick="respondToFriendRequest(${request.id}, true)" style="
+                background: #4CAF50;
+                color: white;
+                border: none;
+                padding: 5px 10px;
+                border-radius: 3px;
+                margin-right: 5px;
+                cursor: pointer;
+              ">Accept</button>
+              <button onclick="respondToFriendRequest(${request.id}, false)" style="
+                background: #f44336;
+                color: white;
+                border: none;
+                padding: 5px 10px;
+                border-radius: 3px;
+                cursor: pointer;
+              ">Decline</button>
+            </div>
+          </div>
+        `;
+            });
+
+            container.innerHTML = requestsHTML;
+          })
+          .catch((error) => {
+            container.innerHTML = `<p style="text-align: center; color: #f44336; padding: 20px;">Error loading requests: ${error.message}</p>`;
+          });
+      }
+
+      // Respond to Friend Request
+      function respondToFriendRequest(requestId, accept) {
+        fetch(
+          `/respond_to_friend_request/?request_id=${requestId}&accept=${accept}`
+        )
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            alert(data.message);
+            loadFriendRequests(); // Reload the list
+          })
+          .catch((error) => {
+            alert("Error: " + error.message);
+          });
+      }
+    </script>
+    <script>
+      // Add this to your existing script
+
+      // Check for notifications when page loads
+      document.addEventListener("DOMContentLoaded", function () {
+        checkNotifications();
+
+        // Set interval to check periodically (every 30 seconds)
+        setInterval(checkNotifications, 30000);
+      });
+
+      // Function to check for notifications
+      function checkNotifications() {
+        // Only run if user is logged in
+        if (document.getElementById("notificationBell")) {
+          fetch("/check_notifications/")
+            .then((response) => response.json())
+            .then((data) => {
+              const bellIcon = document.getElementById("bellIcon");
+              const indicator = document.getElementById(
+                "notificationIndicator"
+              );
+
+              if (data.has_notifications) {
+                // Change bell color to gold
+                bellIcon.style.color = "gold";
+                // Show the notification dot
+                indicator.style.display = "block";
+              } else {
+                // Reset to default color
+                bellIcon.style.color = "";
+                // Hide the notification dot
+                indicator.style.display = "none";
+              }
+            })
+            .catch((error) =>
+              console.error("Error checking notifications:", error)
+            );
+        }
+      }
+
+      // Update the bell icon click handler to reset notification indicators
+      document.querySelector("#notificationBell").onclick = function (e) {
+        e.preventDefault();
+        // Reset notification indicators when opening the modal
+        const bellIcon = document.getElementById("bellIcon");
+        const indicator = document.getElementById("notificationIndicator");
+        bellIcon.style.color = "";
+        indicator.style.display = "none";
+
+        // Show the modal and load requests
+        document.getElementById("notificationsModal").style.display = "flex";
+        loadFriendRequests();
+      };
+    </script>
   </body>
 </html>
