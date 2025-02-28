@@ -1,90 +1,167 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}LUMA{% endblock %}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;900&display=swap" rel="stylesheet">
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;900&display=swap"
+      rel="stylesheet"
+    />
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
-        }
-
-        body {
-            background-color: #121212; /* Dark background */
-            color: white;
-        }
-
-        /* Navbar Styling */
-        .navbar {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.5); /* Black with 50% opacity */
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 5px 20px;
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 100;
-        }
-
-        .navbar .logo {
-            font-size: 1.3rem;
-            font-weight: 900;
-            cursor: pointer;
-        }
-
-        .navbar .nav-links {
-            list-style: none;
-            display: flex;
-            gap: 20px;
-        }
-
-        .navbar .nav-links li {
-            display: inline;
-        }
-
-        .navbar .nav-links a {
-            text-decoration: none;
-            color: white;
-            font-size: 1rem;
-            font-weight: 400;
-            transition: 0.3s;
-        }
-
-        .navbar .nav-links a:hover {
-            opacity: 0.7;
-        }
-
-        /* Page Content */
-        .content {
-            margin-top: 80px; /* To avoid overlap with fixed navbar */
-            text-align: center;
-            padding: 20px;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Poppins", sans-serif;
+      }
+      body {
+        background-color: #121212; /* Dark background */
+        color: white;
+      }
+      /* Navbar Styling */
+      .navbar {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.5); /* Black with 50% opacity */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 5px 20px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 100;
+      }
+      .navbar .logo {
+        font-size: 1.3rem;
+        font-weight: 900;
+        cursor: pointer;
+      }
+      .navbar .nav-links {
+        list-style: none;
+        display: flex;
+        gap: 25px;
+      }
+      .navbar .nav-links li {
+        display: inline;
+        position: relative;
+      }
+      .navbar .nav-links a {
+        text-decoration: none;
+        color: white;
+        font-size: 1rem;
+        font-weight: 400;
+        transition: 0.3s;
+        position: relative;
+      }
+      .navbar .nav-links a:hover {
+        opacity: 0.7;
+      }
+      /* Custom Tooltip Styling */
+      .navbar .nav-links a::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s, visibility 0.3s;
+        z-index: 101;
+      }
+      .navbar .nav-links a::before {
+        content: "";
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 5px;
+        border-style: solid;
+        border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s, visibility 0.3s;
+        z-index: 101;
+      }
+      .navbar .nav-links a:hover::after,
+      .navbar .nav-links a:hover::before {
+        opacity: 1;
+        visibility: visible;
+      }
+      /* Page Content */
+      .content {
+        margin-top: 80px; /* To avoid overlap with fixed navbar */
+        text-align: center;
+        padding: 20px;
+      }
+      .logo a {
+        text-decoration: none;
+        color: white;
+      }
     </style>
-</head>
-<body>
-
+  </head>
+  <body>
     <nav class="navbar">
-        <div class="logo">LUMA</div>
-        <ul class="nav-links">
-            <li><a href="{% url 'home' %}">HOME</a></li>
-            <li><a href="{% url 'about' %}">ABOUT</a></li>
-            <li><a href="{% url 'signin' %}">SIGN IN</a></li>
-            <li><a href="{% url 'register' %}">REGISTER</a></li>
-        </ul>
+      <div class="logo"><a href="{% url 'home' %}">LUMA</a></div>
+      <ul class="nav-links">
+        <li>
+          <a href="{% url 'chat' %}" data-tooltip="Home"
+            ><i class="fa-solid fa-house"></i
+          ></a>
+        </li>
+
+        <li>
+            <a href="{% url 'about' %}" data-tooltip="About Us"
+              ><i class="fa-solid fa-question"></i
+            ></a>
+          </li>
+
+        {% if request.session.is_logged_in %}
+        <li>
+          <a href="" data-tooltip="Add Friend"
+            ><i class="fa-solid fa-plus"></i
+          ></a>
+        </li>
+        <li>
+          <a href="" data-tooltip="Notifications"
+            ><i class="fa-solid fa-bell"></i
+          ></a>
+        </li>
+        <li>
+          <a href="" data-tooltip="Profile"
+            ><i class="fa-solid fa-user"></i
+          ></a>
+        </li>
+        <li>
+          <a href="{% url 'logout' %}" data-tooltip="Logout"
+            ><i class="fa-solid fa-right-from-bracket"></i
+          ></a>
+        </li>
+        {% else %}
+        <li>
+          <a href="{% url 'signin' %}" data-tooltip="Sign In"
+            ><i class="fa-solid fa-right-to-bracket"></i
+          ></a>
+        </li>
+        <li>
+          <a href="{% url 'register' %}" data-tooltip="Register"
+            ><i class="fa-solid fa-user-plus"></i
+          ></a>
+        </li>
+        {% endif %}
+      </ul>
     </nav>
-
-    <div class="content">
-        {% block content %}
-        {% endblock %}
-    </div>
-
-</body>
+    <div class="content">{% block content %} {% endblock %}</div>
+  </body>
 </html>

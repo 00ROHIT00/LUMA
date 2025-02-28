@@ -10,8 +10,46 @@ def home(request):
     return render(request, 'index.html') 
 
 
+from django.contrib import messages
+from django.contrib.auth import authenticate, login
+from django.shortcuts import render, redirect
+from chat.models import User  # Import your custom user model
+
 def signin(request):
-    return render(request, 'signIn.html')
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        try:
+            # Fetch user from chat_user table (your custom model)
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            user = None
+
+        if user is not None and user.check_password(password):
+            login(request, user)  # Log the user in
+            request.session['is_logged_in'] = True  # Set session variable
+            request.session['username'] = user.username  # Store username in session
+            messages.success(request, "Signed in successfully")
+            return redirect('chat')  # Redirect to chat page after sign-in
+        else:
+            messages.error(request, "Invalid Username or Password")
+            return render(request, 'signin.html')
+
+    return render(request, 'signin.html')
+
+from django.contrib import messages
+from django.contrib.auth import logout
+
+def logout_view(request):
+    logout(request)  # Django built-in logout function
+    request.session.flush()  # Clear all session data
+    messages.success(request, "Logged out successfully")
+    return redirect('home')
+
+
+
+
 
 def about(request):
     return render(request, 'about.html')
@@ -52,8 +90,8 @@ def register(request):
 
     return render(request, 'register.html')
 
-
-
+def chat(request):
+    return render(request, 'chat.html')
 
 
 

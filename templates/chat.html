@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Arial', sans-serif;
+    }
+
+    .chat-container {
+        background-color: black;
+        color: white;
+        height: calc(100vh - 60px); /* Adjust based on your navbar height */
+        display: flex;
+        overflow: hidden;
+        position: fixed;
+        top: 60px; /* Adjust based on your navbar height */
+        left: 0;
+        right: 0;
+        bottom: 0;
+    }
+
+    /* Chat List Panel */
+    .chat-list-panel {
+        width: 30%;
+        height: 100%;
+        background-color: #1a1a1a;
+        border-radius: 15px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        margin: 10px;
+    }
+
+    .chat-list-title {
+        text-align: center;
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #333;
+    }
+
+    .chat-list {
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .chat-item {
+        padding: 12px;
+        margin-bottom: 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .chat-item:hover {
+        background-color: #2a2a2a;
+    }
+
+    .chat-item.active {
+        background-color: #333;
+    }
+
+    .chat-item-name {
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .chat-item-preview {
+        color: #aaa;
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Chat Area */
+    .chat-area {
+        flex: 1;
+        background-color: #1a1a1a;
+        border-radius: 15px;
+        margin: 10px;
+        margin-left: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chat-header {
+        padding: 20px;
+        border-bottom: 1px solid #333;
+        display: flex;
+        align-items: center;
+    }
+
+    .chat-header-name {
+        font-size: 20px;
+        font-weight: bold;
+    }
+
+    .chat-header-status {
+        font-size: 14px;
+        color: #aaa;
+        margin-left: 10px;
+    }
+
+    .messages-container {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .message {
+        max-width: 70%;
+        padding: 12px 15px;
+        border-radius: 15px;
+        margin-bottom: 15px;
+        word-wrap: break-word;
+    }
+
+    .message-received {
+        background-color: #2a2a2a;
+        align-self: flex-start;
+        border-bottom-left-radius: 5px;
+    }
+
+    .message-sent {
+        background-color: #333;
+        align-self: flex-end;
+        border-bottom-right-radius: 5px;
+    }
+
+    .message-time {
+        font-size: 12px;
+        color: #aaa;
+        text-align: right;
+        margin-top: 5px;
+    }
+
+    .input-area {
+        padding: 15px;
+        border-top: 1px solid #333;
+        display: flex;
+    }
+
+    .message-input {
+        flex: 1;
+        background-color: #2a2a2a;
+        border: none;
+        border-radius: 20px;
+        padding: 12px 15px;
+        color: white;
+        outline: none;
+    }
+
+    .send-button {
+        background-color: #333;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        margin-left: 10px;
+        color: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .send-button:hover {
+        background-color: #444;
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #1a1a1a;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #333;
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #444;
+    }
+</style>
+
+<div class="chat-container">
+    <!-- Chat List Panel (30% width) -->
+    <div class="chat-list-panel">
+        <div class="chat-list-title">Chats</div>
+        <div class="chat-list">
+            <!-- Sample chat items -->
+            <div class="chat-item active">
+                <div class="chat-item-name">John Doe</div>
+                <div class="chat-item-preview">Hey, how's the project coming along?</div>
+            </div>
+            <div class="chat-item">
+                <div class="chat-item-name">Jane Smith</div>
+                <div class="chat-item-preview">Let me know when you're free to meet</div>
+            </div>
+            <div class="chat-item">
+                <div class="chat-item-name">Team Group</div>
+                <div class="chat-item-preview">Next meeting is on Friday at 3 PM</div>
+            </div>
+            <div class="chat-item">
+                <div class="chat-item-name">Alex Johnson</div>
+                <div class="chat-item-preview">Did you check the design files?</div>
+            </div>
+            <div class="chat-item">
+                <div class="chat-item-name">Sarah Williams</div>
+                <div class="chat-item-preview">Thanks for your help!</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Area (70% width) -->
+    <div class="chat-area">
+        <div class="chat-header">
+            <div class="chat-header-name">John Doe</div>
+            <div class="chat-header-status">Online</div>
+        </div>
+        <div class="messages-container">
+            <!-- Sample messages -->
+            <div class="message message-received">
+                <div class="message-content">Hey, how's the project coming along?</div>
+                <div class="message-time">10:30 AM</div>
+            </div>
+            <div class="message message-sent">
+                <div class="message-content">It's going well! I'm working on the messaging interface right now.</div>
+                <div class="message-time">10:32 AM</div>
+            </div>
+            <div class="message message-received">
+                <div class="message-content">That sounds great! Do you need any help with it?</div>
+                <div class="message-time">10:33 AM</div>
+            </div>
+            <div class="message message-sent">
+                <div class="message-content">I think I've got it covered for now, but I'll let you know if I need anything. Thanks for offering!</div>
+                <div class="message-time">10:35 AM</div>
+            </div>
+            <div class="message message-received">
+                <div class="message-content">No problem! When do you think you'll be done with this part?</div>
+                <div class="message-time">10:36 AM</div>
+            </div>
+        </div>
+        <div class="input-area">
+            <input type="text" class="message-input" placeholder="Type a message...">
+            <button class="send-button">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22 2L11 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
