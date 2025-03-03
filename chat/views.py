@@ -149,6 +149,37 @@ def get_friend_requests(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
+# def respond_to_friend_request(request):
+#     if not request.session.get('is_logged_in'):
+#         return JsonResponse({"message": "Authentication required"}, status=401)
+    
+#     request_id = request.GET.get("request_id")
+#     accept = request.GET.get("accept") == "true"
+    
+#     if not request_id:
+#         return JsonResponse({"message": "Invalid request"}, status=400)
+    
+#     try:
+#         user = User.objects.get(username=request.session.get('username'))
+#         friend_request = FriendRequest.objects.get(id=request_id, receiver=user)
+        
+#         if accept:
+#             friend_request.is_accepted = True
+#             friend_request.save()
+#             # Here you could also create a "Friendship" model entry if you want to track friendships
+#             return JsonResponse({"message": f"You are now friends with {friend_request.sender.username}"})
+#         else:
+#             friend_request.delete()  # Optional: you might want to just mark as rejected instead
+#             return JsonResponse({"message": "Friend request declined"})
+            
+#     except FriendRequest.DoesNotExist:
+#         return JsonResponse({"message": "Friend request not found"}, status=404)
+#     except Exception as e:
+#         return JsonResponse({"message": f"Something went wrong: {str(e)}"}, status=500)
+
+
+from .models import Friendship
+
 def respond_to_friend_request(request):
     if not request.session.get('is_logged_in'):
         return JsonResponse({"message": "Authentication required"}, status=401)
@@ -166,16 +197,22 @@ def respond_to_friend_request(request):
         if accept:
             friend_request.is_accepted = True
             friend_request.save()
-            # Here you could also create a "Friendship" model entry if you want to track friendships
+            
+            # Create Friendship entries for both users
+            Friendship.objects.create(user=friend_request.sender, friend=user)
+            Friendship.objects.create(user=user, friend=friend_request.sender)
+
             return JsonResponse({"message": f"You are now friends with {friend_request.sender.username}"})
+        
         else:
-            friend_request.delete()  # Optional: you might want to just mark as rejected instead
+            friend_request.delete()  # Optional: You can mark it as rejected instead
             return JsonResponse({"message": "Friend request declined"})
             
     except FriendRequest.DoesNotExist:
         return JsonResponse({"message": "Friend request not found"}, status=404)
     except Exception as e:
         return JsonResponse({"message": f"Something went wrong: {str(e)}"}, status=500)
+
     
 
 def check_notifications(request):
