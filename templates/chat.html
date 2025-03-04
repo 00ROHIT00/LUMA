@@ -110,6 +110,16 @@
         overflow-y: auto;
         display: flex;
         flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .start-message {
+        text-align: center;
+        color: #aaa;
+        font-size: 20px;
+        max-width: 80%;
+        margin-bottom: 20px;
     }
 
     .message {
@@ -173,6 +183,21 @@
         background-color: #444;
     }
 
+    .add-contact-button {
+        margin-top: 20px;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 20px;
+        background-color: #333;
+        color: white;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    .add-contact-button:hover {
+        background-color: #444;
+    }
+
     /* Scrollbar styling */
     ::-webkit-scrollbar {
         width: 8px;
@@ -197,58 +222,23 @@
     <div class="chat-list-panel">
         <div class="chat-list-title">Chats</div>
         <div class="chat-list">
-            <!-- Sample chat items -->
-            <div class="chat-item active">
-                <div class="chat-item-name">John Doe</div>
-                <div class="chat-item-preview">Hey, how's the project coming along?</div>
-            </div>
-            <div class="chat-item">
-                <div class="chat-item-name">Jane Smith</div>
-                <div class="chat-item-preview">Let me know when you're free to meet</div>
-            </div>
-            <div class="chat-item">
-                <div class="chat-item-name">Team Group</div>
-                <div class="chat-item-preview">Next meeting is on Friday at 3 PM</div>
-            </div>
-            <div class="chat-item">
-                <div class="chat-item-name">Alex Johnson</div>
-                <div class="chat-item-preview">Did you check the design files?</div>
-            </div>
-            <div class="chat-item">
-                <div class="chat-item-name">Sarah Williams</div>
-                <div class="chat-item-preview">Thanks for your help!</div>
-            </div>
+            <!-- Empty chat list -->
         </div>
     </div>
 
     <!-- Chat Area (70% width) -->
     <div class="chat-area">
         <div class="chat-header">
-            <div class="chat-header-name">John Doe</div>
-            <div class="chat-header-status">Online</div>
+            <!-- Empty header -->
         </div>
         <div class="messages-container">
-            <!-- Sample messages -->
-            <div class="message message-received">
-                <div class="message-content">Hey, how's the project coming along?</div>
-                <div class="message-time">10:30 AM</div>
+            <!-- Start messaging prompt -->
+            <div class="start-message">
+                📲 Add a friend to start messaging!
             </div>
-            <div class="message message-sent">
-                <div class="message-content">It's going well! I'm working on the messaging interface right now.</div>
-                <div class="message-time">10:32 AM</div>
-            </div>
-            <div class="message message-received">
-                <div class="message-content">That sounds great! Do you need any help with it?</div>
-                <div class="message-time">10:33 AM</div>
-            </div>
-            <div class="message message-sent">
-                <div class="message-content">I think I've got it covered for now, but I'll let you know if I need anything. Thanks for offering!</div>
-                <div class="message-time">10:35 AM</div>
-            </div>
-            <div class="message message-received">
-                <div class="message-content">No problem! When do you think you'll be done with this part?</div>
-                <div class="message-time">10:36 AM</div>
-            </div>
+            <button class="add-contact-button" onclick="alert('Add Contact Clicked')">
+                ➕ Add
+            </button>
         </div>
         <div class="input-area">
             <input type="text" class="message-input" placeholder="Type a message...">
