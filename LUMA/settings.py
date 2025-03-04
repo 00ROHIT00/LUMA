@@ -50,6 +50,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
+
 ROOT_URLCONF = 'LUMA.urls'
 
 import os
@@ -127,4 +130,10 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-LOGIN_URL = '/signin/'  # Your sign-in page URL
+LOGIN_URL = '/signin/'
+LOGIN_REDIRECT_URL = '/chat/'
+LOGOUT_REDIRECT_URL = '/signin/'
+
+
+AUTH_USER_MODEL = 'chat.User'  # Replace your_app_name with your actual app name
+AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend']

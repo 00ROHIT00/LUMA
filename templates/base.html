@@ -117,7 +117,7 @@
       <ul class="nav-links">
         <li>
           <a
-            href="{% if request.session.is_logged_in %}{% url 'chat' %}{% else %}{% url 'home' %}{% endif %}"
+            href="{% if request.user.is_authenticated %}{% url 'chat' %}{% else %}{% url 'home' %}{% endif %}"
             data-tooltip="Home"
           >
             <i class="fa-solid fa-house"></i>
@@ -130,7 +130,7 @@
           </a>
         </li>
 
-        {% if request.session.is_logged_in %}
+        {% if request.user.is_authenticated %}
         <li>
           <a href="#" data-tooltip="Add Friend">
             <i class="fa-solid fa-plus"></i>

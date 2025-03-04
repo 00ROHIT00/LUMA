@@ -1,254 +1,382 @@
-{% extends "base.html" %}
-{% block content %}
+{% extends "base.html" %} {% block content %}
 <style>
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        font-family: 'Arial', sans-serif;
-    }
-    .chat-container {
-        background-color: black;
-        color: white;
-        height: calc(100vh - 60px);
-        display: flex;
-        overflow: hidden;
-        position: fixed;
-        top: 60px; /* Adjust based on your navbar height */
-        left: 0;
-        right: 0;
-        bottom: 0;
-    }
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Arial", sans-serif;
+  }
+  .chat-container {
+    background-color: black;
+    color: white;
+    height: calc(100vh - 60px);
+    display: flex;
+    overflow: hidden;
+    position: fixed;
+    top: 60px; /* Adjust based on your navbar height */
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
 
-    /* Chat List Panel */
-    .chat-list-panel {
-        width: 30%;
-        height: 100%;
-        background-color: #1a1a1a;
-        border-radius: 15px;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-        margin: 10px;
-    }
+  /* Chat List Panel */
+  .chat-list-panel {
+    width: 30%;
+    height: 100%;
+    background-color: #1a1a1a;
+    border-radius: 15px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    margin: 10px;
+  }
 
-    .chat-list-title {
-        text-align: center;
-        font-size: 24px;
-        font-weight: bold;
-        margin-bottom: 20px;
-        padding-bottom: 15px;
-        border-bottom: 1px solid #333;
-    }
+  .chat-list-title {
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #333;
+  }
 
-    .chat-list {
-        flex: 1;
-        overflow-y: auto;
-    }
+  .chat-list {
+    flex: 1;
+    overflow-y: auto;
+  }
 
-    .chat-item {
-        padding: 12px;
-        margin-bottom: 10px;
-        border-radius: 10px;
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
+  .chat-item {
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
 
-    .chat-item:hover {
-        background-color: #2a2a2a;
-    }
+  .chat-item:hover {
+    background-color: #2a2a2a;
+  }
 
-    .chat-item.active {
-        background-color: #333;
-    }
+  .chat-item.active {
+    background-color: #333;
+  }
 
-    .chat-item-name {
-        font-weight: bold;
-        margin-bottom: 5px;
-    }
+  .chat-item-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
 
-    .chat-item-preview {
-        color: #aaa;
-        font-size: 14px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
+  .chat-item-preview {
+    color: #aaa;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
-    /* Chat Area */
-    .chat-area {
-        flex: 1;
-        background-color: #1a1a1a;
-        border-radius: 15px;
-        margin: 10px;
-        margin-left: 0;
-        display: flex;
-        flex-direction: column;
-    }
+  /* Chat Area */
+  .chat-area {
+    flex: 1;
+    background-color: #1a1a1a;
+    border-radius: 15px;
+    margin: 10px;
+    margin-left: 0;
+    display: flex;
+    flex-direction: column;
+  }
 
-    .chat-header {
-        padding: 20px;
-        border-bottom: 1px solid #333;
-        display: flex;
-        align-items: center;
-    }
+  .chat-header {
+    padding: 20px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+  }
 
-    .chat-header-name {
-        font-size: 20px;
-        font-weight: bold;
-    }
+  .chat-header-name {
+    font-size: 20px;
+    font-weight: bold;
+  }
 
-    .chat-header-status {
-        font-size: 14px;
-        color: #aaa;
-        margin-left: 10px;
-    }
+  .chat-header-status {
+    font-size: 14px;
+    color: #aaa;
+    margin-left: 10px;
+  }
 
-    .messages-container {
-        flex: 1;
-        padding: 20px;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-    }
+  .messages-container {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
 
-    .start-message {
-        text-align: center;
-        color: #aaa;
-        font-size: 20px;
-        max-width: 80%;
-        margin-bottom: 20px;
-    }
+  .start-message {
+    text-align: center;
+    color: #aaa;
+    font-size: 20px;
+    max-width: 80%;
+    margin-bottom: 20px;
+  }
 
-    .message {
-        max-width: 70%;
-        padding: 12px 15px;
-        border-radius: 15px;
-        margin-bottom: 15px;
-        word-wrap: break-word;
-    }
+  .message {
+    max-width: 70%;
+    padding: 12px 15px;
+    border-radius: 15px;
+    margin-bottom: 15px;
+    word-wrap: break-word;
+  }
 
-    .message-received {
-        background-color: #2a2a2a;
-        align-self: flex-start;
-        border-bottom-left-radius: 5px;
-    }
+  .message-received {
+    background-color: #2a2a2a;
+    align-self: flex-start;
+    border-bottom-left-radius: 5px;
+  }
 
-    .message-sent {
-        background-color: #333;
-        align-self: flex-end;
-        border-bottom-right-radius: 5px;
-    }
+  .message-sent {
+    background-color: #333;
+    align-self: flex-end;
+    border-bottom-right-radius: 5px;
+  }
 
-    .message-time {
-        font-size: 12px;
-        color: #aaa;
-        text-align: right;
-        margin-top: 5px;
-    }
+  .message-time {
+    font-size: 12px;
+    color: #aaa;
+    text-align: right;
+    margin-top: 5px;
+  }
 
-    .input-area {
-        padding: 15px;
-        border-top: 1px solid #333;
-        display: flex;
-    }
+  .input-area {
+    padding: 15px;
+    border-top: 1px solid #333;
+    display: flex;
+  }
 
-    .message-input {
-        flex: 1;
-        background-color: #2a2a2a;
-        border: none;
-        border-radius: 20px;
-        padding: 12px 15px;
-        color: white;
-        outline: none;
-    }
+  .message-input {
+    flex: 1;
+    background-color: #2a2a2a;
+    border: none;
+    border-radius: 20px;
+    padding: 12px 15px;
+    color: white;
+    outline: none;
+  }
 
-    .send-button {
-        background-color: #333;
-        border: none;
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        margin-left: 10px;
-        color: white;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
+  .send-button {
+    background-color: #333;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    margin-left: 10px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-    .send-button:hover {
-        background-color: #444;
-    }
+  .send-button:hover {
+    background-color: #444;
+  }
 
-    .add-contact-button {
-        margin-top: 20px;
-        padding: 10px 20px;
-        border: none;
-        border-radius: 20px;
-        background-color: #333;
-        color: white;
-        cursor: pointer;
-        transition: background-color 0.3s;
-    }
+  .add-contact-button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 20px;
+    background-color: #333;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
 
-    .add-contact-button:hover {
-        background-color: #444;
-    }
+  .add-contact-button:hover {
+    background-color: #444;
+  }
 
-    /* Scrollbar styling */
-    ::-webkit-scrollbar {
-        width: 8px;
-    }
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
 
-    ::-webkit-scrollbar-track {
-        background: #1a1a1a;
-    }
+  ::-webkit-scrollbar-track {
+    background: #1a1a1a;
+  }
 
-    ::-webkit-scrollbar-thumb {
-        background: #333;
-        border-radius: 10px;
-    }
+  ::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 10px;
+  }
 
-    ::-webkit-scrollbar-thumb:hover {
-        background: #444;
-    }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #444;
+  }
+  .dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+
+  .dialog-box {
+    background-color: #1a1a1a;
+    padding: 30px;
+    border-radius: 15px;
+    width: 400px;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+  }
+
+  .dialog-title {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: white;
+  }
+
+  .friend-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #333;
+    color: white;
+    cursor: pointer;
+  }
+
+  .friend-item:hover {
+    background-color: #2a2a2a;
+  }
+
+  .plus-icon {
+    color: #aaa;
+    font-size: 20px;
+  }
+
+  .plus-icon:hover {
+    color: #fff;
+  }
+
+  .dialog-close {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #333;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    cursor: pointer;
+  }
+
+  .dialog-close:hover {
+    background-color: #444;
+  }
 </style>
 
 <div class="chat-container">
-    <!-- Chat List Panel (30% width) -->
-    <div class="chat-list-panel">
-        <div class="chat-list-title">Chats</div>
-        <div class="chat-list">
-            <!-- Empty chat list -->
-        </div>
+  <!-- Chat List Panel (30% width) -->
+  <div class="chat-list-panel">
+    <div class="chat-list-title">Chats</div>
+    <div class="chat-list">
+      <!-- Empty chat list -->
     </div>
+  </div>
 
-    <!-- Chat Area (70% width) -->
-    <div class="chat-area">
-        <div class="chat-header">
-            <!-- Empty header -->
-        </div>
-        <div class="messages-container">
-            <!-- Start messaging prompt -->
-            <div class="start-message">
-                📲 Add a friend to start messaging!
-            </div>
-            <button class="add-contact-button" onclick="alert('Add Contact Clicked')">
-                ➕ Add
-            </button>
-        </div>
-        <div class="input-area">
-            <input type="text" class="message-input" placeholder="Type a message...">
-            <button class="send-button">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M22 2L11 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </button>
-        </div>
+  <!-- Chat Area (70% width) -->
+  <div class="chat-area">
+    <div class="chat-header">
+      <!-- Empty header -->
     </div>
+    <div class="messages-container">
+      <!-- Start messaging prompt -->
+      <div class="start-message">📲 Add a friend to start messaging!</div>
+      <button class="add-contact-button" onclick="openDialog()">➕ Add</button>
+    </div>
+    <div class="input-area">
+      <input
+        type="text"
+        class="message-input"
+        placeholder="Type a message..."
+      />
+      <button class="send-button">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M22 2L11 13"
+            stroke="white"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M22 2L15 22L11 13L2 9L22 2Z"
+            stroke="white"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+    </div>
+  </div>
 </div>
+
+<!-- Dialog Box -->
+<div class="dialog-overlay" id="dialog">
+  <div class="dialog-box">
+    <div class="dialog-title">Add New Contact</div>
+    {% for user in available_users %}
+    <div class="friend-item">
+      {{ user.username }}
+      <span class="plus-icon" onclick="addFriend('{{ user.username }}')"
+        >➕</span
+      >
+    </div>
+    {% empty %}
+    <div>No users available</div>
+    {% endfor %}
+    <button class="dialog-close" onclick="closeDialog()">Close</button>
+  </div>
+</div>
+
+<script>
+  function openDialog() {
+    document.getElementById("dialog").style.display = "flex";
+  }
+
+  function closeDialog() {
+    document.getElementById("dialog").style.display = "none";
+  }
+
+  function addFriend(username) {
+    fetch(`/add_friend/${username}/`, {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": "{{ csrf_token }}",
+        "Content-Type": "application/json",
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        alert(data.message);
+        if (data.status === "success") {
+          closeDialog();
+          location.reload();
+        }
+      });
+  }
+</script>
+
 {% endblock %}
