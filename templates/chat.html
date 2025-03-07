@@ -1,4 +1,5 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %}
+{% block content %}
 <style>
   * {
     margin: 0;
@@ -242,27 +243,15 @@
     color: white;
   }
 
-  .friend-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px;
-    margin-bottom: 10px;
-    border-bottom: 1px solid #333;
-    color: white;
-    cursor: pointer;
-  }
-
-  .friend-item:hover {
+  .input-field {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border-radius: 10px;
+    border: none;
     background-color: #2a2a2a;
-  }
-
-  .plus-icon {
-    color: #aaa;
-    font-size: 20px;
-  }
-
-  .plus-icon:hover {
-    color: #fff;
+    color: white;
+    outline: none;
   }
 
   .dialog-close {
@@ -337,16 +326,14 @@
 <div class="dialog-overlay" id="dialog">
   <div class="dialog-box">
     <div class="dialog-title">Add New Contact</div>
-    {% for user in available_users %}
-    <div class="friend-item">
-      {{ user.username }}
-      <span class="plus-icon" onclick="addFriend('{{ user.username }}')"
-        >➕</span
-      >
-    </div>
-    {% empty %}
-    <div>No users available</div>
-    {% endfor %}
+    <input
+      type="text"
+      class="input-field"
+      id="username"
+      placeholder="Enter Username"
+    />
+    <button class="add-contact-button" onclick="searchUser()">Search</button>
+    <div id="search-result"></div>
     <button class="dialog-close" onclick="closeDialog()">Close</button>
   </div>
 </div>
@@ -360,20 +347,27 @@
     document.getElementById("dialog").style.display = "none";
   }
 
-  function addFriend(username) {
-    fetch(`/add_friend/${username}/`, {
+  function searchUser() {
+    const username = document.getElementById("username").value;
+    const csrfToken = "{{ csrf_token }}";
+
+    fetch("/search_user/", {
       method: "POST",
       headers: {
-        "X-CSRFToken": "{{ csrf_token }}",
+        "X-CSRFToken": csrfToken,
         "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        username: username
+      }),
     })
       .then((response) => response.json())
       .then((data) => {
-        alert(data.message);
+        const searchResult = document.getElementById("search-result");
         if (data.status === "success") {
-          closeDialog();
-          location.reload();
+          searchResult.innerHTML = `${data.first_name} ${data.last_name} <span class="plus-icon">➕</span>`;
+        } else {
+          searchResult.innerHTML = data.message;
         }
       });
   }
