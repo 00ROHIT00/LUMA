@@ -365,7 +365,7 @@
       .then((data) => {
         const searchResult = document.getElementById("search-result");
         if (data.status === "success") {
-          searchResult.innerHTML = `${data.first_name} ${data.last_name} <span class="plus-icon">➕</span>`;
+          searchResult.innerHTML = `${data.first_name} ${data.last_name}  <button>➕</button>`;
         } else {
           searchResult.innerHTML = data.message;
         }

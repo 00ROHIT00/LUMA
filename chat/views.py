@@ -82,13 +82,39 @@ def chat_view(request):
 def check_notifications(request):
     pass
 
+# @csrf_exempt
+# def search_user(request):
+#     if request.method == 'POST':
+#         data = json.loads(request.body)
+#         username = data.get('username')
+
+#         try:
+#             user = User.objects.get(username=username)
+#             return JsonResponse({
+#                 'status': 'success',
+#                 'first_name': user.first_name,
+#                 'last_name': user.last_name
+#             })
+#         except User.DoesNotExist:
+#             return JsonResponse({'status': 'error', 'message': 'User not found'})
+#     return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from .models import User
+import json
+
 @csrf_exempt
 def search_user(request):
     if request.method == 'POST':
-        data = json.loads(request.body)
-        username = data.get('username')
-
         try:
+            data = json.loads(request.body)
+            username = data.get('username')
+
+            if not username:
+                return JsonResponse({'status': 'error', 'message': 'Username is required'})
+
             user = User.objects.get(username=username)
             return JsonResponse({
                 'status': 'success',
@@ -97,4 +123,46 @@ def search_user(request):
             })
         except User.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'User not found'})
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
+
+def admin_login(request):
+    if request.method == 'POST':
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
+            if user.is_admin:
+                login(request, user)
+                return redirect('admin_dashboard')  # Ensure 'admin_dashboard' is mapped correctly in your urls.py
+            else:
+                messages.error(request, 'You are not authorized to access the admin area.')
+        else:
+            messages.error(request, 'Invalid username or password.')
+
+    return render(request, 'admin_login.html')
+
+def admin_dashboard(request):
+    return render(request, 'admin_dashboard.html')
+
+from django.http import JsonResponse
+from .models import User
+
+def user_count(request):
+    user_count = User.objects.count()
+    return JsonResponse({'user_count': user_count})
