@@ -214,3 +214,31 @@ def update_user(request, user_id):
         return redirect('manage_users')
     return render(request, 'admin_userEdit.html', {'user': user})
 
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import User
+
+@login_required
+def profile(request):
+    if request.method == 'POST':
+        user = request.user
+        user.first_name = request.POST['first_name']
+        user.last_name = request.POST['last_name']
+        user.username = request.POST['username']
+        user.email = request.POST['email']
+        user.save()
+        messages.success(request, 'Your profile was successfully updated!')
+        return redirect('profile')
+    
+    return render(request, 'profile.html')
+
+@login_required
+def delete_account(request):
+    if request.method == 'POST':
+        user = request.user
+        user.delete()
+        messages.success(request, 'Your account was successfully deleted!')
+        return redirect('home')
+    
+    return render(request, 'delete_account.html')

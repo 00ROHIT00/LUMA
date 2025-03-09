@@ -47,3 +47,15 @@ class User(AbstractBaseUser):
 
     def has_module_perms(self, app_label):
         return self.is_admin
+
+class Chat(models.Model):
+    sender = models.ForeignKey(User, related_name='sender_chats', on_delete=models.CASCADE)
+    recipient = models.ForeignKey(User, related_name='recipient_chats', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+class Message(models.Model):
+    chat = models.ForeignKey(Chat, related_name='messages', on_delete=models.CASCADE)
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    sent_at = models.DateTimeField(auto_now_add=True)

@@ -20,6 +20,8 @@
         padding: 0;
         box-sizing: border-box;
         font-family: "Poppins", sans-serif;
+        user-select: none;
+        scrollbar-width: none;
       }
       body {
         background-color: #121212; /* Dark background */
@@ -168,7 +170,7 @@
           </a>
         </li>
         <li>
-          <a href="" data-tooltip="Profile">
+          <a href="{% url 'profile' %}" data-tooltip="Profile">
             <i class="fa-solid fa-user"></i>
           </a>
         </li>

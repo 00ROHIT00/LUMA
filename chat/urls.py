@@ -17,6 +17,8 @@ urlpatterns = [
     path('admin-dashboard/manage-users/', manage_users, name='manage_users'),
     path('admin-dashboard/delete-user/<int:user_id>/', delete_user, name='delete_user'),
     path('admin-dashboard/edit-user/<int:user_id>/', edit_user, name='edit_user'),
-    path('admin-dashboard/update-user/<int:user_id>/', update_user, name='update_user'),  # Add this line
+    path('admin-dashboard/update-user/<int:user_id>/', update_user, name='update_user'),
+    path('profile/', views.profile, name='profile'),
+    path('delete_account/', views.delete_account, name='delete_account'),
 ]
 
