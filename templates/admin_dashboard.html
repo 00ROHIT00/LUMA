@@ -1,381 +1,248 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin Dashboard - LUMA</title>
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;900&display=swap"
-      rel="stylesheet"
-    />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        font-family: "Poppins", sans-serif;
-      }
-      body {
-        background-color: #121212;
-        color: #fff;
-        margin: 0;
-      }
-      
-      /* Navbar Styling */
-      .navbar {
-        width: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 5px 20px;
-        position: fixed;
-        top: 0;
-        left: 0;
-        z-index: 100;
-      }
-      .navbar .logo {
-        font-size: 1.3rem;
-        font-weight: 900;
-        cursor: pointer;
-      }
-      .navbar .nav-links {
-        list-style: none;
-        display: flex;
-        gap: 25px;
-      }
-      .navbar .nav-links li {
-        display: inline;
-        position: relative;
-      }
-      .navbar .nav-links a {
-        text-decoration: none;
-        color: white;
-        font-size: 1rem;
-        font-weight: 400;
-        transition: 0.3s;
-        position: relative;
-      }
-      .navbar .nav-links a:hover {
-        opacity: 0.7;
-      }
-      /* Custom Tooltip Styling */
-      .navbar .nav-links a::after {
-        content: attr(data-tooltip);
-        position: absolute;
-        bottom: -30px;
-        left: 50%;
-        transform: translateX(-50%);
-        background-color: rgba(0, 0, 0, 0.8);
-        color: white;
-        padding: 5px 10px;
-        border-radius: 4px;
-        font-size: 12px;
-        white-space: nowrap;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.3s, visibility 0.3s;
-        z-index: 101;
-      }
-      .navbar .nav-links a::before {
-        content: "";
-        position: absolute;
-        bottom: -10px;
-        left: 50%;
-        transform: translateX(-50%);
-        border-width: 5px;
-        border-style: solid;
-        border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.3s, visibility 0.3s;
-        z-index: 101;
-      }
-      .navbar .nav-links a:hover::after,
-      .navbar .nav-links a:hover::before {
-        opacity: 1;
-        visibility: visible;
-      }
-      
-      /* Dashboard Styling */
-      .container {
-        padding: 2rem;
-        margin-top: 80px; /* To avoid overlap with fixed navbar */
-      }
-      .dashboard-header {
-        text-align: center;
-        margin-bottom: 2rem;
-      }
-      .dashboard-header h1 {
-        font-size: 2.5rem;
-        color: #fff;
-      }
-      .dashboard-cards {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 1.5rem;
-      }
-      .card {
-        background-color: #1e1e1e;
-        border: none;
-        border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-        padding: 1.5rem;
-        width: 100%;
-        max-width: 300px;
-        text-align: center;
-      }
-      .card h3 {
-        color: #fff;
-        margin-bottom: 1rem;
-      }
-      .card p {
-        color: #bbb;
-      }
-      .chart-container {
-        position: relative;
-        height: 200px;
-        width: 100%;
-      }
-      .status-icon {
-        color: #4caf50;
-        font-size: 5rem;
-        margin-bottom: 0.5rem;
-      }
-      .status-label {
-        color: #4caf50;
-        font-size: 1.2rem;
-        font-weight: bold;
-      }
-      .logo a {
-        text-decoration: none;
-        color: white;
-      }
-    </style>
-  </head>
-  <body>
-    <!-- Navbar -->
-    <nav class="navbar">
-      <div class="logo"><a href="{% url 'home' %}">LUMA</a></div>
-      <ul class="nav-links">
-        <li>
-          <a href="{% url 'admin_dashboard' %}" data-tooltip="Home">
-            <i class="fa-solid fa-house"></i>
-          </a>
-        </li>
-        <li>
-          <a href="#" data-tooltip="Users">
-            <i class="fa-solid fa-user"></i>
-          </a>
-        </li>
-        <li>
-          <a href="#" data-tooltip="Reported">
-            <i class="fas fa-exclamation-triangle"></i>
-          </a>
-        </li>
-        <li>
-          <a href="{% url 'logout' %}" data-tooltip="Logout">
-            <i class="fa-solid fa-right-from-bracket"></i>
-          </a>
-        </li>
-      </ul>
-    </nav>
+{% extends 'admin_base.html' %}
 
-    <div class="container">
-      <div class="dashboard-header">
-        <h1>Welcome to the Admin Dashboard</h1>
-      </div>
-      <div class="dashboard-cards">
-        <div class="card">
-          <h3>Total Users</h3>
-          <div class="chart-container">
-            <canvas id="totalUsersChart"></canvas>
-          </div>
-          <p id="userCountDisplay" style="margin-top: 10px; font-size: 1.5rem">
-            5000
-          </p>
-        </div>
-        <div class="card">
-          <h3>New Reports</h3>
-          <div class="chart-container">
-            <canvas id="newReportsChart"></canvas>
-          </div>
-          <p
-            id="reportsCountDisplay"
-            style="margin-top: 10px; font-size: 1.5rem"
-          >
-            75
-          </p>
-        </div>
-        <div class="card">
-          <h3>System Status</h3>
-          <div class="status-icon">
-            <i class="fas fa-check-circle"></i>
-          </div>
-          <div class="status-label">ONLINE</div>
-        </div>
-      </div>
+{% block title %}Admin Dashboard - LUMA{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block extra_css %}
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.dashboard-header h1 {
+  font-size: 2.5rem;
+  color: #fff;
+}
+.dashboard-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.5rem;
+}
+.card {
+  background-color: #1e1e1e;
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 300px;
+  text-align: center;
+}
+.card h3 {
+  color: #fff;
+  margin-bottom: 1rem;
+}
+.card p {
+  color: #bbb;
+}
+.chart-container {
+  position: relative;
+  height: 200px;
+  width: 100%;
+}
+.status-icon {
+  color: #4caf50;
+  font-size: 5rem;
+  margin-bottom: 0.5rem;
+}
+.status-label {
+  color: #4caf50;
+  font-size: 1.2rem;
+  font-weight: bold;
+  padding-top: 10px;
+}
+.fa-check-circle{
+  font-size: 10rem;
+}
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+  <h1>Welcome to the Admin Dashboard</h1>
+</div>
+<div class="dashboard-cards">
+  <div class="card">
+    <h3>Total Users</h3>
+    <div class="chart-container">
+      <canvas id="totalUsersChart"></canvas>
     </div>
+    <p id="userCountDisplay" style="margin-top: 10px; font-size: 1.5rem">
+      5000
+    </p>
+  </div>
+  <div class="card">
+    <h3>New Reports</h3>
+    <div class="chart-container">
+      <canvas id="newReportsChart"></canvas>
+    </div>
+    <p
+      id="reportsCountDisplay"
+      style="margin-top: 10px; font-size: 1.5rem"
+    >
+      75
+    </p>
+  </div>
+  <div class="card">
+    <h3>System Status</h3>
+    <div class="status-icon">
+      <i class="fas fa-check-circle"></i>
+    </div>
+    <p>STATUS</p>
+    <div class="status-label">ONLINE</div>
+  </div>
+</div>
+{% endblock %}
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script>
-      // Initialize with default values
-      let userCount = 5000;
-      let reportsCount = 75;
+{% block scripts %}
+{{ block.super }}
+<script>
+  // Initialize with default values
+  let userCount = 5000;
+  let reportsCount = 75;
 
-      // Render Total Users Chart
-      function renderUserChart() {
-        const ctx = document.getElementById("totalUsersChart").getContext("2d");
-        const totalUsersChart = new Chart(ctx, {
-          type: "doughnut",
-          data: {
-            labels: ["Active Users", "Capacity"],
-            datasets: [
-              {
-                data: [userCount, 10000 - userCount],
-                backgroundColor: ["#3b5998", "#222222"],
-                borderWidth: 0,
-              },
-            ],
+  // Render Total Users Chart
+  function renderUserChart() {
+    const ctx = document.getElementById("totalUsersChart").getContext("2d");
+    const totalUsersChart = new Chart(ctx, {
+      type: "doughnut",
+      data: {
+        labels: ["Active Users", "Capacity"],
+        datasets: [
+          {
+            data: [userCount, 10000 - userCount],
+            backgroundColor: ["#3b5998", "#222222"],
+            borderWidth: 0,
           },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: "70%",
-            plugins: {
-              legend: {
-                display: false,
-              },
-              tooltip: {
-                callbacks: {
-                  label: function (context) {
-                    return context.label + ": " + context.raw.toLocaleString();
-                  },
-                },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: "70%",
+        plugins: {
+          legend: {
+            display: false,
+          },
+          tooltip: {
+            callbacks: {
+              label: function (context) {
+                return context.label + ": " + context.raw.toLocaleString();
               },
             },
           },
-        });
+        },
+      },
+    });
 
-        // Update the display text
-        document.getElementById("userCountDisplay").textContent =
-          userCount.toLocaleString();
-      }
+    // Update the display text
+    document.getElementById("userCountDisplay").textContent =
+      userCount.toLocaleString();
+  }
 
-      // Render New Reports Chart
-      function renderReportsChart() {
-        const ctx = document.getElementById("newReportsChart").getContext("2d");
+  // Render New Reports Chart
+  function renderReportsChart() {
+    const ctx = document.getElementById("newReportsChart").getContext("2d");
 
-        // Sample data for last 7 days
-        const reportsDailyData = [12, 8, 15, 9, 11, 7, 13];
-        const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    // Sample data for last 7 days
+    const reportsDailyData = [12, 8, 15, 9, 11, 7, 13];
+    const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-        const newReportsChart = new Chart(ctx, {
-          type: "bar",
-          data: {
-            labels: labels,
-            datasets: [
-              {
-                label: "Daily Reports",
-                data: reportsDailyData,
-                backgroundColor: "#e74c3c",
-                borderWidth: 0,
-                borderRadius: 5,
-              },
-            ],
+    const newReportsChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: "Daily Reports",
+            data: reportsDailyData,
+            backgroundColor: "#e74c3c",
+            borderWidth: 0,
+            borderRadius: 5,
           },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: false,
-              },
-              tooltip: {
-                callbacks: {
-                  label: function (context) {
-                    return context.label + ": " + context.raw.toLocaleString();
-                  },
-                },
-              },
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                grid: {
-                  color: "rgba(255, 255, 255, 0.1)",
-                },
-                ticks: {
-                  color: "#bbb",
-                },
-              },
-              x: {
-                grid: {
-                  display: false,
-                },
-                ticks: {
-                  color: "#bbb",
-                },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false,
+          },
+          tooltip: {
+            callbacks: {
+              label: function (context) {
+                return context.label + ": " + context.raw.toLocaleString();
               },
             },
           },
-        });
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: "rgba(255, 255, 255, 0.1)",
+            },
+            ticks: {
+              color: "#bbb",
+            },
+          },
+          x: {
+            grid: {
+              display: false,
+            },
+            ticks: {
+              color: "#bbb",
+            },
+          },
+        },
+      },
+    });
 
-        // Update the display text (sum of all daily reports)
-        document.getElementById("reportsCountDisplay").textContent =
-          reportsCount;
-      }
+    // Update the display text (sum of all daily reports)
+    document.getElementById("reportsCountDisplay").textContent =
+      reportsCount;
+  }
 
-      // Render both charts immediately
-      renderUserChart();
-      renderReportsChart();
+  // Render both charts immediately
+  renderUserChart();
+  renderReportsChart();
 
-      // Then try to fetch updated data from the server
-      try {
-        fetch("/api/user-count/")
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error("Network response was not ok");
-            }
-            return response.json();
-          })
-          .then((data) => {
-            userCount = data.user_count;
-            renderUserChart();
-          })
-          .catch((error) => {
-            console.error("Error fetching user count:", error);
-          });
+  // Then try to fetch updated data from the server
+  try {
+    fetch("/api/user-count/")
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        userCount = data.user_count;
+        renderUserChart();
+      })
+      .catch((error) => {
+        console.error("Error fetching user count:", error);
+      });
 
-        fetch("/api/reports-count/")
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error("Network response was not ok");
-            }
-            return response.json();
-          })
-          .then((data) => {
-            reportsCount = data.reports_count;
-            renderReportsChart();
-          })
-          .catch((error) => {
-            console.error("Error fetching reports count:", error);
-          });
-      } catch (error) {
-        console.error("Error in fetch operation:", error);
-      }
-    </script>
-    <script
-      src="https://kit.fontawesome.com/ac8010ba48.js"
-      crossorigin="anonymous"
-    ></script>
-  </body>
-</html>
+    fetch("/api/reports-count/")
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        reportsCount = data.reports_count;
+        renderReportsChart();
+      })
+      .catch((error) => {
+        console.error("Error fetching reports count:", error);
+      });
+  } catch (error) {
+    console.error("Error in fetch operation:", error);
+  }
+</script>
+{% endblock %}

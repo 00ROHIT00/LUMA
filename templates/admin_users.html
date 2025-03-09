@@ -1,0 +1,240 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}
+    Manage Users
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+    .manage-users-header {
+        margin-top: 20px;
+        font-size: 2rem;
+    }
+    .manage-users-table-wrapper {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+    .manage-users-table {
+        width: 80vw;
+        border-collapse: collapse;
+    }
+    .manage-users-table th, .manage-users-table td {
+        padding: 15px;
+        text-align: center;
+        border-bottom: 1px solid #555;
+    }
+    .manage-users-table th {
+        background-color: #333;
+    }
+    .manage-users-table tr:nth-child(even) {
+        background-color: #1e1e1e;
+    }
+    .manage-users-table tr:hover {
+        background-color: #292929;
+    }
+    .btn-primary, .btn-danger {
+        border: none;
+        padding: 5px 15px;
+        color: #fff;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        border-radius: 5px;
+    }
+    .btn-primary {
+        background-color: #007bff;
+    }
+    .btn-primary:hover {
+        background-color: #0056b3;
+    }
+    .btn-danger {
+        background-color: #dc3545;
+    }
+    .btn-danger:hover {
+        background-color: #a71d2a;
+    }
+
+    h1 {
+        text-align: center;
+    }
+
+    /* Updated Modal Styling */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        overflow: auto;
+    }
+
+    .modal-content {
+        position: relative;
+        background-color: #222;
+        margin: 15% auto;
+        padding: 25px;
+        width: 350px;
+        border-radius: 12px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+        animation: modalFadeIn 0.3s ease-in-out;
+        text-align: center;
+    }
+
+    @keyframes modalFadeIn {
+        from {opacity: 0; transform: translateY(-20px);}
+        to {opacity: 1; transform: translateY(0);}
+    }
+
+    .close {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        color: #777;
+        font-size: 24px;
+        font-weight: bold;
+        transition: color 0.2s;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .modal p {
+        font-size: 1.1rem;
+        margin-bottom: 20px;
+        color: #eee;
+    }
+
+    .modal-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    .btn-secondary {
+        background-color: #555;
+        border: none;
+        padding: 8px 15px;
+        color: #fff;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        border-radius: 5px;
+    }
+
+    .btn-secondary:hover {
+        background-color: #666;
+    }
+
+    /* Enhancement for the delete button */
+    .btn-danger {
+        padding: 8px 15px;
+        font-weight: 500;
+    }
+
+    /* Enhancement for the primary button */
+    .btn-primary {
+        padding: 8px 15px;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <h1 class="manage-users-header">Manage Users</h1>
+    <div class="manage-users-table-wrapper">
+        <table class="manage-users-table">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Email</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.first_name }}</td>
+                    <td>{{ user.last_name }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>
+                        <a href="{% url 'edit_user' user.id %}" class="btn btn-primary btn-sm">Edit</a>
+                        <button class="btn btn-danger btn-sm" onclick="openModal({{ user.id }})">Delete</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- The Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <p>Are you sure you want to delete this user?</p>
+            <div class="modal-buttons">
+                <button id="confirmDelete" class="btn btn-danger">Yes, delete</button>
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let userIdToDelete = null;
+
+    function openModal(userId) {
+        userIdToDelete = userId;
+        var modal = document.getElementById("deleteModal");
+
+        modal.style.display = "block";
+        document.body.style.overflow = "hidden"; // Prevent scrolling when modal is open
+    }
+
+    function closeModal() {
+        var modal = document.getElementById("deleteModal");
+        modal.style.display = "none";
+        document.body.style.overflow = ""; // Restore scrolling
+    }
+
+    // Handle confirm delete button click
+    document.getElementById("confirmDelete").onclick = function() {
+        if (userIdToDelete !== null) {
+            window.location.href = "/admin-dashboard/delete-user/" + userIdToDelete + "/";
+        }
+    };
+
+    // Close the modal if the user clicks outside of it
+    window.onclick = function(event) {
+        var modal = document.getElementById("deleteModal");
+        if (event.target == modal) {
+            closeModal();
+        }
+    }
+
+    // Allow ESC key to close modal
+    document.addEventListener('keydown', function(event) {
+        if (event.key === "Escape") {
+            closeModal();
+        }
+    });
+</script>
+{% endblock %}

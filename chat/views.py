@@ -166,3 +166,51 @@ from .models import User
 def user_count(request):
     user_count = User.objects.count()
     return JsonResponse({'user_count': user_count})
+
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from .models import User
+
+@login_required
+def manage_users(request):
+    users = User.objects.all()
+    return render(request, 'admin_users.html', {'users': users})
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import User
+
+@login_required
+def delete_user(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    user.delete()
+    messages.success(request, 'User has been deleted successfully.')
+    return redirect('manage_users')
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import User
+
+@login_required
+def edit_user(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    return render(request, 'admin_userEdit.html', {'user': user})
+
+@login_required
+def update_user(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    if request.method == 'POST':
+        user.username = request.POST['username']
+        user.first_name = request.POST['first_name']
+        user.last_name = request.POST['last_name']
+        user.email = request.POST['email']
+        user.is_active = 'is_active' in request.POST
+        user.is_admin = 'is_admin' in request.POST
+        user.save()
+        messages.success(request, f"{user.first_name}'s details have been updated successfully.")
+        return redirect('manage_users')
+    return render(request, 'admin_userEdit.html', {'user': user})
+

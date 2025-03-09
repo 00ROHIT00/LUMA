@@ -14,5 +14,9 @@ urlpatterns = [
     path('api/user-count/', user_count, name='user-count'),
     path('admin-login/', admin_login, name='admin_login'),
     path('admin-dashboard/', admin_dashboard, name='admin_dashboard'),
+    path('admin-dashboard/manage-users/', manage_users, name='manage_users'),
+    path('admin-dashboard/delete-user/<int:user_id>/', delete_user, name='delete_user'),
+    path('admin-dashboard/edit-user/<int:user_id>/', edit_user, name='edit_user'),
+    path('admin-dashboard/update-user/<int:user_id>/', update_user, name='update_user'),  # Add this line
 ]
 

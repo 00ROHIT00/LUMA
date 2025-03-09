@@ -117,6 +117,29 @@
             text-decoration: none;
             color: white;
         }
+        
+        /* Toast styles */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 2000;
+        }
+        
+        .toast {
+            background-color: rgba(220, 53, 69, 0.9);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            margin-bottom: 10px;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        
+        .toast.show {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
@@ -132,13 +155,60 @@
                 <i class="fas fa-lock"></i>
                 <input type="password" class="form-control" name="password" id="password" placeholder="Enter your password" required>
             </div>
-            <a href="#" class="forgot-password">Forgot password?</a>
             <button type="submit" class="btn btn-primary btn-block mt-3">Login</button>
         </form>
     </div>
+    
+    <!-- Toast container -->
+    <div class="toast-container" id="toastContainer"></div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    
+    <script>
+        // Function to show toast message
+        function showToast(message) {
+            const toastContainer = document.getElementById('toastContainer');
+            
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i> ${message}`;
+            
+            // Add toast to container
+            toastContainer.appendChild(toast);
+            
+            // Trigger reflow and add show class
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 100);
+            
+            // Remove toast after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toastContainer.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+        
+        // Check if there's an error message in the URL or from Django context
+        document.addEventListener('DOMContentLoaded', function() {
+            {% if messages %}
+                {% for message in messages %}
+                    {% if message.tags == 'error' %}
+                        showToast("{{ message }}");
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+            
+            // Check if login_error parameter exists in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('login_error')) {
+                showToast("Invalid Credentials");
+            }
+        });
+    </script>
 </body>
 </html>
