@@ -5,6 +5,7 @@ from django.urls import reverse
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
+from django.db import models
 
 def home(request):
     return render(request, 'index.html')
@@ -20,7 +21,7 @@ def signin(request):
 
         if user is not None:
             login(request, user)
-            return redirect('chat')
+            return redirect('chat_list')
         else:
             messages.error(request, "Invalid Username or Password")
             return render(request, 'signin.html')
@@ -74,35 +75,173 @@ def register(request):
 
 from django.contrib.auth.decorators import login_required
 
+# @login_required
+# def chat_view(request):
+#     # Get all chats where the current user is either sender or recipient
+#     user_chats = Chat.objects.filter(
+#         models.Q(sender=request.user) | models.Q(recipient=request.user)
+#     ).distinct().order_by('-updated_at')
+
+#     # For each chat, get the other user and latest message
+#     chat_data = []
+#     for chat in user_chats:
+#         # Get the other user (not the current user)
+#         other_user = chat.recipient if chat.sender == request.user else chat.sender
+        
+#         # Get the latest message for this chat
+#         latest_message = Message.objects.filter(chat=chat).order_by('-sent_at').first()
+        
+#         if latest_message:
+#             chat_data.append({
+#                 'chat': chat,
+#                 'other_user': other_user,
+#                 'latest_message': latest_message,
+#             })
+
+#     return render(request, 'chat.html', {'chat_data': chat_data})
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
+from django.db.models import Q
+import json
+from datetime import datetime
+from .models import User, Chat, Message
+
 @login_required
-def chat_view(request):
-    return render(request, 'chat.html')
+def chat_list(request):
+    # Get all chats where the current user is either sender or recipient
+    chats = Chat.objects.filter(
+        Q(sender=request.user) | Q(recipient=request.user)
+    ).order_by('-updated_at')
+    
+    return render(request, 'chat.html', {
+        'chats': chats,
+        'active_chat': None
+    })
+
+@login_required
+def chat_detail(request, chat_id):
+    # Get the requested chat
+    chat = get_object_or_404(Chat, id=chat_id)
+    
+    # Security check - ensure the user is part of this chat
+    if request.user != chat.sender and request.user != chat.recipient:
+        return redirect('chat_list')
+    
+    # Get all chats for the sidebar
+    chats = Chat.objects.filter(
+        Q(sender=request.user) | Q(recipient=request.user)
+    ).order_by('-updated_at')
+    
+    # Get messages for this chat
+    messages = Message.objects.filter(chat=chat).order_by('sent_at')
+    
+    return render(request, 'chat.html', {
+        'chats': chats,
+        'active_chat': chat,
+        'active_chat_id': chat.id,
+        'messages': messages
+    })
+
+@login_required
+@require_POST
+def search_user(request):
+    data = json.loads(request.body)
+    username = data.get('username')
+    
+    if not username:
+        return JsonResponse({'status': 'error', 'message': 'Username is required'})
+    
+    # Don't let users search for themselves
+    if username == request.user.username:
+        return JsonResponse({'status': 'error', 'message': 'You cannot chat with yourself'})
+    
+    try:
+        user = User.objects.get(username=username)
+        return JsonResponse({
+            'status': 'success',
+            'username': user.username,
+            'first_name': user.first_name,
+            'last_name': user.last_name
+        })
+    except User.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'User not found'})
+
+@login_required
+@require_POST
+def start_chat(request):
+    data = json.loads(request.body)
+    username = data.get('username')
+    
+    if not username:
+        return JsonResponse({'status': 'error', 'message': 'Username is required'})
+    
+    try:
+        recipient = User.objects.get(username=username)
+        
+        # Check if chat already exists
+        existing_chat = Chat.objects.filter(
+            (Q(sender=request.user) & Q(recipient=recipient)) |
+            (Q(sender=recipient) & Q(recipient=request.user))
+        ).first()
+        
+        if existing_chat:
+            return JsonResponse({'status': 'success', 'chat_id': existing_chat.id})
+        
+        # Create new chat
+        chat = Chat.objects.create(sender=request.user, recipient=recipient)
+        return JsonResponse({'status': 'success', 'chat_id': chat.id})
+    
+    except User.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'User not found'})
+
+@login_required
+@require_POST
+def send_message(request):
+    data = json.loads(request.body)
+    chat_id = data.get('chat_id')
+    content = data.get('content')
+    
+    if not chat_id or not content:
+        return JsonResponse({'status': 'error', 'message': 'Chat ID and content are required'})
+    
+    try:
+        chat = Chat.objects.get(id=chat_id)
+        
+        # Security check - ensure the user is part of this chat
+        if request.user != chat.sender and request.user != chat.recipient:
+            return JsonResponse({'status': 'error', 'message': 'You are not authorized to send messages to this chat'})
+        
+        # Create and save the message
+        message = Message.objects.create(
+            chat=chat,
+            sender=request.user,
+            content=content
+        )
+        
+        # Update the chat's updated_at timestamp
+        chat.updated_at = datetime.now()
+        chat.save()
+        
+        return JsonResponse({
+            'status': 'success',
+            'message_id': message.id,
+            'sent_at': message.sent_at.strftime('%I:%M %p')
+        })
+    
+    except Chat.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Chat not found'})
 
 @login_required
 def check_notifications(request):
     pass
 
-# @csrf_exempt
-# def search_user(request):
-#     if request.method == 'POST':
-#         data = json.loads(request.body)
-#         username = data.get('username')
-
-#         try:
-#             user = User.objects.get(username=username)
-#             return JsonResponse({
-#                 'status': 'success',
-#                 'first_name': user.first_name,
-#                 'last_name': user.last_name
-#             })
-#         except User.DoesNotExist:
-#             return JsonResponse({'status': 'error', 'message': 'User not found'})
-#     return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
-
 
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
-from .models import User
+from .models import *
 import json
 
 @csrf_exempt
@@ -214,6 +353,26 @@ def update_user(request, user_id):
         return redirect('manage_users')
     return render(request, 'admin_userEdit.html', {'user': user})
 
+# from django.shortcuts import render, redirect
+# from django.contrib.auth.decorators import login_required
+# from django.contrib import messages
+# from .models import User
+
+# @login_required
+# def profile(request):
+#     if request.method == 'POST':
+#         user = request.user
+#         user.first_name = request.POST['first_name']
+#         user.last_name = request.POST['last_name']
+#         user.username = request.POST['username']
+#         user.email = request.POST['email']
+#         user.save()
+#         messages.success(request, 'Your profile was successfully updated!')
+#         return redirect('profile')
+    
+#     return render(request, 'profile.html')
+
+
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -221,17 +380,28 @@ from .models import User
 
 @login_required
 def profile(request):
+    user = request.user
+    print(f"Profile picture URL: {user.profile_picture.url if user.profile_picture else 'None'}")
+    print(f"Profile picture path: {user.profile_picture.path if user.profile_picture else 'None'}")
+    
     if request.method == 'POST':
-        user = request.user
-        user.first_name = request.POST['first_name']
-        user.last_name = request.POST['last_name']
-        user.username = request.POST['username']
-        user.email = request.POST['email']
+        if 'profile_picture' in request.FILES:
+            user.profile_picture = request.FILES['profile_picture']
+            user.save()
+            messages.success(request, 'Your profile picture was successfully updated!')
+            return redirect('profile')
+        
+        user.first_name = request.POST.get('first_name', user.first_name)
+        user.last_name = request.POST.get('last_name', user.last_name)
+        user.username = request.POST.get('username', user.username)
+        user.email = request.POST.get('email', user.email)
         user.save()
         messages.success(request, 'Your profile was successfully updated!')
         return redirect('profile')
     
     return render(request, 'profile.html')
+
+
 
 @login_required
 def delete_account(request):

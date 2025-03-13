@@ -137,3 +137,9 @@ LOGOUT_REDIRECT_URL = '/signin/'
 
 AUTH_USER_MODEL = 'chat.User'  # Replace your_app_name with your actual app name
 AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend']
+
+
+import os
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, '')

@@ -7,7 +7,7 @@ urlpatterns = [
     path('register/', views.register, name='register'),
     path('signin/', views.signin, name='signin'),
     path("about/", about, name="about"),
-    path('chats/', chat_view, name='chat'),
+    # path('chats/', chat_view, name='chat'),
     path('logout/', views.logout_view, name='logout'),
     path('check_notifications/', views.check_notifications, name='check_notifications'),
     path('search_user/', views.search_user, name='search_user'),
@@ -20,5 +20,10 @@ urlpatterns = [
     path('admin-dashboard/update-user/<int:user_id>/', update_user, name='update_user'),
     path('profile/', views.profile, name='profile'),
     path('delete_account/', views.delete_account, name='delete_account'),
+    path('chats/', views.chat_list, name='chat_list'),
+    path('chats/<int:chat_id>/', views.chat_detail, name='chat_detail'),
+    path('search_user/', views.search_user, name='search_user'),
+    path('start_chat/', views.start_chat, name='start_chat'),
+    path('send_message/', views.send_message, name='send_message'),
 ]
 

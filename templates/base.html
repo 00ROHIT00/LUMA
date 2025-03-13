@@ -131,7 +131,7 @@
       <ul class="nav-links">
         <li>
           <a
-            href="{% if request.user.is_authenticated %}{% url 'chat' %}{% else %}{% url 'home' %}{% endif %}"
+            href="{% if request.user.is_authenticated %}{% url 'chat_list' %}{% else %}{% url 'home' %}{% endif %}"
             data-tooltip="Home"
           >
             <i class="fa-solid fa-house"></i>

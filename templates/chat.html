@@ -1,5 +1,4 @@
-{% extends "base.html" %}
-{% block content %}
+{% extends "base.html" %} {% block content %}
 <style>
   * {
     margin: 0;
@@ -47,6 +46,8 @@
   }
 
   .chat-item {
+    display: flex;
+    align-items: center;
     padding: 12px;
     margin-bottom: 10px;
     border-radius: 10px;
@@ -60,6 +61,38 @@
 
   .chat-item.active {
     background-color: #333;
+  }
+
+  .chat-item-pfp {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #444; /* Fallback background for initials */
+    font-size: 20px;
+    font-weight: bold;
+    color: white;
+    margin-right: 15px;
+    flex-shrink: 0;
+  }
+
+  .pfp-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+  }
+
+  .pfp-initials {
+    display: block;
+  }
+
+  .chat-item-details {
+    flex: 1;
+    overflow: hidden;
   }
 
   .chat-item-name {
@@ -215,6 +248,7 @@
   ::-webkit-scrollbar-thumb:hover {
     background: #444;
   }
+
   .dialog-overlay {
     position: fixed;
     top: 0;
@@ -274,7 +308,23 @@
   <div class="chat-list-panel">
     <div class="chat-list-title">Chats</div>
     <div class="chat-list">
-      <!-- Empty chat list -->
+      <div class="chat-item active">
+        <div class="chat-item-pfp">
+          <img
+            src="profile_image_url.jpg"
+            alt="Profile Picture"
+            class="pfp-image"
+          />
+          <div class="pfp-initials">JD</div>
+        </div>
+        <div class="chat-item-details">
+          <div class="chat-item-name">John Doe</div>
+          <div class="chat-item-preview">Hey, how's it going?</div>
+        </div>
+        <div style="font-size: 12px; color: #666; text-align: right">
+          2:30 PM
+        </div>
+      </div>
     </div>
   </div>
 
@@ -320,57 +370,78 @@
       </button>
     </div>
   </div>
-</div>
 
-<!-- Dialog Box -->
-<div class="dialog-overlay" id="dialog">
-  <div class="dialog-box">
-    <div class="dialog-title">Add New Contact</div>
-    <input
-      type="text"
-      class="input-field"
-      id="username"
-      placeholder="Enter Username"
-    />
-    <button class="add-contact-button" onclick="searchUser()">Search</button>
-    <div id="search-result"></div>
-    <button class="dialog-close" onclick="closeDialog()">Close</button>
+  <!-- Dialog Box -->
+  <div class="dialog-overlay" id="dialog">
+    <div class="dialog-box">
+      <div class="dialog-title">Add New Contact</div>
+      <input
+        type="text"
+        class="input-field"
+        id="username"
+        placeholder="Enter Username"
+      />
+      <button class="add-contact-button" onclick="searchUser()">Search</button>
+      <div id="search-result"></div>
+      <button class="dialog-close" onclick="closeDialog()">Close</button>
+    </div>
   </div>
+
+  <script>
+    function openDialog() {
+      document.getElementById("dialog").style.display = "flex";
+    }
+
+    function closeDialog() {
+      document.getElementById("dialog").style.display = "none";
+    }
+
+    function searchUser() {
+      const username = document.getElementById("username").value;
+      const csrfToken = "{{ csrf_token }}";
+
+      fetch("/search_user/", {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrfToken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: username,
+        }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          const searchResult = document.getElementById("search-result");
+          if (data.status === "success") {
+            searchResult.innerHTML = `${data.first_name} ${data.last_name}  <button>➕</button>`;
+          } else {
+            searchResult.innerHTML = data.message;
+          }
+        });
+    }
+
+    document.querySelectorAll(".chat-item").forEach((chatItem) => {
+      const pfpImage = chatItem.querySelector(".pfp-image");
+      const pfpInitials = chatItem.querySelector(".pfp-initials");
+      const name = chatItem.querySelector(".chat-item-name").innerText;
+
+      if (pfpImage && pfpImage.src) {
+        // Show image if the src is valid
+        pfpImage.style.display = "block";
+        pfpInitials.style.display = "none";
+      } else {
+        // Fallback: Show initials
+        const initials = name
+          .split(" ")
+          .map((word) => word.charAt(0))
+          .join("")
+          .toUpperCase();
+        pfpInitials.innerText = initials;
+        pfpImage.style.display = "none";
+      }
+    });
+  </script>
+
+  {% endblock %}
 </div>
-
-<script>
-  function openDialog() {
-    document.getElementById("dialog").style.display = "flex";
-  }
-
-  function closeDialog() {
-    document.getElementById("dialog").style.display = "none";
-  }
-
-  function searchUser() {
-    const username = document.getElementById("username").value;
-    const csrfToken = "{{ csrf_token }}";
-
-    fetch("/search_user/", {
-      method: "POST",
-      headers: {
-        "X-CSRFToken": csrfToken,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username: username
-      }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        const searchResult = document.getElementById("search-result");
-        if (data.status === "success") {
-          searchResult.innerHTML = `${data.first_name} ${data.last_name}  <button>➕</button>`;
-        } else {
-          searchResult.innerHTML = data.message;
-        }
-      });
-  }
-</script>
-
-{% endblock %}
