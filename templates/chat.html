@@ -124,17 +124,28 @@
     border-bottom: 1px solid #333;
     display: flex;
     align-items: center;
+    background-color: #1a1a1a;
+  }
+
+  .chat-header-pfp {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #444;
+    margin-right: 15px;
+  }
+
+  .chat-header-info {
+    flex: 1;
   }
 
   .chat-header-name {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: bold;
-  }
-
-  .chat-header-status {
-    font-size: 14px;
-    color: #aaa;
-    margin-left: 10px;
   }
 
   .messages-container {
@@ -143,8 +154,7 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: center;
+    background-color: #1a1a1a;
   }
 
   .start-message {
@@ -161,31 +171,33 @@
     border-radius: 15px;
     margin-bottom: 15px;
     word-wrap: break-word;
-  }
-
-  .message-received {
-    background-color: #2a2a2a;
-    align-self: flex-start;
-    border-bottom-left-radius: 5px;
+    position: relative;
   }
 
   .message-sent {
-    background-color: #333;
+    background-color: #2a2a2a;
     align-self: flex-end;
     border-bottom-right-radius: 5px;
   }
 
+  .message-received {
+    background-color: #333;
+    align-self: flex-start;
+    border-bottom-left-radius: 5px;
+  }
+
   .message-time {
     font-size: 12px;
-    color: #aaa;
-    text-align: right;
+    color: #666;
     margin-top: 5px;
+    text-align: right;
   }
 
   .input-area {
     padding: 15px;
     border-top: 1px solid #333;
     display: flex;
+    background-color: #1a1a1a;
   }
 
   .message-input {
@@ -196,6 +208,7 @@
     padding: 12px 15px;
     color: white;
     outline: none;
+    margin-right: 10px;
   }
 
   .send-button {
@@ -204,12 +217,12 @@
     border-radius: 50%;
     width: 40px;
     height: 40px;
-    margin-left: 10px;
     color: white;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: background-color 0.2s;
   }
 
   .send-button:hover {
@@ -308,43 +321,147 @@
   <div class="chat-list-panel">
     <div class="chat-list-title">Chats</div>
     <div class="chat-list">
-      <div class="chat-item active">
-        <div class="chat-item-pfp">
-          <img
-            src="profile_image_url.jpg"
-            alt="Profile Picture"
-            class="pfp-image"
-          />
-          <div class="pfp-initials">JD</div>
-        </div>
-        <div class="chat-item-details">
-          <div class="chat-item-name">John Doe</div>
-          <div class="chat-item-preview">Hey, how's it going?</div>
-        </div>
-        <div style="font-size: 12px; color: #666; text-align: right">
-          2:30 PM
-        </div>
+      <!-- Debug information -->
+      <div style="display: none;">
+        Current user: {{ request.user.username }}
+        Number of chats: {{ chats|length }}
       </div>
+      
+      {% if chats %}
+        {% for chat in chats %}
+        <!-- Debug information for each chat -->  
+        <div style="display: none;">
+          Chat ID: {{ chat.id }}
+          Sender: {{ chat.sender.username }}
+          Recipient: {{ chat.recipient.username }}
+        </div>
+        <div
+          class="chat-item {% if active_chat and chat.id == active_chat.id %} active {% endif %}"
+          data-chat-url="{% url 'chat_detail' chat.id %}"
+          onclick="window.location.href=this.dataset.chatUrl"
+        >
+          <div class="chat-item-pfp">
+            {% if chat.sender == request.user %}
+              {% if chat.recipient.profile_picture %}
+                <img
+                  src="{{ chat.recipient.profile_picture.url }}"
+                  alt="Profile Picture"
+                  class="pfp-image"
+                />
+              {% else %}
+                <div class="pfp-initials">
+                  {{ chat.recipient.first_name|slice:":1" }}{{
+                  chat.recipient.last_name|slice:":1" }}
+                </div>
+              {% endif %}
+            {% else %}
+              {% if chat.sender.profile_picture %}
+                <img
+                  src="{{ chat.sender.profile_picture.url }}"
+                  alt="Profile Picture"
+                  class="pfp-image"
+                />
+              {% else %}
+                <div class="pfp-initials">
+                  {{ chat.sender.first_name|slice:":1" }}{{
+                  chat.sender.last_name|slice:":1" }}
+                </div>
+              {% endif %}
+            {% endif %}
+          </div>
+          <div class="chat-item-details">
+            <div class="chat-item-name">
+              {% if chat.sender == request.user %}
+                {{ chat.recipient.first_name }} {{ chat.recipient.last_name }}
+              {% else %}
+                {{ chat.sender.first_name }} {{ chat.sender.last_name }}
+              {% endif %}
+            </div>
+            <div class="chat-item-preview">
+              {% with last_message=chat.messages.last %}
+                {% if last_message %}
+                  {{ last_message.content|truncatewords:10 }}
+                {% else %}
+                  No messages yet
+                {% endif %}
+              {% endwith %}
+            </div>
+          </div>
+          <div style="font-size: 12px; color: #666; text-align: right">
+            {{ chat.updated_at|date:"g:i A" }}
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="text-align: center; color: #666; padding: 20px;">
+          No chats yet. Add a friend to start chatting!
+        </div>
+      {% endif %}
     </div>
   </div>
 
   <!-- Chat Area (70% width) -->
   <div class="chat-area">
     <div class="chat-header">
-      <!-- Empty header -->
+      {% if active_chat %}
+        <div class="chat-header-pfp">
+          {% if active_chat.sender == request.user %}
+            {% if active_chat.recipient.profile_picture %}
+              <img src="{{ active_chat.recipient.profile_picture.url }}" alt="Profile Picture" class="pfp-image">
+            {% else %}
+              <div class="pfp-initials">
+                {{ active_chat.recipient.first_name|slice:":1" }}{{ active_chat.recipient.last_name|slice:":1" }}
+              </div>
+            {% endif %}
+          {% else %}
+            {% if active_chat.sender.profile_picture %}
+              <img src="{{ active_chat.sender.profile_picture.url }}" alt="Profile Picture" class="pfp-image">
+            {% else %}
+              <div class="pfp-initials">
+                {{ active_chat.sender.first_name|slice:":1" }}{{ active_chat.sender.last_name|slice:":1" }}
+              </div>
+            {% endif %}
+          {% endif %}
+        </div>
+        <div class="chat-header-info">
+          <div class="chat-header-name">
+            {% if active_chat.sender == request.user %}
+              {{ active_chat.recipient.first_name }} {{ active_chat.recipient.last_name }}
+            {% else %}
+              {{ active_chat.sender.first_name }} {{ active_chat.sender.last_name }}
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
     </div>
     <div class="messages-container">
-      <!-- Start messaging prompt -->
-      <div class="start-message">📲 Add a friend to start messaging!</div>
-      <button class="add-contact-button" onclick="openDialog()">➕ Add</button>
+      {% if active_chat %}
+        {% if messages %}
+          {% for message in messages %}
+            <div class="message {% if message.sender == request.user %}message-sent{% else %}message-received{% endif %}">
+              {{ message.content }}
+              <div class="message-time">{{ message.sent_at|date:"g:i A" }}</div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="start-message">No messages yet. Start the conversation!</div>
+        {% endif %}
+      {% else %}
+        <!-- Start messaging prompt -->
+        <div class="start-message">📲 Add a friend to start messaging!</div>
+        <button class="add-contact-button" onclick="openDialog()">➕ Add</button>
+      {% endif %}
     </div>
+    {% if active_chat %}
     <div class="input-area">
       <input
         type="text"
         class="message-input"
         placeholder="Type a message..."
+        id="messageInput"
+        onkeypress="if(event.key === 'Enter') sendMessage()"
       />
-      <button class="send-button">
+      <button class="send-button" onclick="sendMessage()">
         <svg
           width="20"
           height="20"
@@ -369,6 +486,7 @@
         </svg>
       </button>
     </div>
+    {% endif %}
   </div>
 
   <!-- Dialog Box -->
@@ -414,13 +532,78 @@
         .then((data) => {
           const searchResult = document.getElementById("search-result");
           if (data.status === "success") {
-            searchResult.innerHTML = `${data.first_name} ${data.last_name}  <button>➕</button>`;
+            searchResult.innerHTML = `${data.first_name} ${data.last_name}  <button onclick="startChat('${data.username}')">➕</button>`;
           } else {
             searchResult.innerHTML = data.message;
           }
         });
     }
 
+    function startChat(username) {
+      const csrfToken = "{{ csrf_token }}";
+
+      fetch("/start_chat/", {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrfToken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: username,
+        }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.status === "success") {
+            window.location.href = `/chats/${data.chat_id}/`;
+            closeDialog();
+          }
+        });
+    }
+
+    function sendMessage() {
+      const messageInput = document.getElementById("messageInput");
+      const content = messageInput.value.trim();
+      
+      if (!content) return;
+
+      const csrfToken = "{{ csrf_token }}";
+      {% if active_chat %}
+      fetch("/send_message/", {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrfToken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chat_id: {{ active_chat.id }},
+          content: content,
+        }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.status === "success") {
+            // Add the new message to the messages container
+            const messagesContainer = document.querySelector(".messages-container");
+            const messageDiv = document.createElement("div");
+            messageDiv.className = "message message-sent";
+            messageDiv.innerHTML = `
+              ${content}
+              <div class="message-time">${data.sent_at}</div>
+            `;
+            messagesContainer.appendChild(messageDiv);
+            
+            // Clear the input
+            messageInput.value = "";
+            
+            // Scroll to the bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          }
+        });
+      {% endif %}
+    }
+
+    // Handle profile pictures and initials
     document.querySelectorAll(".chat-item").forEach((chatItem) => {
       const pfpImage = chatItem.querySelector(".pfp-image");
       const pfpInitials = chatItem.querySelector(".pfp-initials");
@@ -439,6 +622,14 @@
           .toUpperCase();
         pfpInitials.innerText = initials;
         pfpImage.style.display = "none";
+      }
+    });
+
+    // Scroll messages container to bottom when loading chat
+    document.addEventListener("DOMContentLoaded", function() {
+      const messagesContainer = document.querySelector(".messages-container");
+      if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
       }
     });
   </script>

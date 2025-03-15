@@ -74,35 +74,8 @@ def register(request):
     return render(request, 'register.html')
 
 from django.contrib.auth.decorators import login_required
-
-# @login_required
-# def chat_view(request):
-#     # Get all chats where the current user is either sender or recipient
-#     user_chats = Chat.objects.filter(
-#         models.Q(sender=request.user) | models.Q(recipient=request.user)
-#     ).distinct().order_by('-updated_at')
-
-#     # For each chat, get the other user and latest message
-#     chat_data = []
-#     for chat in user_chats:
-#         # Get the other user (not the current user)
-#         other_user = chat.recipient if chat.sender == request.user else chat.sender
-        
-#         # Get the latest message for this chat
-#         latest_message = Message.objects.filter(chat=chat).order_by('-sent_at').first()
-        
-#         if latest_message:
-#             chat_data.append({
-#                 'chat': chat,
-#                 'other_user': other_user,
-#                 'latest_message': latest_message,
-#             })
-
-#     return render(request, 'chat.html', {'chat_data': chat_data})
-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.db.models import Q
 import json
@@ -111,14 +84,40 @@ from .models import User, Chat, Message
 
 @login_required
 def chat_list(request):
+    print(f"Current user: {request.user.username}")
+    print(f"User ID: {request.user.id}")
+    
     # Get all chats where the current user is either sender or recipient
     chats = Chat.objects.filter(
         Q(sender=request.user) | Q(recipient=request.user)
     ).order_by('-updated_at')
     
+    # Debug print statements
+    print(f"Number of chats found: {chats.count()}")
+    
+    # Print all chats in the database for debugging
+    all_chats = Chat.objects.all()
+    print(f"Total chats in database: {all_chats.count()}")
+    for chat in all_chats:
+        print(f"Chat ID: {chat.id}")
+        print(f"Sender: {chat.sender.username} (ID: {chat.sender.id})")
+        print(f"Recipient: {chat.recipient.username} (ID: {chat.recipient.id})")
+        print("---")
+    
+    # Print user's chats
+    print("\nUser's chats:")
+    # FOR DEBUGGING
+    for chat in chats:
+        print(f"Chat ID: {chat.id}")
+        print(f"Sender: {chat.sender.username}")
+        print(f"Recipient: {chat.recipient.username}")
+        print(f"Latest message: {chat.messages.last().content if chat.messages.exists() else 'No messages'}")
+        print("---")
+    
     return render(request, 'chat.html', {
         'chats': chats,
-        'active_chat': None
+        'active_chat': None,
+        'current_user': request.user
     })
 
 @login_required
@@ -144,6 +143,12 @@ def chat_detail(request, chat_id):
         'active_chat_id': chat.id,
         'messages': messages
     })
+
+
+
+
+
+
 
 @login_required
 @require_POST
@@ -388,7 +393,6 @@ def profile(request):
         if 'profile_picture' in request.FILES:
             user.profile_picture = request.FILES['profile_picture']
             user.save()
-            messages.success(request, 'Your profile picture was successfully updated!')
             return redirect('profile')
         
         user.first_name = request.POST.get('first_name', user.first_name)
