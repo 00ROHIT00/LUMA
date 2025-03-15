@@ -144,35 +144,36 @@ def chat_detail(request, chat_id):
         'messages': messages
     })
 
-
-
-
-
-
-
 @login_required
 @require_POST
 def search_user(request):
-    data = json.loads(request.body)
-    username = data.get('username')
-    
-    if not username:
-        return JsonResponse({'status': 'error', 'message': 'Username is required'})
-    
-    # Don't let users search for themselves
-    if username == request.user.username:
-        return JsonResponse({'status': 'error', 'message': 'You cannot chat with yourself'})
-    
     try:
-        user = User.objects.get(username=username)
-        return JsonResponse({
-            'status': 'success',
-            'username': user.username,
-            'first_name': user.first_name,
-            'last_name': user.last_name
-        })
-    except User.DoesNotExist:
-        return JsonResponse({'status': 'error', 'message': 'User not found'})
+        data = json.loads(request.body)
+        username = data.get('username')
+        
+        if not username:
+            return JsonResponse({'status': 'error', 'message': 'Username is required'})
+        
+        # Don't let users search for themselves
+        if username == request.user.username:
+            return JsonResponse({'status': 'error', 'message': 'You cannot chat with yourself'})
+        
+        try:
+            user = User.objects.get(username=username)
+            return JsonResponse({
+                'status': 'success',
+                'username': user.username,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'profile_picture': user.profile_picture.url if user.profile_picture else None,
+                'initials': f"{user.first_name[0]}{user.last_name[0]}"
+            })
+        except User.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'User not found'})
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)})
 
 @login_required
 @require_POST
@@ -180,11 +181,19 @@ def start_chat(request):
     data = json.loads(request.body)
     username = data.get('username')
     
+    print(f"Starting chat with username: {username}")
+    print(f"Request user: {request.user.username}")
+    
     if not username:
         return JsonResponse({'status': 'error', 'message': 'Username is required'})
     
     try:
         recipient = User.objects.get(username=username)
+        print(f"Found recipient: {recipient.username}")
+        
+        # Don't allow starting chat with yourself
+        if recipient == request.user:
+            return JsonResponse({'status': 'error', 'message': 'You cannot start a chat with yourself'})
         
         # Check if chat already exists
         existing_chat = Chat.objects.filter(
@@ -193,14 +202,42 @@ def start_chat(request):
         ).first()
         
         if existing_chat:
-            return JsonResponse({'status': 'success', 'chat_id': existing_chat.id})
+            print(f"Found existing chat with ID: {existing_chat.id}")
+            # Update the chat's timestamp to bring it to top
+            existing_chat.updated_at = datetime.now()
+            existing_chat.save()
+            
+            return JsonResponse({
+                'status': 'success',
+                'chat_id': existing_chat.id,
+                'message': 'Existing chat opened',
+                'recipient': {
+                    'first_name': recipient.first_name,
+                    'last_name': recipient.last_name,
+                    'profile_picture': recipient.profile_picture.url if recipient.profile_picture else None
+                }
+            })
         
         # Create new chat
         chat = Chat.objects.create(sender=request.user, recipient=recipient)
-        return JsonResponse({'status': 'success', 'chat_id': chat.id})
+        print(f"Created new chat with ID: {chat.id}")
+        return JsonResponse({
+            'status': 'success',
+            'chat_id': chat.id,
+            'message': 'New chat created',
+            'recipient': {
+                'first_name': recipient.first_name,
+                'last_name': recipient.last_name,
+                'profile_picture': recipient.profile_picture.url if recipient.profile_picture else None
+            }
+        })
     
     except User.DoesNotExist:
+        print(f"User not found: {username}")
         return JsonResponse({'status': 'error', 'message': 'User not found'})
+    except Exception as e:
+        print(f"Error creating chat: {str(e)}")
+        return JsonResponse({'status': 'error', 'message': str(e)})
 
 @login_required
 @require_POST
@@ -243,47 +280,6 @@ def send_message(request):
 def check_notifications(request):
     pass
 
-
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
-from .models import *
-import json
-
-@csrf_exempt
-def search_user(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            username = data.get('username')
-
-            if not username:
-                return JsonResponse({'status': 'error', 'message': 'Username is required'})
-
-            user = User.objects.get(username=username)
-            return JsonResponse({
-                'status': 'success',
-                'first_name': user.first_name,
-                'last_name': user.last_name
-            })
-        except User.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'User not found'})
-        except json.JSONDecodeError:
-            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)})
-    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
-
-
-from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login
-from django.contrib import messages
-from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login
-from django.contrib import messages
-from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login
-from django.contrib import messages
-
 def admin_login(request):
     if request.method == 'POST':
         username = request.POST['username']
@@ -310,7 +306,6 @@ from .models import User
 def user_count(request):
     user_count = User.objects.count()
     return JsonResponse({'user_count': user_count})
-
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -358,26 +353,6 @@ def update_user(request, user_id):
         return redirect('manage_users')
     return render(request, 'admin_userEdit.html', {'user': user})
 
-# from django.shortcuts import render, redirect
-# from django.contrib.auth.decorators import login_required
-# from django.contrib import messages
-# from .models import User
-
-# @login_required
-# def profile(request):
-#     if request.method == 'POST':
-#         user = request.user
-#         user.first_name = request.POST['first_name']
-#         user.last_name = request.POST['last_name']
-#         user.username = request.POST['username']
-#         user.email = request.POST['email']
-#         user.save()
-#         messages.success(request, 'Your profile was successfully updated!')
-#         return redirect('profile')
-    
-#     return render(request, 'profile.html')
-
-
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -404,8 +379,6 @@ def profile(request):
         return redirect('profile')
     
     return render(request, 'profile.html')
-
-
 
 @login_required
 def delete_account(request):

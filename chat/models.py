@@ -35,8 +35,31 @@ class User(AbstractBaseUser):
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email', 'first_name', 'last_name']
 
+    class Meta:
+        db_table = 'chat_user'
+
     def __str__(self):
         return self.username
+
+    def delete(self, *args, **kwargs):
+        try:
+            # First, delete all messages where this user is the sender
+            print(f"Deleting messages for user {self.username}")
+            Message.objects.filter(sender=self).delete()
+            
+            # Then, delete all chats where this user is involved
+            print(f"Deleting chats for user {self.username}")
+            Chat.objects.filter(
+                models.Q(sender=self) | models.Q(recipient=self)
+            ).delete()
+            
+            # Finally, delete the user
+            print(f"Deleting user {self.username}")
+            super().delete(*args, **kwargs)
+            print(f"Successfully deleted user {self.username}")
+        except Exception as e:
+            print(f"Error deleting user {self.username}: {str(e)}")
+            raise
 
     @property
     def is_staff(self):
@@ -54,8 +77,35 @@ class Chat(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return f"Chat between {self.sender.username} and {self.recipient.username}"
+
+    def delete(self, *args, **kwargs):
+        try:
+            # First delete all messages in this chat
+            print(f"Deleting messages for chat {self.id}")
+            self.messages.all().delete()
+            
+            # Then delete the chat itself
+            print(f"Deleting chat {self.id}")
+            super().delete(*args, **kwargs)
+            print(f"Successfully deleted chat {self.id}")
+        except Exception as e:
+            print(f"Error deleting chat {self.id}: {str(e)}")
+            raise
+
+    class Meta:
+        db_table = 'chat_chat'
+
 class Message(models.Model):
     chat = models.ForeignKey(Chat, related_name='messages', on_delete=models.CASCADE)
     sender = models.ForeignKey(User, on_delete=models.CASCADE)
     content = models.TextField()
     sent_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Message from {self.sender.username} at {self.sent_at}"
+
+    class Meta:
+        db_table = 'chat_message'
+        ordering = ['sent_at']

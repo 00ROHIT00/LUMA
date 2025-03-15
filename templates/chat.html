@@ -155,14 +155,18 @@
     display: flex;
     flex-direction: column;
     background-color: #1a1a1a;
+    justify-content: center;
+    align-items: center;
   }
 
   .start-message {
     text-align: center;
     color: #aaa;
-    font-size: 20px;
+    font-size: 24px;
     max-width: 80%;
+    margin: 0 auto;
     margin-bottom: 20px;
+    animation: fadeIn 0.8s ease-in-out;
   }
 
   .message {
@@ -230,18 +234,48 @@
   }
 
   .add-contact-button {
-    margin-top: 20px;
-    padding: 10px 20px;
+    display: block;
+    margin: 0 auto;
+    padding: 12px 30px;
     border: none;
-    border-radius: 20px;
-    background-color: #333;
+    border-radius: 25px;
+    background: linear-gradient(135deg, #333 0%, #444 100%);
     color: white;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: all 0.3s ease;
+    font-size: 16px;
+    width: auto;
+    min-width: 120px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    animation: slideUp 0.5s ease-out 0.3s both;
   }
 
   .add-contact-button:hover {
-    background-color: #444;
+    background: linear-gradient(135deg, #444 0%, #555 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  @keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
   }
 
   /* Scrollbar styling */
@@ -277,41 +311,94 @@
 
   .dialog-box {
     background-color: #1a1a1a;
-    padding: 30px;
+    padding: 25px;
     border-radius: 15px;
-    width: 400px;
+    width: 350px;
     text-align: center;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
   }
 
   .dialog-title {
-    font-size: 24px;
-    margin-bottom: 20px;
+    font-size: 20px;
+    margin-bottom: 15px;
     color: white;
   }
 
   .input-field {
     width: 100%;
-    padding: 12px;
-    margin-bottom: 15px;
-    border-radius: 10px;
+    padding: 12px 15px;
+    border-radius: 20px;
     border: none;
     background-color: #2a2a2a;
     color: white;
     outline: none;
+    font-size: 14px;
   }
 
-  .dialog-close {
-    margin-top: 20px;
+  #search-result {
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .search-result-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    margin-top: 10px;
+    border-radius: 10px;
+    background-color: #2a2a2a;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  .search-result-item:hover {
+    background-color: #333;
+  }
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .add-friend-btn {
+    background: #333;
+    border: none;
+    border-radius: 20px;
+    padding: 8px 15px;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 14px;
+  }
+
+  .add-friend-btn:hover {
+    background: #444;
+  }
+
+  .dialog-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 15px;
+  }
+
+  .dialog-button {
     padding: 10px 20px;
     background-color: #333;
     border: none;
-    border-radius: 10px;
+    border-radius: 20px;
     color: white;
     cursor: pointer;
+    transition: background-color 0.2s;
+    flex: 1;
+    font-size: 14px;
   }
 
-  .dialog-close:hover {
+  .dialog-button:hover {
     background-color: #444;
   }
 </style>
@@ -448,8 +535,8 @@
         {% endif %}
       {% else %}
         <!-- Start messaging prompt -->
-        <div class="start-message">📲 Add a friend to start messaging!</div>
-        <button class="add-contact-button" onclick="openDialog()">➕ Add</button>
+        <div class="start-message">Add a friend to start messaging!</div>
+        <button class="add-contact-button" onclick="openDialog()">Add</button>
       {% endif %}
     </div>
     {% if active_chat %}
@@ -490,33 +577,59 @@
   </div>
 
   <!-- Dialog Box -->
-  <div class="dialog-overlay" id="dialog">
+  <div class="dialog-overlay" id="dialog" onclick="handleOverlayClick(event)">
     <div class="dialog-box">
       <div class="dialog-title">Add New Contact</div>
-      <input
-        type="text"
-        class="input-field"
-        id="username"
-        placeholder="Enter Username"
-      />
-      <button class="add-contact-button" onclick="searchUser()">Search</button>
+      {% csrf_token %}
+      <div style="position: relative;">
+        <input
+          type="text"
+          class="input-field"
+          id="username"
+          placeholder="Enter Username"
+          onkeypress="if(event.key === 'Enter') searchUser()"
+        />
+      </div>
       <div id="search-result"></div>
-      <button class="dialog-close" onclick="closeDialog()">Close</button>
+      <div class="dialog-buttons">
+        <button class="dialog-button" onclick="searchUser()">Search</button>
+        <button class="dialog-button" onclick="closeDialog()">Close</button>
+      </div>
     </div>
   </div>
 
   <script>
+    // Single function to handle both navbar and chat "Add" buttons
     function openDialog() {
       document.getElementById("dialog").style.display = "flex";
+      // Clear previous search results and input when opening
+      document.getElementById("search-result").innerHTML = "";
+      document.getElementById("username").value = "";
     }
 
     function closeDialog() {
       document.getElementById("dialog").style.display = "none";
     }
 
+    function handleOverlayClick(event) {
+      // Close dialog only if clicking the overlay itself, not its children
+      if (event.target.classList.contains('dialog-overlay')) {
+        closeDialog();
+      }
+    }
+
     function searchUser() {
       const username = document.getElementById("username").value;
-      const csrfToken = "{{ csrf_token }}";
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+      const searchResult = document.getElementById("search-result");
+      
+      if (!username.trim()) {
+        searchResult.innerHTML = '<div class="search-result-item" style="color: #ff6b6b;">Please enter a username</div>';
+        return;
+      }
+      
+      console.log("Searching for user:", username);
+      searchResult.innerHTML = '<div class="search-result-item">Searching...</div>';
 
       fetch("/search_user/", {
         method: "POST",
@@ -528,19 +641,34 @@
           username: username,
         }),
       })
-        .then((response) => response.json())
-        .then((data) => {
-          const searchResult = document.getElementById("search-result");
-          if (data.status === "success") {
-            searchResult.innerHTML = `${data.first_name} ${data.last_name}  <button onclick="startChat('${data.username}')">➕</button>`;
-          } else {
-            searchResult.innerHTML = data.message;
-          }
-        });
+      .then(response => response.json())
+      .then((data) => {
+        console.log("Search response data:", data);
+        if (data.status === "success") {
+          const resultDiv = document.createElement('div');
+          resultDiv.className = 'search-result-item';
+          resultDiv.textContent = `${data.first_name} ${data.last_name}`;
+          resultDiv.addEventListener('click', function() {
+            console.log('Search result clicked');
+            startChat(data.username);
+          });
+          
+          searchResult.innerHTML = '';
+          searchResult.appendChild(resultDiv);
+        } else {
+          searchResult.innerHTML = `<div class="search-result-item" style="color: #ff6b6b;">${data.message}</div>`;
+        }
+      })
+      .catch((error) => {
+        console.error('Error in searchUser:', error);
+        searchResult.innerHTML = '<div class="search-result-item" style="color: #ff6b6b;">An error occurred. Please try again.</div>';
+      });
     }
 
     function startChat(username) {
-      const csrfToken = "{{ csrf_token }}";
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+      console.log("Starting chat with:", username);
+      console.log("Using CSRF token:", csrfToken);
 
       fetch("/start_chat/", {
         method: "POST",
@@ -552,13 +680,73 @@
           username: username,
         }),
       })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.status === "success") {
-            window.location.href = `/chats/${data.chat_id}/`;
-            closeDialog();
+      .then(response => {
+        console.log("Start chat response status:", response.status);
+        return response.json();
+      })
+      .then((data) => {
+        console.log("Start chat response data:", data);
+        if (data.status === 'success') {
+          // Close the dialog
+          closeDialog();
+          
+          // Create new chat item if it doesn't exist
+          if (!document.querySelector(`[data-chat-url="/chats/${data.chat_id}/"]`)) {
+            console.log("Creating new chat item in the list");
+            const chatList = document.querySelector('.chat-list');
+            const noChatsMessage = chatList.querySelector('div[style*="text-align: center"]');
+            if (noChatsMessage) {
+              noChatsMessage.remove();
+            }
+
+            const chatItem = document.createElement('div');
+            chatItem.className = 'chat-item';
+            chatItem.setAttribute('data-chat-url', `/chats/${data.chat_id}/`);
+            chatItem.onclick = () => window.location.href = `/chats/${data.chat_id}/`;
+
+            const initials = `${data.recipient.first_name[0]}${data.recipient.last_name[0]}`;
+            
+            chatItem.innerHTML = `
+              <div class="chat-item-pfp">
+                ${data.recipient.profile_picture 
+                  ? `<img src="${data.recipient.profile_picture}" alt="Profile Picture" class="pfp-image" style="display: block;">` 
+                  : `<div class="pfp-initials">${initials}</div>`}
+              </div>
+              <div class="chat-item-details">
+                <div class="chat-item-name">
+                  ${data.recipient.first_name} ${data.recipient.last_name}
+                </div>
+                <div class="chat-item-preview">
+                  No messages yet
+                </div>
+              </div>
+              <div style="font-size: 12px; color: #666; text-align: right">
+                Just now
+              </div>
+            `;
+
+            // Add the new chat item at the top of the list
+            chatList.insertBefore(chatItem, chatList.firstChild);
+            console.log("New chat item added to the list");
+          } else {
+            console.log("Chat item already exists in the list");
           }
-        });
+          
+          // Redirect to the chat
+          console.log("Redirecting to chat:", `/chats/${data.chat_id}/`);
+          window.location.href = `/chats/${data.chat_id}/`;
+        } else {
+          // Show error message
+          console.error("Error starting chat:", data.message);
+          document.getElementById("search-result").innerHTML = 
+            `<div class="search-result-item" style="color: #ff6b6b;">${data.message}</div>`;
+        }
+      })
+      .catch((error) => {
+        console.error('Error in startChat:', error);
+        document.getElementById("search-result").innerHTML = 
+          '<div class="search-result-item" style="color: #ff6b6b;">An error occurred. Please try again.</div>';
+      });
     }
 
     function sendMessage() {

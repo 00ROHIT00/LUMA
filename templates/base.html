@@ -122,6 +122,82 @@
         display: flex;
         flex-direction: column;
       }
+
+      .input-field {
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 15px;
+        border-radius: 10px;
+        border: none;
+        background-color: #2a2a2a;
+        color: white;
+        outline: none;
+      }
+
+      #search-result {
+        margin-top: 15px;
+        text-align: center;
+        width: 100%;
+      }
+
+      .search-result-item {
+        padding: 12px;
+        border-radius: 10px;
+        background-color: #2a2a2a;
+        color: white;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        text-align: center;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0 auto;
+        position: relative;
+      }
+
+      .search-result-item::after {
+        content: "Click to Add";
+        position: absolute;
+        bottom: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s, visibility 0.3s;
+        z-index: 1000;
+      }
+
+      .search-result-item::before {
+        content: "";
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 5px;
+        border-style: solid;
+        border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s, visibility 0.3s;
+        z-index: 1000;
+      }
+
+      .search-result-item:hover::after,
+      .search-result-item:hover::before {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .search-result-item:hover {
+        background-color: #3a3a3a;
+        cursor: pointer;
+      }
     </style>
 
   </head>
@@ -273,7 +349,16 @@
       function searchUser() {
         const username = document.getElementById("username").value;
         const csrfToken = "{{ csrf_token }}";
-    
+        const searchResult = document.getElementById("search-result");
+        
+        if (!username.trim()) {
+          searchResult.innerHTML = '<div class="search-result-item" style="color: #ff6b6b;">Please enter a username</div>';
+          return;
+        }
+        
+        console.log("Searching for user:", username);
+        searchResult.innerHTML = '<div class="search-result-item">Searching...</div>';
+
         fetch("/search_user/", {
           method: "POST",
           headers: {
@@ -284,15 +369,57 @@
             username: username
           }),
         })
-          .then((response) => response.json())
-          .then((data) => {
-            const searchResult = document.getElementById("search-result");
-            if (data.status === "success") {
-              searchResult.innerHTML = `${data.first_name} ${data.last_name}  <button>➕</button>`;
-            } else {
-              searchResult.innerHTML = data.message;
-            }
-          });
+        .then((response) => response.json())
+        .then((data) => {
+          console.log("Search response:", data);
+          if (data.status === "success") {
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'search-result-item';
+            resultDiv.setAttribute('role', 'button');
+            resultDiv.setAttribute('aria-label', 'Click to add contact');
+            resultDiv.textContent = `${data.first_name.charAt(0).toUpperCase() + data.first_name.slice(1)} ${data.last_name.charAt(0).toUpperCase() + data.last_name.slice(1)}`;
+            
+            // Add click handler to start chat
+            resultDiv.addEventListener('click', function() {
+              console.log('Starting chat with:', data.username);
+              fetch("/start_chat/", {
+                method: "POST",
+                headers: {
+                  "X-CSRFToken": csrfToken,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  username: data.username
+                }),
+              })
+              .then(response => response.json())
+              .then(chatData => {
+                console.log("Chat creation response:", chatData);
+                if (chatData.status === 'success') {
+                  // Close the dialog
+                  closeDialog();
+                  // Redirect to the new chat
+                  window.location.href = `/chats/${chatData.chat_id}/`;
+                } else {
+                  searchResult.innerHTML = `<div class="search-result-item" style="color: #ff6b6b;">${chatData.message}</div>`;
+                }
+              })
+              .catch(error => {
+                console.error('Error starting chat:', error);
+                searchResult.innerHTML = '<div class="search-result-item" style="color: #ff6b6b;">Error starting chat. Please try again.</div>';
+              });
+            });
+            
+            searchResult.innerHTML = '';
+            searchResult.appendChild(resultDiv);
+          } else {
+            searchResult.innerHTML = `<div class="search-result-item" style="color: #ff6b6b;">${data.message}</div>`;
+          }
+        })
+        .catch(error => {
+          console.error('Error searching user:', error);
+          searchResult.innerHTML = '<div class="search-result-item" style="color: #ff6b6b;">Error searching user. Please try again.</div>';
+        });
       }
     </script>
 
