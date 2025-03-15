@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 from django.db import models
+from django.utils import timezone
 
 def home(request):
     return render(request, 'index.html')
@@ -80,7 +81,7 @@ from django.views.decorators.http import require_POST
 from django.db.models import Q
 import json
 from datetime import datetime
-from .models import User, Chat, Message
+from .models import User, Chat, Message, Report
 
 @login_required
 def chat_list(request):
@@ -204,7 +205,7 @@ def start_chat(request):
         if existing_chat:
             print(f"Found existing chat with ID: {existing_chat.id}")
             # Update the chat's timestamp to bring it to top
-            existing_chat.updated_at = datetime.now()
+            existing_chat.updated_at = timezone.now()
             existing_chat.save()
             
             return JsonResponse({
@@ -242,39 +243,31 @@ def start_chat(request):
 @login_required
 @require_POST
 def send_message(request):
-    data = json.loads(request.body)
-    chat_id = data.get('chat_id')
-    content = data.get('content')
-    
-    if not chat_id or not content:
-        return JsonResponse({'status': 'error', 'message': 'Chat ID and content are required'})
-    
-    try:
-        chat = Chat.objects.get(id=chat_id)
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        chat_id = data.get('chat_id')
+        message_content = data.get('message')
         
-        # Security check - ensure the user is part of this chat
-        if request.user != chat.sender and request.user != chat.recipient:
-            return JsonResponse({'status': 'error', 'message': 'You are not authorized to send messages to this chat'})
-        
-        # Create and save the message
-        message = Message.objects.create(
-            chat=chat,
-            sender=request.user,
-            content=content
-        )
-        
-        # Update the chat's updated_at timestamp
-        chat.updated_at = datetime.now()
-        chat.save()
-        
-        return JsonResponse({
-            'status': 'success',
-            'message_id': message.id,
-            'sent_at': message.sent_at.strftime('%I:%M %p')
-        })
-    
-    except Chat.DoesNotExist:
-        return JsonResponse({'status': 'error', 'message': 'Chat not found'})
+        try:
+            chat = Chat.objects.get(id=chat_id)
+            message = Message.objects.create(
+                chat=chat,
+                sender=request.user,
+                content=message_content,
+                sent_at=timezone.now()
+            )
+            chat.updated_at = timezone.now()
+            chat.save()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': message.content,
+                'message_id': message.id,
+                'sent_at': timezone.localtime(message.sent_at).strftime('%I:%M %p')
+            })
+        except Chat.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Chat not found'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
 
 @login_required
 def check_notifications(request):
@@ -389,3 +382,51 @@ def delete_account(request):
         return redirect('home')
     
     return render(request, 'delete_account.html')
+
+@login_required
+@require_POST
+def report_message(request):
+    try:
+        data = json.loads(request.body)
+        message_id = data.get('message_id')
+        
+        if not message_id:
+            return JsonResponse({'status': 'error', 'message': 'Message ID is required'})
+        
+        try:
+            message = Message.objects.get(id=message_id)
+            
+            # Check if user has already reported this message
+            if Report.objects.filter(message=message, reporter=request.user).exists():
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'You have already reported this message'
+                })
+            
+            # Create the report
+            Report.objects.create(
+                message=message,
+                reporter=request.user
+            )
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Message has been reported'
+            })
+            
+        except Message.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Message not found'
+            })
+            
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Invalid JSON data'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        })

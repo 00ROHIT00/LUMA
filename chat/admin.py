@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, Chat, Message
+from .models import User, Chat, Message, Report
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
@@ -35,5 +35,11 @@ class MessageAdmin(admin.ModelAdmin):
     ordering = ('-sent_at',)
     raw_id_fields = ('chat', 'sender')
 
-
-
+@admin.register(Report)
+class ReportAdmin(admin.ModelAdmin):
+    list_display = ('id', 'message', 'reporter', 'reported_at', 'status')
+    list_filter = ('reported_at', 'status')
+    search_fields = ('message__content', 'reporter__username')
+    ordering = ('-reported_at',)
+    raw_id_fields = ('message', 'reporter')
+    readonly_fields = ('reported_at',)

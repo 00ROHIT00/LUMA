@@ -1,4 +1,4 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %} {% load tz %} {% block content %}
 <style>
   * {
     margin: 0;
@@ -155,6 +155,10 @@
     display: flex;
     flex-direction: column;
     background-color: #1a1a1a;
+    align-items: stretch;
+  }
+
+  .messages-container:has(.start-message) {
     justify-content: center;
     align-items: center;
   }
@@ -176,6 +180,8 @@
     margin-bottom: 15px;
     word-wrap: break-word;
     position: relative;
+    width: fit-content;
+    cursor: context-menu;
   }
 
   .message-sent {
@@ -401,9 +407,46 @@
   .dialog-button:hover {
     background-color: #444;
   }
+
+  /* Add this to your existing styles */
+  .context-menu {
+    position: fixed;
+    background: #2a2a2a;
+    border-radius: 8px;
+    padding: 8px 0;
+    min-width: 150px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    display: none;
+    z-index: 9999;
+  }
+
+  .context-menu-item {
+    padding: 8px 15px;
+    cursor: pointer;
+    color: white;
+    transition: background-color 0.2s;
+  }
+
+  .context-menu-item:hover {
+    background-color: #333;
+  }
+
+  .context-menu-item.danger {
+    color: #ff6b6b;
+  }
 </style>
 
 <div class="chat-container">
+  <!-- Add this right after the chat-container div -->
+  <div id="message-context-menu" class="context-menu">
+    <div class="context-menu-item" onclick="copyMessage(this)" data-message-id="">
+      Copy Message
+    </div>
+    <div class="context-menu-item danger" onclick="reportMessage(this)" data-message-id="">
+      Report Message
+    </div>
+  </div>
+
   <!-- Chat List Panel (30% width) -->
   <div class="chat-list-panel">
     <div class="chat-list-title">Chats</div>
@@ -475,7 +518,7 @@
             </div>
           </div>
           <div style="font-size: 12px; color: #666; text-align: right">
-            {{ chat.updated_at|date:"g:i A" }}
+            {{ chat.updated_at|localtime|date:"g:i A" }}
           </div>
         </div>
         {% endfor %}
@@ -525,13 +568,15 @@
       {% if active_chat %}
         {% if messages %}
           {% for message in messages %}
-            <div class="message {% if message.sender == request.user %}message-sent{% else %}message-received{% endif %}">
+            <div class="message {% if message.sender == request.user %}message-sent{% else %}message-received{% endif %}"
+                 data-message-id="{{ message.id }}"
+                 oncontextmenu="showContextMenu(event, this)">
               {{ message.content }}
-              <div class="message-time">{{ message.sent_at|date:"g:i A" }}</div>
+              <div class="message-time">{{ message.sent_at|localtime|date:"g:i A" }}</div>
             </div>
           {% endfor %}
         {% else %}
-          <div class="start-message">No messages yet. Start the conversation!</div>
+          <div class="start-message" id="no-messages-prompt">No messages yet. Start the conversation!</div>
         {% endif %}
       {% else %}
         <!-- Start messaging prompt -->
@@ -765,16 +810,24 @@
         },
         body: JSON.stringify({
           chat_id: {{ active_chat.id }},
-          content: content,
+          message: content,
         }),
       })
         .then((response) => response.json())
         .then((data) => {
           if (data.status === "success") {
+            // Remove the "No messages yet" prompt if it exists
+            const noMessagesPrompt = document.getElementById("no-messages-prompt");
+            if (noMessagesPrompt) {
+              noMessagesPrompt.remove();
+            }
+            
             // Add the new message to the messages container
             const messagesContainer = document.querySelector(".messages-container");
             const messageDiv = document.createElement("div");
             messageDiv.className = "message message-sent";
+            messageDiv.dataset.messageId = data.message_id;
+            messageDiv.setAttribute('oncontextmenu', 'showContextMenu(event, this)');
             messageDiv.innerHTML = `
               ${content}
               <div class="message-time">${data.sent_at}</div>
@@ -817,7 +870,140 @@
     document.addEventListener("DOMContentLoaded", function() {
       const messagesContainer = document.querySelector(".messages-container");
       if (messagesContainer) {
+        // Force a reflow to ensure scrollHeight is calculated correctly
+        setTimeout(() => {
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }, 100);
+      }
+    });
+
+    // Also scroll to bottom when messages are loaded or when switching chats
+    function scrollToBottom() {
+      const messagesContainer = document.querySelector(".messages-container");
+      if (messagesContainer) {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+    }
+
+    // Call scrollToBottom when the page loads
+    window.onload = scrollToBottom;
+
+    // Ensure images are loaded before scrolling
+    document.querySelectorAll('.messages-container img').forEach(img => {
+      img.onload = scrollToBottom;
+    });
+
+    // Add these new functions to your existing script
+    let selectedMessageElement = null;
+
+    function showContextMenu(event, messageElement) {
+      // Hide any existing context menu first
+      hideContextMenu();
+      
+      event.preventDefault(); // Prevent default context menu
+      event.stopPropagation(); // Stop event from bubbling up
+      
+      const contextMenu = document.getElementById('message-context-menu');
+      if (!contextMenu) {
+        return;
+      }
+      
+      const messageId = messageElement.dataset.messageId;
+      if (!messageId) {
+        return;
+      }
+      
+      // Update the message ID and content in all context menu items
+      contextMenu.querySelectorAll('.context-menu-item').forEach(item => {
+        item.dataset.messageId = messageId;
+        item.dataset.messageContent = messageElement.childNodes[0].textContent.trim();
+      });
+      
+      // Position the context menu at the mouse position
+      contextMenu.style.display = 'block';
+      
+      // Calculate position relative to viewport
+      const x = event.clientX;
+      const y = event.clientY;
+      
+      // Get viewport dimensions
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      // Get menu dimensions
+      const menuWidth = contextMenu.offsetWidth;
+      const menuHeight = contextMenu.offsetHeight;
+      
+      // Check if menu goes outside viewport
+      const rightEdgeExceeded = x + menuWidth > viewportWidth;
+      const bottomEdgeExceeded = y + menuHeight > viewportHeight;
+      
+      // Position menu
+      contextMenu.style.left = rightEdgeExceeded ? `${x - menuWidth}px` : `${x}px`;
+      contextMenu.style.top = bottomEdgeExceeded ? `${y - menuHeight}px` : `${y}px`;
+    }
+
+    function copyMessage(menuItem) {
+      const messageContent = menuItem.dataset.messageContent;
+      if (messageContent) {
+        navigator.clipboard.writeText(messageContent)
+          .then(() => {
+            // Show a brief notification that the message was copied
+            const notification = document.createElement('div');
+            notification.style.position = 'fixed';
+            notification.style.bottom = '20px';
+            notification.style.left = '50%';
+            notification.style.transform = 'translateX(-50%)';
+            notification.style.backgroundColor = '#333';
+            notification.style.color = 'white';
+            notification.style.padding = '10px 20px';
+            notification.style.borderRadius = '5px';
+            notification.style.zIndex = '10000';
+            notification.textContent = 'Message copied!';
+            document.body.appendChild(notification);
+            
+            setTimeout(() => notification.remove(), 2000);
+          })
+          .catch(err => console.error('Failed to copy message:', err));
+      }
+      hideContextMenu();
+    }
+
+    function hideContextMenu() {
+      const contextMenu = document.getElementById('message-context-menu');
+      if (contextMenu) {
+        contextMenu.style.display = 'none';
+      }
+    }
+
+    // Close context menu when clicking outside
+    document.addEventListener('click', function(event) {
+      if (!event.target.closest('#message-context-menu')) {
+        hideContextMenu();
+      }
+    });
+
+    // Close context menu when scrolling
+    const messagesContainer = document.querySelector('.messages-container');
+    if (messagesContainer) {
+      messagesContainer.addEventListener('scroll', hideContextMenu);
+    }
+
+    // Close context menu when pressing Escape
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        hideContextMenu();
+      }
+    });
+
+    // Close context menu when window is resized
+    window.addEventListener('resize', hideContextMenu);
+
+    // Prevent context menu from appearing on right-click outside messages
+    document.addEventListener('contextmenu', function(event) {
+      if (!event.target.closest('.message')) {
+        event.preventDefault();
+        hideContextMenu();
       }
     });
   </script>

@@ -109,3 +109,26 @@ class Message(models.Model):
     class Meta:
         db_table = 'chat_message'
         ordering = ['sent_at']
+
+class Report(models.Model):
+    REPORT_STATUSES = [
+        ('pending', 'Pending Review'),
+        ('reviewed', 'Reviewed'),
+        ('resolved', 'Resolved'),
+        ('dismissed', 'Dismissed'),
+    ]
+
+    message = models.ForeignKey(Message, related_name='reports', on_delete=models.CASCADE)
+    reporter = models.ForeignKey(User, related_name='reported_messages', on_delete=models.CASCADE)
+    reported_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=REPORT_STATUSES, default='pending')
+    reviewed_by = models.ForeignKey(User, related_name='reviewed_reports', on_delete=models.SET_NULL, null=True, blank=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Report by {self.reporter.username} on message {self.message.id}"
+
+    class Meta:
+        db_table = 'chat_report'
+        ordering = ['-reported_at']
