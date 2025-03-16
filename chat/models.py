@@ -103,6 +103,8 @@ class Message(models.Model):
     content = models.TextField()
     sent_at = models.DateTimeField(auto_now_add=True)
     read_by = models.ManyToManyField(User, related_name='read_messages', blank=True)
+    deleted_for = models.ManyToManyField(User, related_name='deleted_messages', blank=True)
+    deleted_for_everyone = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Message from {self.sender.username} at {self.sent_at}"
@@ -113,6 +115,17 @@ class Message(models.Model):
 
     def is_read_by(self, user):
         return self.read_by.filter(id=user.id).exists()
+
+    def delete_for_user(self, user):
+        self.deleted_for.add(user)
+        self.save()
+
+    def delete_for_everyone(self):
+        self.deleted_for_everyone = True
+        self.save()
+
+    def is_deleted_for(self, user):
+        return self.deleted_for.filter(id=user.id).exists()
 
     class Meta:
         db_table = 'chat_message'

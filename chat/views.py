@@ -541,3 +541,89 @@ def report_message(request):
             'status': 'error',
             'message': str(e)
         })
+
+@login_required
+@require_POST
+def delete_message_for_me(request):
+    try:
+        data = json.loads(request.body)
+        message_id = data.get('message_id')
+        
+        if not message_id:
+            return JsonResponse({'status': 'error', 'message': 'Message ID is required'})
+        
+        try:
+            message = Message.objects.get(id=message_id)
+            # Check if user is part of the chat
+            if request.user not in [message.chat.sender, message.chat.recipient]:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'You do not have permission to delete this message'
+                })
+            
+            message.delete_for_user(request.user)
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Message deleted for you'
+            })
+            
+        except Message.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Message not found'
+            })
+            
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Invalid JSON data'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@login_required
+@require_POST
+def delete_message_for_everyone(request):
+    try:
+        data = json.loads(request.body)
+        message_id = data.get('message_id')
+        
+        if not message_id:
+            return JsonResponse({'status': 'error', 'message': 'Message ID is required'})
+        
+        try:
+            message = Message.objects.get(id=message_id)
+            # Only message sender can delete for everyone
+            if request.user != message.sender:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Only the sender can delete a message for everyone'
+                })
+            
+            message.delete_for_everyone()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Message deleted for everyone'
+            })
+            
+        except Message.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Message not found'
+            })
+            
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Invalid JSON data'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        })

@@ -1,4 +1,4 @@
-{% extends "base.html" %} {% load tz %} {% block content %}
+{% extends "base.html" %} {% load tz %} {% load chat_filters %} {% block content %}
 <style>
   * {
     margin: 0;
@@ -192,6 +192,11 @@
     position: relative;
     width: fit-content;
     cursor: context-menu;
+  }
+
+  .message.deleted {
+    font-style: italic;
+    color: #666;
   }
 
   .message-sent {
@@ -478,6 +483,12 @@
     <div class="context-menu-item" onclick="copyMessage(this)" data-message-id="">
       Copy Message
     </div>
+    <div class="context-menu-item" onclick="deleteMessageForMe(this)" data-message-id="">
+      Delete for me
+    </div>
+    <div class="context-menu-item danger sender-only" onclick="deleteMessageForEveryone(this)" data-message-id="">
+      Delete for everyone
+    </div>
     <div class="context-menu-item danger" onclick="reportMessage(this)" data-message-id="">
       Report Message
     </div>
@@ -540,7 +551,9 @@
             {% endif %}
           </div>
           <div class="chat-item-details">
-            <div class="chat-item-name">
+            <div class="chat-item-name"
+                 data-first-name="{% if chat.sender == request.user %}{{ chat.recipient.first_name }}{% else %}{{ chat.sender.first_name }}{% endif %}"
+                 data-last-name="{% if chat.sender == request.user %}{{ chat.recipient.last_name }}{% else %}{{ chat.sender.last_name }}{% endif %}">
               {% if chat.sender == request.user %}
                 {{ chat.recipient.first_name }} {{ chat.recipient.last_name }}
               {% else %}
@@ -609,10 +622,16 @@
       {% if active_chat %}
         {% if messages %}
           {% for message in messages %}
-            <div class="message {% if message.sender == request.user %}message-sent{% else %}message-received{% endif %}"
+            <div class="message {% if message.sender == request.user %}message-sent{% else %}message-received{% endif %} {% if message.deleted_for_everyone %}deleted{% endif %}"
                  data-message-id="{{ message.id }}"
-                 oncontextmenu="showContextMenu(event, this)">
-              {{ message.content }}
+                 data-sender-id="{{ message.sender.id }}"
+                 oncontextmenu="showContextMenu(event, this)"
+                 {% if message.deleted_for.all|contains:request.user %}style="display: none;"{% endif %}>
+              {% if message.deleted_for_everyone %}
+                <i>Message deleted</i>
+              {% else %}
+                {{ message.content }}
+              {% endif %}
               <div class="message-time">{{ message.sent_at|localtime|date:"g:i A" }}</div>
             </div>
           {% endfor %}
@@ -799,7 +818,9 @@
                   : `<div class="pfp-initials">${initials}</div>`}
               </div>
               <div class="chat-item-details">
-                <div class="chat-item-name">
+                <div class="chat-item-name"
+                     data-first-name="${data.recipient.first_name}"
+                     data-last-name="${data.recipient.last_name}">
                   ${data.recipient.first_name} ${data.recipient.last_name}
                 </div>
                 <div class="chat-item-preview">
@@ -889,7 +910,7 @@
     document.querySelectorAll(".chat-item").forEach((chatItem) => {
       const pfpImage = chatItem.querySelector(".pfp-image");
       const pfpInitials = chatItem.querySelector(".pfp-initials");
-      const name = chatItem.querySelector(".chat-item-name").innerText;
+      const nameElement = chatItem.querySelector(".chat-item-name");
 
       if (pfpImage && pfpImage.src) {
         // Show image if the src is valid
@@ -897,11 +918,9 @@
         pfpInitials.style.display = "none";
       } else {
         // Fallback: Show initials
-        const initials = name
-          .split(" ")
-          .map((word) => word.charAt(0))
-          .join("")
-          .toUpperCase();
+        const firstName = nameElement.dataset.firstName || '';
+        const lastName = nameElement.dataset.lastName || '';
+        const initials = (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
         pfpInitials.innerText = initials;
         pfpImage.style.display = "none";
       }
@@ -950,8 +969,17 @@
       }
       
       const messageId = messageElement.dataset.messageId;
+      const senderId = messageElement.dataset.senderId;
+      const currentUserId = "{{ request.user.id }}";
+      
       if (!messageId) {
         return;
+      }
+      
+      // Show/hide "Delete for everyone" option based on whether user is the sender
+      const deleteForEveryoneOption = contextMenu.querySelector('.sender-only');
+      if (deleteForEveryoneOption) {
+        deleteForEveryoneOption.style.display = senderId === currentUserId ? 'block' : 'none';
       }
       
       // Update the message ID and content in all context menu items
@@ -1047,6 +1075,64 @@
         hideContextMenu();
       }
     });
+
+    function deleteMessageForMe(menuItem) {
+      const messageId = menuItem.dataset.messageId;
+      if (!messageId) return;
+
+      fetch('/delete_message_for_me/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ message_id: messageId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          // Refresh the page to show changes
+          window.location.reload();
+        } else {
+          alert('Failed to delete message. Please try again.');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to delete message. Please try again.');
+      });
+      
+      hideContextMenu();
+    }
+
+    function deleteMessageForEveryone(menuItem) {
+      const messageId = menuItem.dataset.messageId;
+      if (!messageId) return;
+
+      fetch('/delete_message_for_everyone/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ message_id: messageId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          // Refresh the page to show changes
+          window.location.reload();
+        } else {
+          alert('Failed to delete message. Please try again.');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to delete message. Please try again.');
+      });
+      
+      hideContextMenu();
+    }
   </script>
 
   {% endblock %}
