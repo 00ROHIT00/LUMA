@@ -1,0 +1,574 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Reported Messages - LUMA Admin{% endblock %}
+
+{% block extra_css %}
+.reports-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.reports-header h1 {
+    font-size: 2.5rem;
+    color: #fff;
+}
+
+.reports-container {
+    display: flex;
+    gap: 2rem;
+}
+
+.filters {
+    flex: 0 0 250px;
+    background: #1e1e1e;
+    padding: 1.5rem;
+    border-radius: 10px;
+    height: fit-content;
+}
+
+.filters h3 {
+    color: #fff;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.filter-group {
+    margin-bottom: 1.5rem;
+}
+
+.filter-group label {
+    display: block;
+    color: #bbb;
+    margin-bottom: 0.5rem;
+}
+
+.filter-group select {
+    width: 100%;
+    padding: 0.5rem;
+    background: #2c2c2c;
+    border: 1px solid #444;
+    border-radius: 5px;
+    color: #fff;
+}
+
+.reports-list {
+    flex: 1;
+}
+
+.report-card {
+    background: #1e1e1e;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #333;
+}
+
+.report-info {
+    flex: 1;
+}
+
+.report-id {
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.report-status {
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.status-pending {
+    background: #ffa500;
+    color: #000;
+}
+
+.status-reviewed {
+    background: #3498db;
+    color: #fff;
+}
+
+.status-resolved {
+    background: #2ecc71;
+    color: #fff;
+}
+
+.status-dismissed {
+    background: #95a5a6;
+    color: #fff;
+}
+
+.message-content {
+    background: #2c2c2c;
+    padding: 1rem;
+    border-radius: 5px;
+    margin: 1rem 0;
+    color: #fff;
+}
+
+.report-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.detail-group {
+    color: #bbb;
+}
+
+.detail-label {
+    font-size: 0.9rem;
+    color: #888;
+    margin-bottom: 0.3rem;
+}
+
+.detail-value {
+    color: #fff;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.action-btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: opacity 0.3s;
+}
+
+.action-btn:hover {
+    opacity: 0.8;
+}
+
+.resolve-btn {
+    background: #2ecc71;
+    color: #fff;
+}
+
+.dismiss-btn {
+    background: #95a5a6;
+    color: #fff;
+}
+
+.delete-btn {
+    background: #e74c3c;
+    color: #fff;
+}
+
+.notes-section {
+    margin-top: 1rem;
+}
+
+.notes-section textarea {
+    width: 100%;
+    background: #2c2c2c;
+    border: 1px solid #444;
+    border-radius: 5px;
+    color: #fff;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+    resize: vertical;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+}
+
+.page-btn {
+    padding: 0.5rem 1rem;
+    background: #2c2c2c;
+    border: 1px solid #444;
+    border-radius: 5px;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.page-btn:hover {
+    background: #3c3c3c;
+}
+
+.page-btn.active {
+    background: #3b5998;
+    border-color: #3b5998;
+}
+
+.no-reports {
+    text-align: center;
+    color: #888;
+    padding: 2rem;
+    background: #1e1e1e;
+    border-radius: 10px;
+}
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: #1e1e1e;
+    padding: 2rem;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #333;
+}
+
+.modal-header h2 {
+    color: #fff;
+    font-size: 1.5rem;
+    margin: 0;
+}
+
+.modal-body {
+    margin-bottom: 1.5rem;
+}
+
+.action-group {
+    margin-bottom: 1rem;
+}
+
+.action-group label {
+    display: block;
+    color: #bbb;
+    margin-bottom: 0.5rem;
+}
+
+.ban-duration {
+    width: 100%;
+    padding: 0.5rem;
+    background: #2c2c2c;
+    border: 1px solid #444;
+    border-radius: 5px;
+    color: #fff;
+    margin-top: 0.5rem;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.modal-btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: opacity 0.3s;
+}
+
+.modal-btn:hover {
+    opacity: 0.8;
+}
+
+.modal-btn.cancel {
+    background: #95a5a6;
+    color: #fff;
+}
+
+.modal-btn.confirm {
+    background: #2ecc71;
+    color: #fff;
+}
+
+.warning-checkbox, .ban-checkbox {
+    margin-right: 0.5rem;
+}
+{% endblock %}
+
+{% block content %}
+<div class="reports-header">
+    <h1>Reported Messages</h1>
+</div>
+
+<div class="reports-container">
+    <!-- Filters Sidebar -->
+    <div class="filters">
+        <h3>Filters</h3>
+        <form id="filterForm" method="GET">
+            <div class="filter-group">
+                <label for="status">Status</label>
+                <select name="status" id="status">
+                    <option value="">All</option>
+                    <option value="pending">Pending</option>
+                    <option value="reviewed">Reviewed</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="dismissed">Dismissed</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="date">Date Range</label>
+                <select name="date" id="date">
+                    <option value="">All Time</option>
+                    <option value="today">Today</option>
+                    <option value="week">Last 7 Days</option>
+                    <option value="month">Last 30 Days</option>
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <!-- Reports List -->
+    <div class="reports-list">
+        {% if reports %}
+            {% for report in reports %}
+            <div class="report-card">
+                <div class="report-header">
+                    <div class="report-info">
+                        <span class="report-id">#{{ report.id }}</span>
+                    </div>
+                    <span class="report-status status-{{ report.status }}">
+                        {{ report.get_status_display }}
+                    </span>
+                </div>
+
+                <div class="message-content">
+                    {{ report.message.content }}
+                </div>
+
+                <div class="report-details">
+                    <div class="detail-group">
+                        <div class="detail-label">Reported By</div>
+                        <div class="detail-value">{{ report.reporter.username }}</div>
+                    </div>
+                    <div class="detail-group">
+                        <div class="detail-label">Message From</div>
+                        <div class="detail-value">{{ report.message.sender.username }}</div>
+                    </div>
+                    <div class="detail-group">
+                        <div class="detail-label">Reported At</div>
+                        <div class="detail-value">{{ report.reported_at|date:"M d, Y H:i" }}</div>
+                    </div>
+                    {% if report.reviewed_by %}
+                    <div class="detail-group">
+                        <div class="detail-label">Reviewed By</div>
+                        <div class="detail-value">{{ report.reviewed_by.username }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if report.notes %}
+                <div class="notes-section">
+                    <div class="detail-label">Admin Notes</div>
+                    <div class="detail-value">{{ report.notes }}</div>
+                </div>
+                {% endif %}
+
+                {% if report.status == 'pending' %}
+                <div class="action-buttons">
+                    <button class="action-btn resolve-btn" onclick="showResolveModal({{ report.id }})">
+                        Resolve
+                    </button>
+                    <button class="action-btn dismiss-btn" onclick="handleReport({{ report.id }}, 'dismiss')">
+                        Dismiss
+                    </button>
+                    <button class="action-btn delete-btn" onclick="handleReport({{ report.id }}, 'delete')">
+                        Delete Message
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <!-- Pagination -->
+            {% if reports.has_other_pages %}
+            <div class="pagination">
+                {% if reports.has_previous %}
+                <a href="?page={{ reports.previous_page_number }}" class="page-btn">&laquo;</a>
+                {% endif %}
+
+                {% for num in reports.paginator.page_range %}
+                    {% if reports.number == num %}
+                    <a class="page-btn active">{{ num }}</a>
+                    {% else %}
+                    <a href="?page={{ num }}" class="page-btn">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if reports.has_next %}
+                <a href="?page={{ reports.next_page_number }}" class="page-btn">&raquo;</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="no-reports">
+                <h3>No reports found</h3>
+                <p>There are currently no reported messages to review.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add this before the closing body tag -->
+<div id="resolveModal" class="modal-backdrop">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Resolve Report</h2>
+        </div>
+        <div class="modal-body">
+            <div class="action-group">
+                <label>
+                    <input type="checkbox" class="warning-checkbox" id="warnUser">
+                    Send warning to user
+                </label>
+            </div>
+            <div class="action-group">
+                <label>
+                    <input type="checkbox" class="ban-checkbox" id="banUser">
+                    Temporarily ban user
+                </label>
+                <select id="banDuration" class="ban-duration" disabled>
+                    <option value="1">1 day</option>
+                    <option value="3">3 days</option>
+                    <option value="7">7 days</option>
+                    <option value="14">14 days</option>
+                    <option value="30">30 days</option>
+                </select>
+            </div>
+            <div class="action-group">
+                <label>Admin Notes</label>
+                <textarea id="adminNotes" class="notes-section textarea" rows="3" placeholder="Add notes about your decision..."></textarea>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="modal-btn cancel" onclick="closeResolveModal()">Cancel</button>
+            <button class="modal-btn confirm" onclick="confirmResolve()">Confirm</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+let currentReportId = null;
+
+document.getElementById('status').addEventListener('change', function() {
+    document.getElementById('filterForm').submit();
+});
+
+document.getElementById('date').addEventListener('change', function() {
+    document.getElementById('filterForm').submit();
+});
+
+// Update ban duration select based on checkbox
+document.getElementById('banUser').addEventListener('change', function() {
+    document.getElementById('banDuration').disabled = !this.checked;
+});
+
+function showResolveModal(reportId) {
+    currentReportId = reportId;
+    document.getElementById('resolveModal').style.display = 'flex';
+}
+
+function closeResolveModal() {
+    currentReportId = null;
+    document.getElementById('resolveModal').style.display = 'none';
+    document.getElementById('warnUser').checked = false;
+    document.getElementById('banUser').checked = false;
+    document.getElementById('banDuration').disabled = true;
+    document.getElementById('adminNotes').value = '';
+}
+
+function confirmResolve() {
+    if (!currentReportId) return;
+    
+    const warning = document.getElementById('warnUser').checked;
+    const ban = document.getElementById('banUser').checked;
+    const banDuration = ban ? document.getElementById('banDuration').value : null;
+    const notes = document.getElementById('adminNotes').value;
+
+    handleReport(currentReportId, 'resolve', {
+        warning: warning,
+        ban: ban,
+        banDuration: banDuration,
+        notes: notes
+    });
+    
+    closeResolveModal();
+}
+
+function handleReport(reportId, action, options = {}) {
+    if (action === 'resolve') {
+        if (!confirm('Are you sure you want to resolve this report?')) {
+            return;
+        }
+    } else if (!confirm(`Are you sure you want to ${action} this report?`)) {
+        return;
+    }
+
+    fetch(`/api/reports/${reportId}/${action}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(options)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            location.reload();
+        } else {
+            alert(data.message || 'An error occurred');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while processing your request');
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

@@ -354,7 +354,55 @@
        
         profilePictureInput.addEventListener('change', function() {
             if (this.files && this.files[0]) {
-                profilePictureForm.submit();
+                const formData = new FormData();
+                formData.append('profile_picture', this.files[0]);
+                
+                // Get CSRF token
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                
+                // Show loading state
+                profilePicContainer.style.opacity = '0.5';
+                
+                fetch('{% url "profile" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Update profile picture immediately
+                        const img = profilePicContainer.querySelector('img');
+                        const initials = profilePicContainer.querySelector('span');
+                        
+                        if (!img) {
+                            const newImg = document.createElement('img');
+                            newImg.alt = "Profile Picture";
+                            profilePicContainer.appendChild(newImg);
+                            if (initials) initials.style.display = 'none';
+                        }
+                        
+                        const profileImg = img || profilePicContainer.querySelector('img');
+                        profileImg.src = data.profile_picture_url;
+                        profileImg.style.display = 'block';
+                        
+                        // Show success message
+                        alert(data.message);
+                    } else {
+                        alert('Failed to update profile picture. Please try again.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while updating profile picture. Please try again.');
+                })
+                .finally(() => {
+                    // Reset loading state
+                    profilePicContainer.style.opacity = '1';
+                });
             }
         });
     });

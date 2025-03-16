@@ -16,10 +16,10 @@
   color: #fff;
 }
 .dashboard-cards {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 .card {
   background-color: #1e1e1e;
@@ -27,13 +27,12 @@
   border-radius: 10px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
   padding: 1.5rem;
-  width: 100%;
-  max-width: 300px;
   text-align: center;
 }
 .card h3 {
   color: #fff;
   margin-bottom: 1rem;
+  font-size: 1.2rem;
 }
 .card p {
   color: #bbb;
@@ -42,11 +41,15 @@
   position: relative;
   height: 200px;
   width: 100%;
+  margin-bottom: 1rem;
 }
 .status-icon {
   color: #4caf50;
-  font-size: 5rem;
+  font-size: 3rem;
   margin-bottom: 0.5rem;
+}
+.status-icon.offline {
+  color: #e74c3c;
 }
 .status-label {
   color: #4caf50;
@@ -54,44 +57,118 @@
   font-weight: bold;
   padding-top: 10px;
 }
-.fa-check-circle{
-  font-size: 10rem;
+.status-label.offline {
+  color: #e74c3c;
+}
+.last-updated {
+  font-size: 0.8rem;
+  color: #888;
+  margin-top: 10px;
+}
+.stat-value {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #fff;
+  margin: 1rem 0;
+}
+.stat-label {
+  font-size: 0.9rem;
+  color: #888;
+}
+.stat-change {
+  font-size: 0.9rem;
+  color: #4caf50;
+  margin-top: 0.5rem;
+}
+.stat-change.negative {
+  color: #e74c3c;
+}
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+.chart-card {
+  background-color: #1e1e1e;
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+.health-status {
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+.status-icon.offline i {
+    color: #e74c3c;
+}
+
+.status-label.offline {
+    color: #e74c3c;
+}
+
+#recentActivityStatus {
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
 }
 {% endblock %}
 
 {% block content %}
 <div class="dashboard-header">
-  <h1>Welcome to the Admin Dashboard</h1>
+  <h1>Admin Dashboard</h1>
 </div>
+
+<!-- Quick Stats Cards -->
 <div class="dashboard-cards">
   <div class="card">
-    <h3>Total Users</h3>
-    <div class="chart-container">
-      <canvas id="totalUsersChart"></canvas>
-    </div>
-    <p id="userCountDisplay" style="margin-top: 10px; font-size: 1.5rem">
-      5000
-    </p>
+    <h3>Users Overview</h3>
+    <div id="userCountDisplay" class="stat-value">Loading...</div>
+    <div class="stat-label">Total Users</div>
+    <div id="newUsersDisplay" class="stat-change">Loading...</div>
   </div>
+  
   <div class="card">
-    <h3>New Reports</h3>
-    <div class="chart-container">
-      <canvas id="newReportsChart"></canvas>
-    </div>
-    <p
-      id="reportsCountDisplay"
-      style="margin-top: 10px; font-size: 1.5rem"
-    >
-      75
-    </p>
+    <h3>Messages & Chats</h3>
+    <div id="messageCountDisplay" class="stat-value">Loading...</div>
+    <div class="stat-label">Total Messages</div>
+    <div id="messagesPerUserDisplay" class="stat-change">Loading...</div>
   </div>
+  
+  <div class="card">
+    <h3>Reports Status</h3>
+    <div id="reportsCountDisplay" class="stat-value">Loading...</div>
+    <div class="stat-label">Total Reports</div>
+    <div id="pendingReportsDisplay" class="stat-change">Loading...</div>
+  </div>
+  
   <div class="card">
     <h3>System Status</h3>
-    <div class="status-icon">
-      <i class="fas fa-check-circle"></i>
+    <div id="statusIcon" class="status-icon">
+      <i class="fas fa-spinner fa-spin"></i>
     </div>
-    <p>STATUS</p>
-    <div class="status-label">ONLINE</div>
+    <div id="statusLabel" class="status-label">Loading...</div>
+    <div id="healthStatus" class="stat-change">Loading...</div>
+    <div id="activeUsersDisplay" class="stat-change">Loading...</div>
+    <div id="recentActivityStatus" class="stat-label"></div>
+    <div id="lastUpdated" class="last-updated"></div>
+  </div>
+</div>
+
+<!-- Charts Grid -->
+<div class="chart-grid">
+  <div class="chart-card">
+    <h3>Message Activity (Last 7 Days)</h3>
+    <div class="chart-container">
+      <canvas id="messageActivityChart"></canvas>
+    </div>
+  </div>
+  
+  <div class="chart-card">
+    <h3>Reports Overview (Last 7 Days)</h3>
+    <div class="chart-container">
+      <canvas id="reportsChart"></canvas>
+    </div>
   </div>
 </div>
 {% endblock %}
@@ -99,150 +176,198 @@
 {% block scripts %}
 {{ block.super }}
 <script>
-  // Initialize with default values
-  let userCount = 5000;
-  let reportsCount = 75;
+let messageActivityChart = null;
+let reportsChart = null;
 
-  // Render Total Users Chart
-  function renderUserChart() {
-    const ctx = document.getElementById("totalUsersChart").getContext("2d");
-    const totalUsersChart = new Chart(ctx, {
-      type: "doughnut",
-      data: {
-        labels: ["Active Users", "Capacity"],
-        datasets: [
-          {
-            data: [userCount, 10000 - userCount],
-            backgroundColor: ["#3b5998", "#222222"],
-            borderWidth: 0,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: "70%",
-        plugins: {
-          legend: {
-            display: false,
-          },
-          tooltip: {
-            callbacks: {
-              label: function (context) {
-                return context.label + ": " + context.raw.toLocaleString();
-              },
-            },
-          },
+function formatNumber(num) {
+    return num.toLocaleString();
+}
+
+function renderMessageActivityChart(data) {
+    if (messageActivityChart) {
+        messageActivityChart.destroy();
+    }
+    
+    const ctx = document.getElementById("messageActivityChart").getContext("2d");
+    messageActivityChart = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: data.map(item => item.date),
+            datasets: [{
+                label: "Messages",
+                data: data.map(item => item.count),
+                borderColor: "#3b5998",
+                backgroundColor: "rgba(59, 89, 152, 0.1)",
+                tension: 0.4,
+                fill: true
+            }]
         },
-      },
-    });
-
-    // Update the display text
-    document.getElementById("userCountDisplay").textContent =
-      userCount.toLocaleString();
-  }
-
-  // Render New Reports Chart
-  function renderReportsChart() {
-    const ctx = document.getElementById("newReportsChart").getContext("2d");
-
-    // Sample data for last 7 days
-    const reportsDailyData = [12, 8, 15, 9, 11, 7, 13];
-    const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-    const newReportsChart = new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: "Daily Reports",
-            data: reportsDailyData,
-            backgroundColor: "#e74c3c",
-            borderWidth: 0,
-            borderRadius: 5,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false,
-          },
-          tooltip: {
-            callbacks: {
-              label: function (context) {
-                return context.label + ": " + context.raw.toLocaleString();
-              },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
             },
-          },
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            grid: {
-              color: "rgba(255, 255, 255, 0.1)",
-            },
-            ticks: {
-              color: "#bbb",
-            },
-          },
-          x: {
-            grid: {
-              display: false,
-            },
-            ticks: {
-              color: "#bbb",
-            },
-          },
-        },
-      },
-    });
-
-    // Update the display text (sum of all daily reports)
-    document.getElementById("reportsCountDisplay").textContent =
-      reportsCount;
-  }
-
-  // Render both charts immediately
-  renderUserChart();
-  renderReportsChart();
-
-  // Then try to fetch updated data from the server
-  try {
-    fetch("/api/user-count/")
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: "rgba(255, 255, 255, 0.1)"
+                    },
+                    ticks: {
+                        color: "#bbb"
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: "#bbb"
+                    }
+                }
+            }
         }
-        return response.json();
-      })
-      .then((data) => {
-        userCount = data.user_count;
-        renderUserChart();
-      })
-      .catch((error) => {
-        console.error("Error fetching user count:", error);
-      });
+    });
+}
 
-    fetch("/api/reports-count/")
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
+function renderReportsChart(data) {
+    if (reportsChart) {
+        reportsChart.destroy();
+    }
+    
+    const ctx = document.getElementById("reportsChart").getContext("2d");
+    reportsChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: data.map(item => item.date),
+            datasets: [{
+                label: "Reports",
+                data: data.map(item => item.count),
+                backgroundColor: "#e74c3c",
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: "rgba(255, 255, 255, 0.1)"
+                    },
+                    ticks: {
+                        color: "#bbb"
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: "#bbb"
+                    }
+                }
+            }
         }
-        return response.json();
-      })
-      .then((data) => {
-        reportsCount = data.reports_count;
-        renderReportsChart();
-      })
-      .catch((error) => {
-        console.error("Error fetching reports count:", error);
-      });
-  } catch (error) {
-    console.error("Error in fetch operation:", error);
-  }
+    });
+}
+
+function updateSystemStatus(status) {
+    const statusIcon = document.getElementById("statusIcon");
+    const statusLabel = document.getElementById("statusLabel");
+    const healthStatus = document.getElementById("healthStatus");
+    const lastUpdatedElement = document.getElementById("lastUpdated");
+    const activeUsersDisplay = document.getElementById("activeUsersDisplay");
+    const recentActivityStatus = document.getElementById("recentActivityStatus");
+    
+    // Update status icon and label
+    if (status.status.toLowerCase() === 'online') {
+        statusIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
+        statusIcon.classList.remove('offline');
+        statusLabel.classList.remove('offline');
+        statusLabel.textContent = 'ONLINE';
+        
+        // Show health status
+        healthStatus.textContent = `System Health: ${status.health}`;
+        healthStatus.style.color = status.health === 'healthy' ? '#4caf50' : '#ffa500';
+        
+        // Show recent activity
+        if (status.recent_activity) {
+            recentActivityStatus.textContent = 'Recent activity detected';
+            recentActivityStatus.style.color = '#4caf50';
+        } else {
+            recentActivityStatus.textContent = 'No recent activity';
+            recentActivityStatus.style.color = '#ffa500';
+        }
+    } else {
+        statusIcon.innerHTML = '<i class="fas fa-times-circle"></i>';
+        statusIcon.classList.add('offline');
+        statusLabel.classList.add('offline');
+        statusLabel.textContent = 'OFFLINE';
+        healthStatus.textContent = `Error: ${status.error_message || 'System unavailable'}`;
+        healthStatus.style.color = '#e74c3c';
+        recentActivityStatus.textContent = 'System is offline';
+        recentActivityStatus.style.color = '#e74c3c';
+    }
+    
+    // Update metrics
+    activeUsersDisplay.textContent = `${formatNumber(status.active_users_24h)} active users in last 24h`;
+    lastUpdatedElement.textContent = `Last Updated: ${status.last_updated}`;
+}
+
+function updateStats(data) {
+    // Update Users Overview
+    document.getElementById("userCountDisplay").textContent = formatNumber(data.total_users);
+    document.getElementById("newUsersDisplay").textContent = 
+        `${formatNumber(data.new_users_7d)} new users in last 7 days`;
+    
+    // Update Messages & Chats
+    document.getElementById("messageCountDisplay").textContent = formatNumber(data.total_messages);
+    document.getElementById("messagesPerUserDisplay").textContent = 
+        `${data.messages_per_user} messages per user`;
+    
+    // Update Reports Status
+    document.getElementById("reportsCountDisplay").textContent = formatNumber(data.total_reports);
+    document.getElementById("pendingReportsDisplay").textContent = 
+        `${formatNumber(data.pending_reports)} pending reports`;
+}
+
+function fetchDashboardStats() {
+    fetch("/api/dashboard-stats/")
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error("Network response was not ok");
+            }
+            return response.json();
+        })
+        .then((data) => {
+            updateStats(data);
+            renderMessageActivityChart(data.daily_messages);
+            renderReportsChart(data.daily_reports);
+            updateSystemStatus(data.system_status);
+        })
+        .catch((error) => {
+            console.error("Error fetching dashboard stats:", error);
+            document.getElementById("userCountDisplay").textContent = "Error";
+            document.getElementById("messageCountDisplay").textContent = "Error";
+            document.getElementById("reportsCountDisplay").textContent = "Error";
+            updateSystemStatus({status: "offline", health: "System unavailable", error_message: "Error loading data", active_users_24h: 0, last_updated: "Error loading data", recent_activity: false});
+        });
+}
+
+// Initial load
+fetchDashboardStats();
+
+// Refresh every 30 seconds
+setInterval(fetchDashboardStats, 30000);
 </script>
 {% endblock %}

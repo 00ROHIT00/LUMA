@@ -1133,6 +1133,48 @@
       
       hideContextMenu();
     }
+
+    function reportMessage(menuItem) {
+      const messageId = menuItem.dataset.messageId;
+      if (!messageId) return;
+
+      fetch('/report_message/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ message_id: messageId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          // Show success notification
+          const notification = document.createElement('div');
+          notification.style.position = 'fixed';
+          notification.style.bottom = '20px';
+          notification.style.left = '50%';
+          notification.style.transform = 'translateX(-50%)';
+          notification.style.backgroundColor = '#4CAF50';
+          notification.style.color = 'white';
+          notification.style.padding = '10px 20px';
+          notification.style.borderRadius = '5px';
+          notification.style.zIndex = '10000';
+          notification.textContent = 'Message reported successfully';
+          document.body.appendChild(notification);
+          
+          setTimeout(() => notification.remove(), 3000);
+        } else {
+          alert(data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to report message. Please try again.');
+      });
+      
+      hideContextMenu();
+    }
   </script>
 
   {% endblock %}

@@ -7,6 +7,24 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 from django.db import models
 from django.utils import timezone
+from functools import wraps
+from django.contrib.auth.decorators import login_required
+from datetime import timedelta
+from django.db.models import Count
+from django.db.models.functions import TruncDate
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+
+def admin_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            messages.error(request, 'Please login to access this page.')
+            return redirect('admin_login')
+        if not request.user.is_admin:
+            messages.error(request, 'You do not have permission to access the admin area.')
+            return redirect('home')
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
 
 def home(request):
     return render(request, 'index.html')
@@ -81,7 +99,7 @@ from django.views.decorators.http import require_POST
 from django.db.models import Q
 import json
 from datetime import datetime
-from .models import User, Chat, Message, Report
+from .models import User, Chat, Message, Report, Notification
 
 @login_required
 def chat_list(request):
@@ -306,9 +324,35 @@ def send_message(request):
 
 @login_required
 def check_notifications(request):
-    pass
+    notifications = Notification.objects.filter(user=request.user, read=False)
+    return JsonResponse({
+        'notifications': [
+            {
+                'id': n.id,
+                'type': n.type,
+                'message': n.message,
+                'admin_notes': n.admin_notes,
+                'created_at': n.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            }
+            for n in notifications
+        ]
+    })
+
+@login_required
+@require_POST 
+def mark_notifications_read(request):
+    Notification.objects.filter(user=request.user, read=False).update(read=True)
+    return JsonResponse({'status': 'success'})
 
 def admin_login(request):
+    # If user is already logged in and is admin, redirect to dashboard
+    if request.user.is_authenticated:
+        if request.user.is_admin:
+            return redirect('admin_dashboard')
+        else:
+            messages.error(request, 'You do not have permission to access the admin area.')
+            return redirect('home')
+            
     if request.method == 'POST':
         username = request.POST['username']
         password = request.POST['password']
@@ -317,7 +361,7 @@ def admin_login(request):
         if user is not None:
             if user.is_admin:
                 login(request, user)
-                return redirect('admin_dashboard')  # Ensure 'admin_dashboard' is mapped correctly in your urls.py
+                return redirect('admin_dashboard')
             else:
                 messages.error(request, 'You are not authorized to access the admin area.')
         else:
@@ -325,48 +369,36 @@ def admin_login(request):
 
     return render(request, 'admin_login.html')
 
+@admin_required
 def admin_dashboard(request):
     return render(request, 'admin_dashboard.html')
 
 from django.http import JsonResponse
 from .models import User
 
+@admin_required
 def user_count(request):
     user_count = User.objects.count()
     return JsonResponse({'user_count': user_count})
 
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from .models import User
-
-@login_required
+@admin_required
 def manage_users(request):
     users = User.objects.all()
     return render(request, 'admin_users.html', {'users': users})
 
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from .models import User
-
-@login_required
+@admin_required
 def delete_user(request, user_id):
     user = get_object_or_404(User, id=user_id)
     user.delete()
     messages.success(request, 'User has been deleted successfully.')
     return redirect('manage_users')
 
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from .models import User
-
-@login_required
+@admin_required
 def edit_user(request, user_id):
     user = get_object_or_404(User, id=user_id)
     return render(request, 'admin_userEdit.html', {'user': user})
 
-@login_required
+@admin_required
 def update_user(request, user_id):
     user = get_object_or_404(User, id=user_id)
     if request.method == 'POST':
@@ -389,41 +421,30 @@ from .models import User
 @login_required
 def profile(request):
     user = request.user
-    message = None
     
     if request.method == 'POST':
-        action = request.POST.get('action')
-        
-        if action == 'update_profile':
-            # Handle profile update
-            user.first_name = request.POST.get('first_name', user.first_name)
-            user.last_name = request.POST.get('last_name', user.last_name)
-            user.username = request.POST.get('username', user.username)
-            user.email = request.POST.get('email', user.email)
+        if 'profile_picture' in request.FILES:
+            # Delete old profile picture if it exists
+            if user.profile_picture:
+                try:
+                    user.profile_picture.delete()
+                except Exception as e:
+                    print(f"Error deleting old profile picture: {e}")
+            
+            # Save new profile picture
+            user.profile_picture = request.FILES['profile_picture']
             user.save()
-            messages.success(request, 'Profile updated successfully!')
             
-        elif action == 'change_password':
-            # Handle password change
-            current_password = request.POST.get('current_password')
-            new_password = request.POST.get('new_password')
-            confirm_password = request.POST.get('confirm_password')
+            # Return JSON response for AJAX request
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Profile picture updated successfully!',
+                    'profile_picture_url': user.profile_picture.url
+                })
             
-            if not user.check_password(current_password):
-                messages.error(request, 'Current password is incorrect!')
-            elif new_password != confirm_password:
-                messages.error(request, 'New passwords do not match!')
-            else:
-                user.set_password(new_password)
-                user.save()
-                messages.success(request, 'Password changed successfully! Please login again.')
-                return redirect('signin')
-                
-        elif action == 'update_picture':
-            if 'profile_picture' in request.FILES:
-                user.profile_picture = request.FILES['profile_picture']
-                user.save()
-                messages.success(request, 'Profile picture updated successfully!')
+            messages.success(request, 'Profile picture updated successfully!')
+            return redirect('profile')
     
     return render(request, 'profile.html', {'user': user})
 
@@ -502,7 +523,10 @@ def report_message(request):
         message_id = data.get('message_id')
         
         if not message_id:
-            return JsonResponse({'status': 'error', 'message': 'Message ID is required'})
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Message ID is required'
+            })
         
         try:
             message = Message.objects.get(id=message_id)
@@ -514,15 +538,31 @@ def report_message(request):
                     'message': 'You have already reported this message'
                 })
             
-            # Create the report
-            Report.objects.create(
+            # Check if user is reporting their own message
+            if message.sender == request.user:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'You cannot report your own message'
+                })
+            
+            # Check if user is part of the chat
+            if request.user not in [message.chat.sender, message.chat.recipient]:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'You do not have permission to report this message'
+                })
+            
+            # Create the report with pending status
+            report = Report.objects.create(
                 message=message,
-                reporter=request.user
+                reporter=request.user,
+                status='pending'
             )
             
             return JsonResponse({
                 'status': 'success',
-                'message': 'Message has been reported'
+                'message': 'Message has been reported successfully',
+                'report_id': report.id
             })
             
         except Message.DoesNotExist:
@@ -627,3 +667,244 @@ def delete_message_for_everyone(request):
             'status': 'error',
             'message': str(e)
         })
+
+@admin_required
+def get_dashboard_stats(request):
+    try:
+        # Check database connectivity
+        User.objects.first()
+        
+        # Check recent activity (last 5 minutes)
+        last_5_min = timezone.now() - timedelta(minutes=5)
+        recent_messages = Message.objects.filter(sent_at__gte=last_5_min).exists()
+        recent_logins = User.objects.filter(last_login__gte=last_5_min).exists()
+        
+        # Get system metrics
+        total_users = User.objects.count()
+        last_24h = timezone.now() - timedelta(hours=24)
+        active_users_24h = User.objects.filter(last_login__gte=last_24h).count()
+        
+        # Get new users in the last 7 days
+        last_week = timezone.now() - timedelta(days=7)
+        new_users_7d = User.objects.filter(created_at__gte=last_week).count()
+        
+        # Get message statistics
+        total_messages = Message.objects.count()
+        messages_24h = Message.objects.filter(sent_at__gte=last_24h).count()
+        
+        # Get chat statistics
+        total_chats = Chat.objects.count()
+        active_chats_24h = Chat.objects.filter(updated_at__gte=last_24h).count()
+        
+        # Get daily message counts for the last 7 days
+        end_date = timezone.now()
+        start_date = end_date - timedelta(days=6)
+        
+        daily_messages = Message.objects.filter(
+            sent_at__gte=start_date,
+            sent_at__lte=end_date
+        ).annotate(
+            date=TruncDate('sent_at')
+        ).values('date').annotate(
+            count=Count('id')
+        ).order_by('date')
+        
+        # Create a list of all dates in the range
+        date_list = []
+        current_date = start_date
+        while current_date <= end_date:
+            date_list.append(current_date.date())
+            current_date += timedelta(days=1)
+        
+        # Create the messages data with 0 counts for days with no messages
+        messages_data = {date: 0 for date in date_list}
+        for msg in daily_messages:
+            messages_data[msg['date']] = msg['count']
+        
+        # Format the messages data
+        formatted_messages = [
+            {
+                'date': date.strftime('%a'),
+                'count': count
+            }
+            for date, count in messages_data.items()
+        ]
+        
+        # Get report statistics
+        total_reports = Report.objects.count()
+        pending_reports = Report.objects.filter(status='pending').count()
+        resolved_reports = Report.objects.filter(status__in=['resolved', 'dismissed']).count()
+        
+        # Get daily report counts
+        daily_reports = Report.objects.filter(
+            reported_at__gte=start_date,
+            reported_at__lte=end_date
+        ).annotate(
+            date=TruncDate('reported_at')
+        ).values('date').annotate(
+            count=Count('id')
+        ).order_by('date')
+        
+        # Create the reports data with 0 counts for days with no reports
+        reports_data = {date: 0 for date in date_list}
+        for report in daily_reports:
+            reports_data[report['date']] = report['count']
+        
+        # Format the reports data
+        formatted_reports = [
+            {
+                'date': date.strftime('%a'),
+                'count': count
+            }
+            for date, count in reports_data.items()
+        ]
+        
+        # Calculate engagement metrics
+        messages_per_user = round(total_messages / total_users if total_users > 0 else 0, 2)
+        chats_per_user = round(total_chats / total_users if total_users > 0 else 0, 2)
+        
+        # Determine system status
+        system_status = {
+            'status': 'online',
+            'health': 'healthy',
+            'last_updated': timezone.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'active_users_24h': active_users_24h,
+            'messages_24h': messages_24h,
+            'active_chats_24h': active_chats_24h,
+            'recent_activity': recent_messages or recent_logins
+        }
+        
+        return JsonResponse({
+            'total_users': total_users,
+            'new_users_7d': new_users_7d,
+            'total_messages': total_messages,
+            'total_chats': total_chats,
+            'messages_per_user': messages_per_user,
+            'chats_per_user': chats_per_user,
+            'daily_messages': formatted_messages,
+            'daily_reports': formatted_reports,
+            'total_reports': total_reports,
+            'pending_reports': pending_reports,
+            'resolved_reports': resolved_reports,
+            'system_status': system_status
+        })
+        
+    except Exception as e:
+        # If any database operations fail, system is considered offline
+        return JsonResponse({
+            'system_status': {
+                'status': 'offline',
+                'health': 'error',
+                'last_updated': timezone.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'error_message': str(e),
+                'active_users_24h': 0,
+                'messages_24h': 0,
+                'active_chats_24h': 0,
+                'recent_activity': False
+            }
+        })
+
+@admin_required
+def admin_reports(request):
+    # Get all reports with related data
+    reports = Report.objects.select_related(
+        'message', 'reporter', 'message__sender', 'reviewed_by'
+    ).order_by('-reported_at')
+    
+    # Filter by status if provided
+    status = request.GET.get('status')
+    if status:
+        reports = reports.filter(status=status)
+    
+    # Filter by date range if provided
+    date_range = request.GET.get('date')
+    if date_range:
+        today = timezone.now()
+        if date_range == 'today':
+            reports = reports.filter(reported_at__date=today.date())
+        elif date_range == 'week':
+            reports = reports.filter(reported_at__gte=today - timedelta(days=7))
+        elif date_range == 'month':
+            reports = reports.filter(reported_at__gte=today - timedelta(days=30))
+    
+    # Pagination
+    paginator = Paginator(reports, 10)  # Show 10 reports per page
+    page = request.GET.get('page')
+    try:
+        reports = paginator.page(page)
+    except PageNotAnInteger:
+        reports = paginator.page(1)
+    except EmptyPage:
+        reports = paginator.page(paginator.num_pages)
+    
+    return render(request, 'admin_reports.html', {'reports': reports})
+
+@admin_required
+@require_POST
+def handle_report(request, report_id, action):
+    try:
+        report = Report.objects.get(id=report_id)
+        data = json.loads(request.body) if request.body else {}
+        
+        if action == 'resolve':
+            report.status = 'resolved'
+            report.reviewed_by = request.user
+            report.reviewed_at = timezone.now()
+            
+            # Handle warning and ban options
+            warning = data.get('warning', False)
+            ban = data.get('ban', False)
+            ban_duration = data.get('banDuration')
+            notes = data.get('notes', '')
+            
+            # Add admin notes
+            report_notes = []
+            if warning:
+                report_notes.append("Warning issued to user")
+                # Create notification for the user
+                Notification.objects.create(
+                    user=report.message.sender,
+                    type='warning',
+                    message='WARNING: For some of your recent messages',
+                    admin_notes=notes if notes else None
+                )
+            if ban:
+                report_notes.append(f"User banned for {ban_duration} days")
+            if notes:
+                report_notes.append(notes)
+                
+            report.notes = " | ".join(report_notes)
+            report.save()
+            
+            # TODO: Implement actual warning and ban functionality
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Report resolved successfully',
+                'warning_issued': warning,
+                'ban_issued': ban,
+                'ban_duration': ban_duration if ban else None
+            })
+            
+        elif action == 'dismiss':
+            report.status = 'dismissed'
+            report.reviewed_by = request.user
+            report.reviewed_at = timezone.now()
+            report.save()
+            return JsonResponse({'status': 'success', 'message': 'Report dismissed successfully'})
+            
+        elif action == 'delete':
+            message = report.message
+            message.delete_for_everyone()
+            report.status = 'resolved'
+            report.reviewed_by = request.user
+            report.reviewed_at = timezone.now()
+            report.notes = "Message was deleted by admin"
+            report.save()
+            return JsonResponse({'status': 'success', 'message': 'Message deleted and report resolved'})
+            
+        return JsonResponse({'status': 'error', 'message': 'Invalid action'})
+        
+    except Report.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Report not found'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)})

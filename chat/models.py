@@ -153,3 +153,19 @@ class Report(models.Model):
     class Meta:
         db_table = 'chat_report'
         ordering = ['-reported_at']
+
+class Notification(models.Model):
+    TYPES = (
+        ('warning', 'Warning'),
+        ('info', 'Information'),
+    )
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    type = models.CharField(max_length=10, choices=TYPES)
+    message = models.TextField()
+    admin_notes = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    read = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-created_at']

@@ -10,7 +10,9 @@ urlpatterns = [
     # path('chats/', chat_view, name='chat'),
     path('logout/', views.logout_view, name='logout'),
     path('check_notifications/', views.check_notifications, name='check_notifications'),
+    path('mark_notifications_read/', views.mark_notifications_read, name='mark_notifications_read'),
     path('api/user-count/', user_count, name='user-count'),
+    path('api/dashboard-stats/', get_dashboard_stats, name='dashboard-stats'),
     path('admin-login/', admin_login, name='admin_login'),
     path('admin-dashboard/', admin_dashboard, name='admin_dashboard'),
     path('admin-dashboard/manage-users/', manage_users, name='manage_users'),
@@ -29,5 +31,7 @@ urlpatterns = [
     path('report_message/', views.report_message, name='report_message'),
     path('delete_message_for_me/', views.delete_message_for_me, name='delete_message_for_me'),
     path('delete_message_for_everyone/', views.delete_message_for_everyone, name='delete_message_for_everyone'),
+    path('admin-dashboard/reports/', admin_reports, name='admin_reports'),
+    path('api/reports/<int:report_id>/<str:action>/', handle_report, name='handle_report'),
 ]
 
