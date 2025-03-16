@@ -53,6 +53,7 @@
     border-radius: 10px;
     cursor: pointer;
     transition: background-color 0.2s;
+    position: relative;
   }
 
   .chat-item:hover {
@@ -93,6 +94,7 @@
   .chat-item-details {
     flex: 1;
     overflow: hidden;
+    margin-right: 40px; /* Add space for the unread indicator */
   }
 
   .chat-item-name {
@@ -106,6 +108,14 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .chat-item-time {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    font-size: 12px;
+    color: #666;
   }
 
   /* Chat Area */
@@ -434,6 +444,32 @@
   .context-menu-item.danger {
     color: #ff6b6b;
   }
+
+  .context-menu-divider {
+    height: 1px;
+    background-color: #444;
+    margin: 4px 0;
+  }
+
+  .unread-indicator {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #4CAF50;
+    display: none;
+  }
+
+  .chat-item.has-unread .unread-indicator {
+    display: block;
+  }
+
+  .unread-count {
+    display: none;
+  }
 </style>
 
 <div class="chat-container">
@@ -444,6 +480,10 @@
     </div>
     <div class="context-menu-item danger" onclick="reportMessage(this)" data-message-id="">
       Report Message
+    </div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item" onclick="hideContextMenu()">
+      Close
     </div>
   </div>
 
@@ -466,7 +506,7 @@
           Recipient: {{ chat.recipient.username }}
         </div>
         <div
-          class="chat-item {% if active_chat and chat.id == active_chat.id %} active {% endif %}"
+          class="chat-item {% if active_chat and chat.id == active_chat.id %} active {% endif %}{% if chat.unread_count > 0 %} has-unread {% endif %}"
           data-chat-url="{% url 'chat_detail' chat.id %}"
           onclick="window.location.href=this.dataset.chatUrl"
         >
@@ -517,9 +557,10 @@
               {% endwith %}
             </div>
           </div>
-          <div style="font-size: 12px; color: #666; text-align: right">
+          <div class="chat-item-time">
             {{ chat.updated_at|localtime|date:"g:i A" }}
           </div>
+          <div class="unread-indicator"></div>
         </div>
         {% endfor %}
       {% else %}

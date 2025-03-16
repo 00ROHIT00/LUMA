@@ -143,6 +143,79 @@
     .hidden-file-input {
         display: none;
     }
+
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        z-index: 1000;
+    }
+
+    .modal-content {
+        background-color: #2E2E2E;
+        margin: 15% auto;
+        padding: 20px;
+        border: 2px solid white;
+        border-radius: 5px;
+        width: 80%;
+        max-width: 500px;
+        position: relative;
+    }
+
+    .modal-title {
+        color: white;
+        font-size: 24px;
+        margin-bottom: 20px;
+    }
+
+    .modal-form {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .form-group label {
+        color: #aaa;
+        font-weight: bold;
+    }
+
+    .form-group input {
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #555;
+        background-color: #1a1a1a;
+        color: white;
+    }
+
+    .modal-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .modal-close {
+        position: absolute;
+        right: 20px;
+        top: 20px;
+        color: #aaa;
+        font-size: 24px;
+        cursor: pointer;
+    }
+
+    .modal-close:hover {
+        color: white;
+    }
 </style>
 
 <div class="profile-container">
@@ -184,15 +257,88 @@
         </div>
        
         <div class="profile-buttons">
-            <form method="post" action="" style="width: 100%;">
-                {% csrf_token %}
-                <button type="submit" class="profile-button edit-button">Edit Profile</button>
-            </form>
-            <form method="post" action="{% url 'delete_account' %}" style="width: 100%;">
-                {% csrf_token %}
-                <button type="submit" class="profile-button delete-button">Delete Account</button>
-            </form>
+            <button onclick="openEditProfileModal()" class="profile-button edit-button">Edit Profile</button>
+            <button onclick="openChangePasswordModal()" class="profile-button edit-button" style="background-color: #FFA500;">Change Password</button>
+            <button onclick="openDeleteAccountModal()" class="profile-button delete-button">Delete Account</button>
         </div>
+    </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div id="editProfileModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeModal('editProfileModal')">&times;</span>
+        <h2 class="modal-title">Edit Profile</h2>
+        <form class="modal-form" method="post" action="{% url 'edit_profile' %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="first_name">First Name</label>
+                <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}" required>
+            </div>
+            <div class="form-group">
+                <label for="last_name">Last Name</label>
+                <input type="text" id="last_name" name="last_name" value="{{ user.last_name }}" required>
+            </div>
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" value="{{ user.username }}" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" value="{{ user.email }}" required>
+            </div>
+            <div class="modal-buttons">
+                <button type="submit" class="profile-button edit-button">Save Changes</button>
+                <button type="button" class="profile-button delete-button" onclick="closeModal('editProfileModal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Change Password Modal -->
+<div id="changePasswordModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeModal('changePasswordModal')">&times;</span>
+        <h2 class="modal-title">Change Password</h2>
+        <form class="modal-form" method="post" action="{% url 'change_password' %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="current_password">Current Password</label>
+                <input type="password" id="current_password" name="current_password" required>
+            </div>
+            <div class="form-group">
+                <label for="new_password">New Password</label>
+                <input type="password" id="new_password" name="new_password" required>
+            </div>
+            <div class="form-group">
+                <label for="confirm_password">Confirm New Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" required>
+            </div>
+            <div class="modal-buttons">
+                <button type="submit" class="profile-button edit-button">Change Password</button>
+                <button type="button" class="profile-button delete-button" onclick="closeModal('changePasswordModal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Account Modal -->
+<div id="deleteAccountModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeModal('deleteAccountModal')">&times;</span>
+        <h2 class="modal-title">Delete Account</h2>
+        <p style="color: #FF5C5C; margin-bottom: 20px;">Warning: This action cannot be undone!</p>
+        <form class="modal-form" method="post" action="{% url 'delete_account' %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="delete_password">Enter Your Password</label>
+                <input type="password" id="delete_password" name="password" required>
+            </div>
+            <div class="modal-buttons">
+                <button type="submit" class="profile-button delete-button">Delete Account</button>
+                <button type="button" class="profile-button edit-button" onclick="closeModal('deleteAccountModal')">Cancel</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -212,5 +358,40 @@
             }
         });
     });
+
+    // Modal functions
+    function openModal(modalId) {
+        document.getElementById(modalId).style.display = 'block';
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+
+    function openEditProfileModal() {
+        openModal('editProfileModal');
+    }
+
+    function openChangePasswordModal() {
+        openModal('changePasswordModal');
+    }
+
+    function openDeleteAccountModal() {
+        openModal('deleteAccountModal');
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        if (event.target.className === 'modal') {
+            event.target.style.display = 'none';
+        }
+    }
+
+    // Display Django messages as toasts
+    {% if messages %}
+        {% for message in messages %}
+            alert("{{ message }}");
+        {% endfor %}
+    {% endif %}
 </script>
 {% endblock %}

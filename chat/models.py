@@ -102,9 +102,17 @@ class Message(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE)
     content = models.TextField()
     sent_at = models.DateTimeField(auto_now_add=True)
+    read_by = models.ManyToManyField(User, related_name='read_messages', blank=True)
 
     def __str__(self):
         return f"Message from {self.sender.username} at {self.sent_at}"
+
+    def mark_as_read(self, user):
+        self.read_by.add(user)
+        self.save()
+
+    def is_read_by(self, user):
+        return self.read_by.filter(id=user.id).exists()
 
     class Meta:
         db_table = 'chat_message'

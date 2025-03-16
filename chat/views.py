@@ -93,6 +93,16 @@ def chat_list(request):
         Q(sender=request.user) | Q(recipient=request.user)
     ).order_by('-updated_at')
     
+    # Add unread message count for each chat
+    for chat in chats:
+        # Only count messages from the other user as unread
+        other_user = chat.recipient if chat.sender == request.user else chat.sender
+        unread_count = Message.objects.filter(
+            chat=chat,
+            sender=other_user
+        ).exclude(read_by=request.user).count()
+        chat.unread_count = unread_count
+    
     # Debug print statements
     print(f"Number of chats found: {chats.count()}")
     
@@ -135,8 +145,30 @@ def chat_detail(request, chat_id):
         Q(sender=request.user) | Q(recipient=request.user)
     ).order_by('-updated_at')
     
+    # Add unread message count for each chat in the sidebar
+    for chat_item in chats:
+        # Only count messages from the other user as unread
+        other_user = chat_item.recipient if chat_item.sender == request.user else chat_item.sender
+        unread_count = Message.objects.filter(
+            chat=chat_item,
+            sender=other_user
+        ).exclude(read_by=request.user).count()
+        chat_item.unread_count = unread_count
+    
     # Get messages for this chat
     messages = Message.objects.filter(chat=chat).order_by('sent_at')
+    
+    # Mark all messages in this chat as read by the current user
+    # Only mark messages from the other user as read
+    other_user = chat.recipient if chat.sender == request.user else chat.sender
+    unread_messages = Message.objects.filter(
+        chat=chat,
+        sender=other_user
+    ).exclude(read_by=request.user)
+    
+    # Add the current user to read_by for each unread message
+    for message in unread_messages:
+        message.read_by.add(request.user)
     
     return render(request, 'chat.html', {
         'chats': chats,
@@ -256,6 +288,9 @@ def send_message(request):
                 content=message_content,
                 sent_at=timezone.now()
             )
+            # Mark the message as read by the sender immediately
+            message.read_by.add(request.user)
+            
             chat.updated_at = timezone.now()
             chat.save()
             
@@ -354,34 +389,110 @@ from .models import User
 @login_required
 def profile(request):
     user = request.user
-    print(f"Profile picture URL: {user.profile_picture.url if user.profile_picture else 'None'}")
-    print(f"Profile picture path: {user.profile_picture.path if user.profile_picture else 'None'}")
+    message = None
     
     if request.method == 'POST':
-        if 'profile_picture' in request.FILES:
-            user.profile_picture = request.FILES['profile_picture']
-            user.save()
-            return redirect('profile')
+        action = request.POST.get('action')
         
-        user.first_name = request.POST.get('first_name', user.first_name)
-        user.last_name = request.POST.get('last_name', user.last_name)
-        user.username = request.POST.get('username', user.username)
-        user.email = request.POST.get('email', user.email)
+        if action == 'update_profile':
+            # Handle profile update
+            user.first_name = request.POST.get('first_name', user.first_name)
+            user.last_name = request.POST.get('last_name', user.last_name)
+            user.username = request.POST.get('username', user.username)
+            user.email = request.POST.get('email', user.email)
+            user.save()
+            messages.success(request, 'Profile updated successfully!')
+            
+        elif action == 'change_password':
+            # Handle password change
+            current_password = request.POST.get('current_password')
+            new_password = request.POST.get('new_password')
+            confirm_password = request.POST.get('confirm_password')
+            
+            if not user.check_password(current_password):
+                messages.error(request, 'Current password is incorrect!')
+            elif new_password != confirm_password:
+                messages.error(request, 'New passwords do not match!')
+            else:
+                user.set_password(new_password)
+                user.save()
+                messages.success(request, 'Password changed successfully! Please login again.')
+                return redirect('signin')
+                
+        elif action == 'update_picture':
+            if 'profile_picture' in request.FILES:
+                user.profile_picture = request.FILES['profile_picture']
+                user.save()
+                messages.success(request, 'Profile picture updated successfully!')
+    
+    return render(request, 'profile.html', {'user': user})
+
+@login_required
+def edit_profile(request):
+    if request.method == 'POST':
+        user = request.user
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        
+        # Check if username is taken by another user
+        if User.objects.exclude(id=user.id).filter(username=username).exists():
+            messages.error(request, 'Username is already taken.')
+            return redirect('profile')
+            
+        # Check if email is taken by another user
+        if User.objects.exclude(id=user.id).filter(email=email).exists():
+            messages.error(request, 'Email is already registered.')
+            return redirect('profile')
+            
+        user.first_name = request.POST.get('first_name')
+        user.last_name = request.POST.get('last_name')
+        user.username = username
+        user.email = email
         user.save()
-        messages.success(request, 'Your profile was successfully updated!')
+        
+        messages.success(request, 'Profile updated successfully!')
         return redirect('profile')
     
-    return render(request, 'profile.html')
+    return redirect('profile')
+
+@login_required
+def change_password(request):
+    if request.method == 'POST':
+        user = request.user
+        current_password = request.POST.get('current_password')
+        new_password = request.POST.get('new_password')
+        confirm_password = request.POST.get('confirm_password')
+        
+        if not user.check_password(current_password):
+            messages.error(request, 'Current password is incorrect.')
+            return redirect('profile')
+            
+        if new_password != confirm_password:
+            messages.error(request, 'New passwords do not match.')
+            return redirect('profile')
+            
+        user.set_password(new_password)
+        user.save()
+        messages.success(request, 'Password changed successfully! Please login again.')
+        return redirect('signin')
+    
+    return redirect('profile')
 
 @login_required
 def delete_account(request):
     if request.method == 'POST':
         user = request.user
+        password = request.POST.get('password')
+        
+        if not user.check_password(password):
+            messages.error(request, 'Incorrect password. Account deletion cancelled.')
+            return redirect('profile')
+            
         user.delete()
-        messages.success(request, 'Your account was successfully deleted!')
-        return redirect('home')
+        messages.success(request, 'Your account has been deleted successfully.')
+        return redirect('signin')
     
-    return render(request, 'delete_account.html')
+    return redirect('profile')
 
 @login_required
 @require_POST
