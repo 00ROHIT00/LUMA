@@ -36,13 +36,25 @@ def signin(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
 
+        # First check if the user exists and is banned
+        try:
+            user = User.objects.get(username=username)
+            if user.is_currently_banned():
+                remaining_days = user.get_ban_duration_remaining()
+                ban_reason = user.ban_reason or "Your account has been temporarily banned."
+                messages.error(request, f"You are banned from using this platform. Try again later.")
+                return render(request, 'signin.html')
+        except User.DoesNotExist:
+            pass
+
+        # Then try to authenticate
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
             login(request, user)
             return redirect('chat_list')
         else:
-            messages.error(request, "Invalid Username or Password")
+            messages.error(request, "Invalid username or password")
             return render(request, 'signin.html')
 
     return render(request, 'signin.html')
@@ -117,9 +129,20 @@ def chat_list(request):
         other_user = chat.recipient if chat.sender == request.user else chat.sender
         unread_count = Message.objects.filter(
             chat=chat,
-            sender=other_user
+            sender=other_user,
+            deleted_for_everyone=False  # Exclude messages deleted for everyone
         ).exclude(read_by=request.user).count()
         chat.unread_count = unread_count
+        
+        # Get the last non-deleted message for preview
+        last_message = chat.messages.filter(
+            deleted_for_everyone=False
+        ).order_by('-sent_at').first()
+        
+        if last_message:
+            chat.last_message = last_message.content
+        else:
+            chat.last_message = "No messages yet"
     
     # Debug print statements
     print(f"Number of chats found: {chats.count()}")
@@ -140,7 +163,7 @@ def chat_list(request):
         print(f"Chat ID: {chat.id}")
         print(f"Sender: {chat.sender.username}")
         print(f"Recipient: {chat.recipient.username}")
-        print(f"Latest message: {chat.messages.last().content if chat.messages.exists() else 'No messages'}")
+        print(f"Latest message: {chat.last_message}")
         print("---")
     
     return render(request, 'chat.html', {
@@ -897,13 +920,18 @@ def handle_report(request, report_id, action):
                 )
             if ban:
                 report_notes.append(f"User banned for {ban_duration} days")
+                # Ban the user
+                ban_reason = f"Your account has been temporarily banned for {ban_duration} days due to reported messages."
+                report.message.sender.ban_user(int(ban_duration), ban_reason)
+                # Only log out the banned user if they are currently logged in
+                if report.message.sender == request.user:
+                    logout(request)
             if notes:
                 report_notes.append(notes)
                 
             report.notes = " | ".join(report_notes)
             report.save()
             
-            # TODO: Implement actual warning and ban functionality
             return JsonResponse({
                 'status': 'success',
                 'message': 'Report resolved successfully',

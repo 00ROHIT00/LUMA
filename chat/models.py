@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.utils import timezone
 
 class UserManager(BaseUserManager):
     def create_user(self, username, email, password=None, **extra_fields):
@@ -29,6 +30,9 @@ class User(AbstractBaseUser):
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
+    is_banned = models.BooleanField(default=False)
+    ban_expiry = models.DateTimeField(null=True, blank=True)
+    ban_reason = models.TextField(blank=True, null=True)
 
     objects = UserManager()
 
@@ -70,6 +74,35 @@ class User(AbstractBaseUser):
 
     def has_module_perms(self, app_label):
         return self.is_admin
+
+    def ban_user(self, duration_days, reason=None):
+        self.is_banned = True
+        self.ban_expiry = timezone.now() + timezone.timedelta(days=duration_days)
+        self.ban_reason = reason
+        self.save()
+
+    def unban_user(self):
+        self.is_banned = False
+        self.ban_expiry = None
+        self.ban_reason = None
+        self.save()
+
+    def is_currently_banned(self):
+        if not self.is_banned:
+            return False
+        if self.ban_expiry and timezone.now() > self.ban_expiry:
+            self.unban_user()
+            return False
+        return True
+
+    def get_ban_duration_remaining(self):
+        if not self.is_banned or not self.ban_expiry:
+            return None
+        remaining = self.ban_expiry - timezone.now()
+        if remaining.days < 0:
+            self.unban_user()
+            return None
+        return remaining.days
 
 class Chat(models.Model):
     sender = models.ForeignKey(User, related_name='sender_chats', on_delete=models.CASCADE)

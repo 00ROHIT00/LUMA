@@ -84,11 +84,14 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    display: none;
   }
 
   .pfp-initials {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
   }
 
   .chat-item-details {
@@ -684,11 +687,14 @@
                   src="{{ chat.recipient.profile_picture.url }}"
                   alt="Profile Picture"
                   class="pfp-image"
+                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                 />
+                <div class="pfp-initials" style="display: none;">
+                  {{ chat.recipient.first_name|slice:":1" }}{{ chat.recipient.last_name|slice:":1" }}
+                </div>
               {% else %}
                 <div class="pfp-initials">
-                  {{ chat.recipient.first_name|slice:":1" }}{{
-                  chat.recipient.last_name|slice:":1" }}
+                  {{ chat.recipient.first_name|slice:":1" }}{{ chat.recipient.last_name|slice:":1" }}
                 </div>
               {% endif %}
             {% else %}
@@ -697,11 +703,14 @@
                   src="{{ chat.sender.profile_picture.url }}"
                   alt="Profile Picture"
                   class="pfp-image"
+                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                 />
+                <div class="pfp-initials" style="display: none;">
+                  {{ chat.sender.first_name|slice:":1" }}{{ chat.sender.last_name|slice:":1" }}
+                </div>
               {% else %}
                 <div class="pfp-initials">
-                  {{ chat.sender.first_name|slice:":1" }}{{
-                  chat.sender.last_name|slice:":1" }}
+                  {{ chat.sender.first_name|slice:":1" }}{{ chat.sender.last_name|slice:":1" }}
                 </div>
               {% endif %}
             {% endif %}
@@ -717,13 +726,7 @@
               {% endif %}
             </div>
             <div class="chat-item-preview">
-              {% with last_message=chat.messages.last %}
-                {% if last_message %}
-                  {{ last_message.content|truncatewords:10 }}
-                {% else %}
-                  No messages yet
-                {% endif %}
-              {% endwith %}
+              {{ chat.last_message|truncatewords:10 }}
             </div>
           </div>
           <div class="chat-item-time">

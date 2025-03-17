@@ -186,8 +186,8 @@
             width: 90%;
             position: relative;
           ">
-            <h3 style="color: #dc3545; margin-bottom: 15px;">Login Failed</h3>
-            <p style="color: #333; margin-bottom: 20px;">Invalid username or password. Please try again.</p>
+            <h3 style="color: #dc3545; margin-bottom: 15px;">{% if messages %}{% for message in messages %}{% if message.tags == 'error' %}{% if 'banned' in message %}Account Banned{% else %}Invalid Credentials{% endif %}{% endif %}{% endfor %}{% endif %}</h3>
+            <p style="color: #333; margin-bottom: 20px;">{% if messages %}{% for message in messages %}{% if message.tags == 'error' %}{{ message }}{% endif %}{% endfor %}{% endif %}</p>
             <button onclick="closeErrorModal()" style="
               padding: 8px 30px;
               background: #007bff;
