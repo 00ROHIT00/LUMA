@@ -716,8 +716,8 @@
         <div
           class="chat-item {% if active_chat and chat.id == active_chat.id %} active {% endif %}{% if chat.unread_count > 0 %} has-unread {% endif %}"
           data-chat-url="{% url 'chat_detail' chat.id %}"
-          onclick="window.location.href=this.dataset.chatUrl"
-        >
+          data-chat-id="{{ chat.id }}"
+          onclick="loadChat(this, event)">
           <div class="chat-item-pfp">
             {% if chat.sender == request.user %}
               {% if chat.recipient.profile_picture %}
@@ -1063,8 +1063,14 @@
       
       if (!content) return;
 
-      const csrfToken = "{{ csrf_token }}";
-      {% if active_chat %}
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+      const activeChatId = document.querySelector('.chat-item.active')?.dataset.chatId;
+      
+      if (!activeChatId) {
+        console.error('No active chat found');
+        return;
+      }
+
       fetch("/send_message/", {
         method: "POST",
         headers: {
@@ -1072,58 +1078,76 @@
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          chat_id: {{ active_chat.id }},
+          chat_id: activeChatId,
           message: content,
         }),
       })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.status === "success") {
-            // Remove the "No messages yet" prompt if it exists
-            const noMessagesPrompt = document.getElementById("no-messages-prompt");
-            if (noMessagesPrompt) {
-              noMessagesPrompt.remove();
-            }
-            
-            // Add the new message to the messages container
-            const messagesContainer = document.querySelector(".messages-container");
-            const messageDiv = document.createElement("div");
-            messageDiv.className = "message message-sent";
-            messageDiv.dataset.messageId = data.message_id;
-            messageDiv.setAttribute('oncontextmenu', 'showContextMenu(event, this)');
-            
-            // Create profile picture element
-            const profilePicture = `
-              <div class="message-pfp">
-                {% if request.user.profile_picture %}
-                  <img src="{{ request.user.profile_picture.url }}" alt="Profile Picture">
-                {% else %}
-                  <div class="pfp-initials">
-                    {{ request.user.first_name|slice:":1" }}{{ request.user.last_name|slice:":1" }}
-                  </div>
-                {% endif %}
-              </div>
-            `;
-            
-            // Create message content
-            const messageContent = `
-              <div class="message-content">
-                ${content}
-                <div class="message-time">${data.sent_at}</div>
-              </div>
-            `;
-            
-            messageDiv.innerHTML = profilePicture + messageContent;
-            messagesContainer.appendChild(messageDiv);
-            
-            // Clear the input
-            messageInput.value = "";
-            
-            // Scroll to the bottom
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.status === "success") {
+          // Remove the "No messages yet" prompt if it exists
+          const noMessagesPrompt = document.getElementById("no-messages-prompt");
+          if (noMessagesPrompt) {
+            noMessagesPrompt.remove();
           }
-        });
-      {% endif %}
+          
+          // Add the new message to the messages container
+          const messagesContainer = document.querySelector(".messages-container");
+          const messageDiv = document.createElement("div");
+          messageDiv.className = "message message-sent";
+          messageDiv.dataset.messageId = data.message_id;
+          messageDiv.dataset.senderId = "{{ request.user.id }}";
+          messageDiv.setAttribute('oncontextmenu', 'showContextMenu(event, this)');
+          
+          // Create profile picture element
+          const profilePicture = `
+            <div class="message-pfp">
+              {% if request.user.profile_picture %}
+                <img src="{{ request.user.profile_picture.url }}" alt="Profile Picture">
+              {% else %}
+                <div class="pfp-initials">
+                  {{ request.user.first_name|slice:":1" }}{{ request.user.last_name|slice:":1" }}
+                </div>
+              {% endif %}
+            </div>
+          `;
+          
+          // Create message content
+          const messageContent = `
+            <div class="message-content">
+              ${content}
+              <div class="message-time">${data.sent_at}</div>
+            </div>
+          `;
+          
+          messageDiv.innerHTML = profilePicture + messageContent;
+          messagesContainer.appendChild(messageDiv);
+          
+          // Update chat preview
+          const activeChatItem = document.querySelector('.chat-item.active');
+          if (activeChatItem) {
+            const previewElement = activeChatItem.querySelector('.chat-item-preview');
+            if (previewElement) {
+              previewElement.textContent = content;
+            }
+            const timeElement = activeChatItem.querySelector('.chat-item-time');
+            if (timeElement) {
+              timeElement.textContent = data.sent_at;
+            }
+          }
+          
+          // Clear the input
+          messageInput.value = "";
+          
+          // Scroll to the bottom
+          scrollToBottom();
+        } else {
+          console.error('Error sending message:', data.message);
+        }
+      })
+      .catch((error) => {
+        console.error('Error sending message:', error);
+      });
     }
 
     // Handle profile pictures and initials
@@ -1559,6 +1583,58 @@
       // Set up periodic notifications check
       setInterval(checkNotifications, 30000); // Check every 30 seconds
     });
+
+    // Add this new function to handle chat loading
+    function loadChat(chatItem, event) {
+      event.preventDefault();
+      const chatId = chatItem.dataset.chatId;
+      const url = chatItem.dataset.chatUrl;
+      
+      // Update active state
+      document.querySelectorAll('.chat-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      chatItem.classList.add('active');
+      
+      // Update URL without reloading
+      window.history.pushState({}, '', url);
+      
+      // Fetch chat messages
+      fetch(url)
+        .then(response => response.text())
+        .then(html => {
+          // Create a temporary div to parse the HTML
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = html;
+          
+          // Update chat header
+          const newHeader = tempDiv.querySelector('.chat-header');
+          const currentHeader = document.querySelector('.chat-header');
+          if (newHeader && currentHeader) {
+            currentHeader.innerHTML = newHeader.innerHTML;
+          }
+          
+          // Update messages container
+          const newMessages = tempDiv.querySelector('.messages-container');
+          const currentMessages = document.querySelector('.messages-container');
+          if (newMessages && currentMessages) {
+            currentMessages.innerHTML = newMessages.innerHTML;
+          }
+          
+          // Update input area
+          const newInputArea = tempDiv.querySelector('.input-area');
+          const currentInputArea = document.querySelector('.input-area');
+          if (newInputArea && currentInputArea) {
+            currentInputArea.innerHTML = newInputArea.innerHTML;
+          }
+          
+          // Scroll to bottom
+          scrollToBottom();
+        })
+        .catch(error => {
+          console.error('Error loading chat:', error);
+        });
+    }
   </script>
 
   {% endblock %}
