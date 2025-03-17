@@ -187,6 +187,39 @@ class Report(models.Model):
         db_table = 'chat_report'
         ordering = ['-reported_at']
 
+class Broadcast(models.Model):
+    admin = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='broadcasts')
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Broadcast by {self.admin.username} at {self.created_at}"
+    
+    def send_to_all_users(self):
+        """Create notifications for all users when a broadcast is sent"""
+        print(f"Starting broadcast notification creation for broadcast ID: {self.id}")
+        users = User.objects.filter(is_active=True).exclude(id=self.admin.id)
+        print(f"Found {users.count()} active users to notify")
+        
+        notifications = []
+        for user in users:
+            print(f"Creating notification for user: {user.username}")
+            notification = Notification(
+                user=user,
+                type='info',
+                message=self.message,
+                admin_notes=f"Broadcast sent by {self.admin.username}"
+            )
+            notifications.append(notification)
+        
+        created = Notification.objects.bulk_create(notifications)
+        print(f"Successfully created {len(created)} notifications")
+        return created
+    
+    class Meta:
+        db_table = 'chat_broadcast'
+        ordering = ['-created_at']
+
 class Notification(models.Model):
     TYPES = (
         ('warning', 'Warning'),

@@ -582,9 +582,14 @@
   .notification-item {
     background: #2a2a2a;
     padding: 15px;
-    margin-bottom: 10px;
-    border-radius: 5px;
-    color: white;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+  }
+
+  .notification-item:hover {
+    transform: translateY(-2px);
   }
 
   .notification-item.warning {
@@ -593,6 +598,39 @@
 
   .notification-item.info {
     border-left: 4px solid #3498db;
+  }
+
+  /* Special styling for broadcast notifications */
+  .notification-item.broadcast {
+    border: 1px solid #ffd700;
+    background: linear-gradient(to right, #2a2a2a, #1a1a1a);
+  }
+
+  #notificationIndicator {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 8px;
+    height: 8px;
+    background-color: #ffd700;
+    border-radius: 50%;
+    display: none;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.2);
+      opacity: 0.8;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
 
   .notification-type {
@@ -1427,14 +1465,23 @@
         }
 
         container.innerHTML = data.notifications.map(notification => `
-          <div class="notification-item ${notification.type}">
+          <div class="notification-item ${notification.type} ${notification.admin_notes && notification.admin_notes.includes('Broadcast') ? 'broadcast' : ''}">
             <div class="notification-type" style="color: ${notification.type === 'warning' ? '#ffa500' : '#3498db'}">
-              ${notification.type.toUpperCase()}
+              ${notification.type === 'warning' ? 'WARNING' : 
+                notification.admin_notes && notification.admin_notes.includes('Broadcast') ? 'ADMIN BROADCAST' : 'INFORMATION'}
             </div>
-            <div class="notification-message">${notification.message}</div>
+            <div class="notification-message" style="
+              ${notification.admin_notes && notification.admin_notes.includes('Broadcast') ? 
+                'font-size: 1.1em; color: #fff; margin: 15px 0;' : ''}">
+              ${notification.message}
+            </div>
             ${notification.admin_notes ? `
-              <div class="notification-admin-notes">
-                Admin notes: ${notification.admin_notes}
+              <div class="notification-admin-notes" style="
+                color: ${notification.admin_notes.includes('Broadcast') ? '#ffd700' : '#888'};
+                font-style: ${notification.admin_notes.includes('Broadcast') ? 'italic' : 'normal'};
+              ">
+                ${notification.admin_notes.includes('Broadcast') ? 
+                  notification.admin_notes : `Admin notes: ${notification.admin_notes}`}
               </div>
             ` : ''}
             <div class="notification-time">

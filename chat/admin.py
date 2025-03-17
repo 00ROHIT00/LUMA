@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, Chat, Message, Report
+from .models import User, Chat, Message, Report, Broadcast
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
@@ -37,9 +37,34 @@ class MessageAdmin(admin.ModelAdmin):
 
 @admin.register(Report)
 class ReportAdmin(admin.ModelAdmin):
-    list_display = ('id', 'message', 'reporter', 'reported_at', 'status')
+    list_display = ('id', 'message', 'reporter', 'reported_at', 'status', 'reviewed_by')
     list_filter = ('reported_at', 'status')
-    search_fields = ('message__content', 'reporter__username')
+    search_fields = ('message__content', 'reporter__username', 'reviewed_by__username')
     ordering = ('-reported_at',)
-    raw_id_fields = ('message', 'reporter')
+    raw_id_fields = ('message', 'reporter', 'reviewed_by')
     readonly_fields = ('reported_at',)
+    fieldsets = (
+        (None, {
+            'fields': ('message', 'reporter', 'status')
+        }),
+        ('Review Information', {
+            'fields': ('reviewed_by', 'reviewed_at', 'notes')
+        })
+    )
+
+@admin.register(Broadcast)
+class BroadcastAdmin(admin.ModelAdmin):
+    list_display = ('id', 'admin', 'message', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('message', 'admin__username')
+    ordering = ('-created_at',)
+    raw_id_fields = ('admin',)
+    readonly_fields = ('created_at',)
+    fieldsets = (
+        (None, {
+            'fields': ('admin', 'message')
+        }),
+        ('Timestamp', {
+            'fields': ('created_at',)
+        })
+    )

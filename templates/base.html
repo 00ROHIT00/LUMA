@@ -198,6 +198,97 @@
         background-color: #3a3a3a;
         cursor: pointer;
       }
+
+      /* Enhanced Notification Styles */
+      .notification-item {
+        background: #2a2a2a;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        transition: transform 0.2s ease;
+      }
+
+      .notification-item:hover {
+        transform: translateY(-2px);
+      }
+
+      .notification-item.warning {
+        border-left: 4px solid #ffa500;
+      }
+
+      .notification-item.info {
+        border-left: 4px solid #3498db;
+      }
+
+      /* Special styling for broadcast notifications */
+      .notification-item.broadcast {
+        border: 1px solid #ffd700;
+        background: linear-gradient(to right, #2a2a2a, #1a1a1a);
+      }
+
+      #notificationIndicator {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        width: 8px;
+        height: 8px;
+        background-color: #ffd700;
+        border-radius: 50%;
+        display: none;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.2);
+          opacity: 0.8;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      .notifications-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .notifications-content {
+        background: #1e1e1e;
+        padding: 30px;
+        border-radius: 15px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 80vh;
+        overflow-y: auto;
+        position: relative;
+        animation: slideDown 0.3s ease-out;
+      }
+
+      @keyframes slideDown {
+        from {
+          transform: translateY(-20px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
     </style>
 
   </head>
@@ -525,23 +616,26 @@
           }
 
           container.innerHTML = data.notifications.map(notification => `
-            <div class="notification-item" style="
-              background: #2a2a2a;
-              padding: 15px;
-              margin-bottom: 10px;
-              border-radius: 5px;
-              border-left: 4px solid ${notification.type === 'warning' ? '#ffa500' : '#3498db'};
-            ">
-              <div style="font-weight: bold; color: ${notification.type === 'warning' ? '#ffa500' : '#3498db'};">
-                ${notification.type.toUpperCase()}
+            <div class="notification-item ${notification.type}">
+              <div class="notification-type" style="color: ${notification.type === 'warning' ? '#ffa500' : '#3498db'}">
+                ${notification.type === 'warning' ? 'WARNING' : 
+                  notification.admin_notes && notification.admin_notes.includes('Broadcast') ? 'ADMIN BROADCAST' : 'INFORMATION'}
               </div>
-              <div style="margin: 10px 0;">${notification.message}</div>
+              <div class="notification-message" style="
+                ${notification.admin_notes && notification.admin_notes.includes('Broadcast') ? 
+                  'font-size: 1.1em; color: #fff; margin: 15px 0;' : ''}">
+                ${notification.message}
+              </div>
               ${notification.admin_notes ? `
-                <div style="font-size: 0.9em; color: #888; margin-top: 5px;">
-                  Admin notes: ${notification.admin_notes}
+                <div class="notification-admin-notes" style="
+                  color: ${notification.admin_notes.includes('Broadcast') ? '#ffd700' : '#888'};
+                  font-style: ${notification.admin_notes.includes('Broadcast') ? 'italic' : 'normal'};
+                ">
+                  ${notification.admin_notes.includes('Broadcast') ? 
+                    notification.admin_notes : `Admin notes: ${notification.admin_notes}`}
                 </div>
               ` : ''}
-              <div style="font-size: 0.8em; color: #666; margin-top: 5px;">
+              <div class="notification-time">
                 ${new Date(notification.created_at).toLocaleString()}
               </div>
             </div>

@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from .models import User
+from .models import User, Chat, Message, Report, Notification, Broadcast
 from django.urls import reverse
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -348,9 +348,18 @@ def send_message(request):
 @login_required
 def check_notifications(request):
     try:
-        print(f"Checking notifications for user: {request.user.username}")
+        print(f"\nChecking notifications for user: {request.user.username}")
         notifications = Notification.objects.filter(user=request.user, read=False)
         print(f"Found {notifications.count()} unread notifications")
+        
+        # Debug: Print details of each notification
+        for n in notifications:
+            print(f"Notification ID: {n.id}")
+            print(f"Type: {n.type}")
+            print(f"Message: {n.message}")
+            print(f"Admin Notes: {n.admin_notes}")
+            print(f"Created At: {n.created_at}")
+            print("---")
         
         notification_data = [
             {
@@ -362,7 +371,7 @@ def check_notifications(request):
             }
             for n in notifications
         ]
-        print(f"Notification data: {notification_data}")
+        print(f"Prepared notification data: {notification_data}")
         
         return JsonResponse({
             'status': 'success',
@@ -963,3 +972,50 @@ def handle_report(request, report_id, action):
         return JsonResponse({'status': 'error', 'message': 'Report not found'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)})
+
+@admin_required
+@require_POST
+def create_broadcast(request):
+    try:
+        print(f"Creating broadcast from admin: {request.user.username}")
+        data = json.loads(request.body)
+        message = data.get('message')
+        
+        if not message:
+            print("Error: Broadcast message is empty")
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Broadcast message is required'
+            })
+        
+        print(f"Creating broadcast with message: {message}")
+        # Create and save the broadcast
+        broadcast = Broadcast.objects.create(
+            admin=request.user,
+            message=message
+        )
+        print(f"Created broadcast with ID: {broadcast.id}")
+        
+        # Send notifications to all users
+        notifications = broadcast.send_to_all_users()
+        print(f"Broadcast complete. Created {len(notifications)} notifications")
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Broadcast sent successfully to all users',
+            'broadcast_id': broadcast.id,
+            'notification_count': len(notifications)
+        })
+        
+    except json.JSONDecodeError:
+        print("Error: Invalid JSON data in request")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Invalid JSON data'
+        })
+    except Exception as e:
+        print(f"Error creating broadcast: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        })

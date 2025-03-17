@@ -33,5 +33,6 @@ urlpatterns = [
     path('delete_message_for_everyone/', views.delete_message_for_everyone, name='delete_message_for_everyone'),
     path('admin-dashboard/reports/', admin_reports, name='admin_reports'),
     path('api/reports/<int:report_id>/<str:action>/', handle_report, name='handle_report'),
+    path('api/broadcast/', create_broadcast, name='create_broadcast'),
 ]
 
