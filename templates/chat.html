@@ -192,6 +192,37 @@
     position: relative;
     width: fit-content;
     cursor: context-menu;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .message-pfp {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #444;
+    flex-shrink: 0;
+  }
+
+  .message-pfp img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .message-pfp .pfp-initials {
+    font-size: 14px;
+    font-weight: bold;
+    color: white;
+  }
+
+  .message-content {
+    flex: 1;
   }
 
   .message.deleted {
@@ -203,6 +234,7 @@
     background-color: #2a2a2a;
     align-self: flex-end;
     border-bottom-right-radius: 5px;
+    flex-direction: row-reverse;
   }
 
   .message-received {
@@ -429,10 +461,47 @@
     background: #2a2a2a;
     border-radius: 8px;
     padding: 8px 0;
-    min-width: 150px;
+    min-width: 200px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     display: none;
     z-index: 9999;
+  }
+
+  .context-menu-header {
+    display: flex;
+    align-items: center;
+    padding: 8px 15px;
+    border-bottom: 1px solid #444;
+    margin-bottom: 4px;
+  }
+
+  .context-menu-pfp {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #444;
+    margin-right: 10px;
+  }
+
+  .context-menu-pfp img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .context-menu-pfp .pfp-initials {
+    font-size: 14px;
+    font-weight: bold;
+    color: white;
+  }
+
+  .context-menu-name {
+    color: white;
+    font-weight: bold;
   }
 
   .context-menu-item {
@@ -475,11 +544,98 @@
   .unread-count {
     display: none;
   }
+
+  /* Add this after your existing styles */
+  .notifications-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .notifications-content {
+    background: #1e1e1e;
+    padding: 30px;
+    border-radius: 15px;
+    width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .notifications-header {
+    margin-bottom: 20px;
+    color: white;
+    font-size: 24px;
+    text-align: center;
+  }
+
+  .notification-item {
+    background: #2a2a2a;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    color: white;
+  }
+
+  .notification-item.warning {
+    border-left: 4px solid #ffa500;
+  }
+
+  .notification-item.info {
+    border-left: 4px solid #3498db;
+  }
+
+  .notification-type {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+
+  .notification-message {
+    margin: 10px 0;
+  }
+
+  .notification-admin-notes {
+    font-size: 0.9em;
+    color: #888;
+    margin-top: 5px;
+  }
+
+  .notification-time {
+    font-size: 0.8em;
+    color: #666;
+    margin-top: 5px;
+  }
+
+  .notifications-close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 5px;
+    line-height: 1;
+  }
 </style>
 
 <div class="chat-container">
   <!-- Add this right after the chat-container div -->
   <div id="message-context-menu" class="context-menu">
+    <div class="context-menu-header">
+      <div class="context-menu-pfp" id="contextMenuPfp">
+        <!-- Profile picture will be set dynamically -->
+      </div>
+      <div class="context-menu-name" id="contextMenuName">
+        <!-- Name will be set dynamically -->
+      </div>
+    </div>
     <div class="context-menu-item" onclick="copyMessage(this)" data-message-id="">
       Copy Message
     </div>
@@ -588,25 +744,7 @@
   <div class="chat-area">
     <div class="chat-header">
       {% if active_chat %}
-        <div class="chat-header-pfp">
-          {% if active_chat.sender == request.user %}
-            {% if active_chat.recipient.profile_picture %}
-              <img src="{{ active_chat.recipient.profile_picture.url }}" alt="Profile Picture" class="pfp-image">
-            {% else %}
-              <div class="pfp-initials">
-                {{ active_chat.recipient.first_name|slice:":1" }}{{ active_chat.recipient.last_name|slice:":1" }}
-              </div>
-            {% endif %}
-          {% else %}
-            {% if active_chat.sender.profile_picture %}
-              <img src="{{ active_chat.sender.profile_picture.url }}" alt="Profile Picture" class="pfp-image">
-            {% else %}
-              <div class="pfp-initials">
-                {{ active_chat.sender.first_name|slice:":1" }}{{ active_chat.sender.last_name|slice:":1" }}
-              </div>
-            {% endif %}
-          {% endif %}
-        </div>
+        
         <div class="chat-header-info">
           <div class="chat-header-name">
             {% if active_chat.sender == request.user %}
@@ -627,12 +765,23 @@
                  data-sender-id="{{ message.sender.id }}"
                  oncontextmenu="showContextMenu(event, this)"
                  {% if message.deleted_for.all|contains:request.user %}style="display: none;"{% endif %}>
-              {% if message.deleted_for_everyone %}
-                <i>Message deleted</i>
-              {% else %}
-                {{ message.content }}
-              {% endif %}
-              <div class="message-time">{{ message.sent_at|localtime|date:"g:i A" }}</div>
+              <div class="message-pfp">
+                {% if message.sender.profile_picture %}
+                  <img src="{{ message.sender.profile_picture.url }}" alt="Profile Picture">
+                {% else %}
+                  <div class="pfp-initials">
+                    {{ message.sender.first_name|slice:":1" }}{{ message.sender.last_name|slice:":1" }}
+                  </div>
+                {% endif %}
+              </div>
+              <div class="message-content">
+                {% if message.deleted_for_everyone %}
+                  <i>Message deleted</i>
+                {% else %}
+                  {{ message.content }}
+                {% endif %}
+                <div class="message-time">{{ message.sent_at|localtime|date:"g:i A" }}</div>
+              </div>
             </div>
           {% endfor %}
         {% else %}
@@ -699,6 +848,17 @@
       <div class="dialog-buttons">
         <button class="dialog-button" onclick="searchUser()">Search</button>
         <button class="dialog-button" onclick="closeDialog()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add this after your existing modals -->
+  <div id="notificationsModal" class="notifications-modal">
+    <div class="notifications-content">
+      <span class="notifications-close" onclick="closeNotificationsModal()">&times;</span>
+      <div class="notifications-header">Notifications</div>
+      <div id="notificationsContainer">
+        <!-- Notifications will be loaded here -->
       </div>
     </div>
   </div>
@@ -890,10 +1050,29 @@
             messageDiv.className = "message message-sent";
             messageDiv.dataset.messageId = data.message_id;
             messageDiv.setAttribute('oncontextmenu', 'showContextMenu(event, this)');
-            messageDiv.innerHTML = `
-              ${content}
-              <div class="message-time">${data.sent_at}</div>
+            
+            // Create profile picture element
+            const profilePicture = `
+              <div class="message-pfp">
+                {% if request.user.profile_picture %}
+                  <img src="{{ request.user.profile_picture.url }}" alt="Profile Picture">
+                {% else %}
+                  <div class="pfp-initials">
+                    {{ request.user.first_name|slice:":1" }}{{ request.user.last_name|slice:":1" }}
+                  </div>
+                {% endif %}
+              </div>
             `;
+            
+            // Create message content
+            const messageContent = `
+              <div class="message-content">
+                ${content}
+                <div class="message-time">${data.sent_at}</div>
+              </div>
+            `;
+            
+            messageDiv.innerHTML = profilePicture + messageContent;
             messagesContainer.appendChild(messageDiv);
             
             // Clear the input
@@ -975,6 +1154,25 @@
       if (!messageId) {
         return;
       }
+
+      // Get the profile picture and name from the message
+      const messagePfp = messageElement.querySelector('.message-pfp');
+      const contextMenuPfp = document.getElementById('contextMenuPfp');
+      const contextMenuName = document.getElementById('contextMenuName');
+
+      // Copy the profile picture content
+      if (messagePfp) {
+        contextMenuPfp.innerHTML = messagePfp.innerHTML;
+      }
+
+      // Set the sender's name
+      {% if active_chat %}
+        if (senderId === currentUserId) {
+          contextMenuName.textContent = "{{ request.user.first_name }} {{ request.user.last_name }}";
+        } else {
+          contextMenuName.textContent = "{% if active_chat.sender == request.user %}{{ active_chat.recipient.first_name }} {{ active_chat.recipient.last_name }}{% else %}{{ active_chat.sender.first_name }} {{ active_chat.sender.last_name }}{% endif %}";
+        }
+      {% endif %}
       
       // Show/hide "Delete for everyone" option based on whether user is the sender
       const deleteForEveryoneOption = contextMenu.querySelector('.sender-only');
@@ -985,7 +1183,7 @@
       // Update the message ID and content in all context menu items
       contextMenu.querySelectorAll('.context-menu-item').forEach(item => {
         item.dataset.messageId = messageId;
-        item.dataset.messageContent = messageElement.childNodes[0].textContent.trim();
+        item.dataset.messageContent = messageElement.querySelector('.message-content').textContent.trim();
       });
       
       // Position the context menu at the mouse position
@@ -1175,6 +1373,142 @@
       
       hideContextMenu();
     }
+
+    // Add these functions to your existing script
+    function checkNotifications() {
+      console.log('Checking notifications...');
+      fetch('/check_notifications/', {
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      })
+      .then(response => {
+        console.log('Notification check response:', response);
+        return response.json();
+      })
+      .then(data => {
+        console.log('Notification data:', data);
+        const hasUnread = data.notifications && data.notifications.length > 0;
+        const indicator = document.getElementById('notificationIndicator');
+        if (indicator) {
+          indicator.style.display = hasUnread ? 'block' : 'none';
+        }
+      })
+      .catch(error => {
+        console.error('Error checking notifications:', error);
+      });
+    }
+
+    function loadNotifications() {
+      console.log('Loading notifications...');
+      const container = document.getElementById('notificationsContainer');
+      
+      if (!container) {
+        console.error('Notifications container not found');
+        return;
+      }
+      
+      container.innerHTML = '<div style="text-align: center; padding: 20px;">Loading...</div>';
+
+      fetch('/check_notifications/', {
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Loaded notification data:', data);
+        if (!data.notifications || data.notifications.length === 0) {
+          container.innerHTML = '<div style="text-align: center; color: #888;">No notifications</div>';
+          return;
+        }
+
+        container.innerHTML = data.notifications.map(notification => `
+          <div class="notification-item ${notification.type}">
+            <div class="notification-type" style="color: ${notification.type === 'warning' ? '#ffa500' : '#3498db'}">
+              ${notification.type.toUpperCase()}
+            </div>
+            <div class="notification-message">${notification.message}</div>
+            ${notification.admin_notes ? `
+              <div class="notification-admin-notes">
+                Admin notes: ${notification.admin_notes}
+              </div>
+            ` : ''}
+            <div class="notification-time">
+              ${new Date(notification.created_at).toLocaleString()}
+            </div>
+          </div>
+        `).join('');
+
+        // Mark notifications as read
+        return fetch('/mark_notifications_read/', {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          }
+        });
+      })
+      .then(() => {
+        // Hide the notification indicator
+        const indicator = document.getElementById('notificationIndicator');
+        if (indicator) {
+          indicator.style.display = 'none';
+        }
+      })
+      .catch(error => {
+        console.error('Error loading notifications:', error);
+        container.innerHTML = '<div style="text-align: center; color: #ff6b6b;">Error loading notifications</div>';
+      });
+    }
+
+    function openNotificationsModal() {
+      console.log('Opening notifications modal...');
+      const modal = document.getElementById('notificationsModal');
+      if (modal) {
+        modal.style.display = 'flex';
+        loadNotifications();
+      }
+    }
+
+    function closeNotificationsModal() {
+      console.log('Closing notifications modal...');
+      const modal = document.getElementById('notificationsModal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    }
+
+    // Set up notification event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Setting up notification event listeners...');
+      
+      // Set up notification bell click handler
+      const notificationBell = document.getElementById('notificationBell');
+      if (notificationBell) {
+        notificationBell.addEventListener('click', function(e) {
+          console.log('Notification bell clicked');
+          e.preventDefault();
+          e.stopPropagation();
+          openNotificationsModal();
+        });
+      }
+
+      // Set up modal click-outside-to-close
+      const modal = document.getElementById('notificationsModal');
+      if (modal) {
+        modal.addEventListener('click', function(e) {
+          if (e.target === modal) {
+            closeNotificationsModal();
+          }
+        });
+      }
+
+      // Initial notifications check
+      checkNotifications();
+      
+      // Set up periodic notifications check
+      setInterval(checkNotifications, 30000); // Check every 30 seconds
+    });
   </script>
 
   {% endblock %}

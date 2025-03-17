@@ -425,10 +425,7 @@
     </script>
 
     <!-- NOTIFICATIONS POP UP -->
-    <div
-      class="modal"
-      id="notificationsModal"
-      style="
+    <div class="modal" id="notificationsModal" style="
         display: none;
         position: fixed;
         top: 0;
@@ -438,35 +435,33 @@
         background: rgba(0, 0, 0, 0.7);
         justify-content: center;
         align-items: center;
-        z-index: 200;
-      "
-    >
-      <div
-        style="
+        z-index: 1000;
+    ">
+      <div style="
           background: #1e1e1e;
-          padding: 20px;
-          border-radius: 10px;
+          padding: 30px;
+          border-radius: 15px;
           text-align: center;
-          width: 350px;
+          width: 400px;
           max-height: 80vh;
           overflow-y: auto;
           position: relative;
-        "
-      >
-        <span
-          onclick="closeNotificationsModal()"
-          style="
+      ">
+        <span onclick="closeNotificationsModal()" style="
             position: absolute;
             top: 10px;
             right: 15px;
             cursor: pointer;
             color: white;
             font-size: 20px;
-          "
-          >&times;</span
-        >
-        <h2 style="margin-bottom: 20px">Notifications</h2>
-        <div id="notificationsContainer" style="text-align: left">
+            padding: 5px;
+            line-height: 1;
+        ">&times;</span>
+        <h2 style="margin-bottom: 20px; color: white; font-size: 24px;">Notifications</h2>
+        <div id="notificationsContainer" style="
+            text-align: left;
+            min-height: 100px;
+        ">
           <!-- Notifications will be loaded here dynamically -->
           <div class="loading-spinner" style="text-align: center; padding: 20px">
             Loading...
@@ -476,36 +471,55 @@
     </div>
 
     <script>
-      // Add these new functions to your existing script
       function checkNotifications() {
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        console.log('Checking notifications...');
         fetch('/check_notifications/', {
           headers: {
-            'X-CSRFToken': csrfToken
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
           }
         })
-        .then(response => response.json())
-        .then(data => {
-          const hasUnread = data.notifications.length > 0;
-          document.getElementById('notificationIndicator').style.display = hasUnread ? 'block' : 'none';
+        .then(response => {
+          console.log('Notification check response:', response);
+          return response.json();
         })
-        .catch(error => console.error('Error checking notifications:', error));
+        .then(data => {
+          console.log('Notification data:', data);
+          const hasUnread = data.notifications && data.notifications.length > 0;
+          const indicator = document.getElementById('notificationIndicator');
+          console.log('Has unread notifications:', hasUnread);
+          console.log('Notification indicator element:', indicator);
+          if (indicator) {
+            indicator.style.display = hasUnread ? 'block' : 'none';
+          }
+        })
+        .catch(error => {
+          console.error('Error checking notifications:', error);
+        });
       }
 
       function loadNotifications() {
+        console.log('Loading notifications...');
         const container = document.getElementById('notificationsContainer');
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        if (!container) {
+          console.error('Notifications container not found');
+          return;
+        }
         
         container.innerHTML = '<div class="loading-spinner" style="text-align: center; padding: 20px;">Loading...</div>';
 
         fetch('/check_notifications/', {
           headers: {
-            'X-CSRFToken': csrfToken
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
           }
         })
-        .then(response => response.json())
+        .then(response => {
+          console.log('Load notifications response:', response);
+          return response.json();
+        })
         .then(data => {
-          if (data.notifications.length === 0) {
+          console.log('Loaded notification data:', data);
+          if (!data.notifications || data.notifications.length === 0) {
             container.innerHTML = '<div style="text-align: center; color: #888;">No notifications</div>';
             return;
           }
@@ -534,15 +548,19 @@
           `).join('');
 
           // Mark notifications as read
-          fetch('/mark_notifications_read/', {
+          return fetch('/mark_notifications_read/', {
             method: 'POST',
             headers: {
-              'X-CSRFToken': csrfToken
+              'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
             }
           });
-
+        })
+        .then(() => {
           // Hide the notification indicator
-          document.getElementById('notificationIndicator').style.display = 'none';
+          const indicator = document.getElementById('notificationIndicator');
+          if (indicator) {
+            indicator.style.display = 'none';
+          }
         })
         .catch(error => {
           console.error('Error loading notifications:', error);
@@ -551,26 +569,46 @@
       }
 
       function openNotificationsModal() {
-        document.getElementById('notificationsModal').style.display = 'flex';
-        loadNotifications();
+        console.log('Opening notifications modal...');
+        const modal = document.getElementById('notificationsModal');
+        if (modal) {
+          console.log('Found modal element, displaying...');
+          modal.style.display = 'flex';
+          loadNotifications();
+        } else {
+          console.error('Notifications modal element not found');
+        }
       }
 
       function closeNotificationsModal() {
-        document.getElementById('notificationsModal').style.display = 'none';
+        console.log('Closing notifications modal...');
+        const modal = document.getElementById('notificationsModal');
+        if (modal) {
+          modal.style.display = 'none';
+        }
       }
 
-      // Update the notification bell click handler
+      // Set up event listeners when the document is loaded
       document.addEventListener('DOMContentLoaded', function() {
+        console.log('Setting up notification event listeners...');
+        
+        // Set up notification bell click handler
         const notificationBell = document.getElementById('notificationBell');
+        console.log('Notification bell element:', notificationBell);
+        
         if (notificationBell) {
           notificationBell.addEventListener('click', function(e) {
+            console.log('Notification bell clicked');
             e.preventDefault();
+            e.stopPropagation();
             openNotificationsModal();
           });
         }
 
-        // Add click handler for closing modal when clicking outside
+        // Set up modal click-outside-to-close
         const modal = document.getElementById('notificationsModal');
+        console.log('Notifications modal element:', modal);
+        
         if (modal) {
           modal.addEventListener('click', function(e) {
             if (e.target === modal) {
@@ -579,9 +617,11 @@
           });
         }
 
-        // Check for notifications on page load and periodically
+        // Initial notifications check
         checkNotifications();
-        setInterval(checkNotifications, 30000);
+        
+        // Set up periodic notifications check
+        setInterval(checkNotifications, 30000); // Check every 30 seconds
       });
     </script>
   </body>

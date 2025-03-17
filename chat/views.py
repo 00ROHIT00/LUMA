@@ -324,9 +324,12 @@ def send_message(request):
 
 @login_required
 def check_notifications(request):
-    notifications = Notification.objects.filter(user=request.user, read=False)
-    return JsonResponse({
-        'notifications': [
+    try:
+        print(f"Checking notifications for user: {request.user.username}")
+        notifications = Notification.objects.filter(user=request.user, read=False)
+        print(f"Found {notifications.count()} unread notifications")
+        
+        notification_data = [
             {
                 'id': n.id,
                 'type': n.type,
@@ -336,13 +339,37 @@ def check_notifications(request):
             }
             for n in notifications
         ]
-    })
+        print(f"Notification data: {notification_data}")
+        
+        return JsonResponse({
+            'status': 'success',
+            'notifications': notification_data
+        })
+    except Exception as e:
+        print(f"Error checking notifications: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e),
+            'notifications': []
+        })
 
 @login_required
 @require_POST 
 def mark_notifications_read(request):
-    Notification.objects.filter(user=request.user, read=False).update(read=True)
-    return JsonResponse({'status': 'success'})
+    try:
+        print(f"Marking notifications as read for user: {request.user.username}")
+        count = Notification.objects.filter(user=request.user, read=False).update(read=True)
+        print(f"Marked {count} notifications as read")
+        return JsonResponse({
+            'status': 'success',
+            'count': count
+        })
+    except Exception as e:
+        print(f"Error marking notifications as read: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        })
 
 def admin_login(request):
     # If user is already logged in and is admin, redirect to dashboard
