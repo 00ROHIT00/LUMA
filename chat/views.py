@@ -1019,3 +1019,69 @@ def create_broadcast(request):
             'status': 'error',
             'message': str(e)
         })
+
+@login_required
+@require_POST
+def delete_chat(request):
+    try:
+        data = json.loads(request.body)
+        chat_id = data.get('chat_id')
+        
+        if not chat_id:
+            return JsonResponse({'status': 'error', 'message': 'Chat ID is required'})
+        
+        chat = get_object_or_404(Chat, id=chat_id)
+        
+        # Security check - ensure the user is part of this chat
+        if request.user not in [chat.sender, chat.recipient]:
+            return JsonResponse({'status': 'error', 'message': 'Unauthorized'})
+        
+        # Delete the chat
+        chat.delete()
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Chat deleted successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@login_required
+@require_POST
+def block_user(request):
+    try:
+        data = json.loads(request.body)
+        chat_id = data.get('chat_id')
+        
+        if not chat_id:
+            return JsonResponse({'status': 'error', 'message': 'Chat ID is required'})
+        
+        chat = get_object_or_404(Chat, id=chat_id)
+        
+        # Security check - ensure the user is part of this chat
+        if request.user not in [chat.sender, chat.recipient]:
+            return JsonResponse({'status': 'error', 'message': 'Unauthorized'})
+        
+        # Get the user to block
+        user_to_block = chat.sender if request.user == chat.recipient else chat.recipient
+        
+        # Add the user to blocked_users
+        request.user.blocked_users.add(user_to_block)
+        
+        # Delete the chat
+        chat.delete()
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'User blocked successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        })

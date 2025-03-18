@@ -34,5 +34,7 @@ urlpatterns = [
     path('admin-dashboard/reports/', admin_reports, name='admin_reports'),
     path('api/reports/<int:report_id>/<str:action>/', handle_report, name='handle_report'),
     path('api/broadcast/', create_broadcast, name='create_broadcast'),
+    path('delete_chat/', views.delete_chat, name='delete_chat'),
+    path('block_user/', views.block_user, name='block_user'),
 ]
 

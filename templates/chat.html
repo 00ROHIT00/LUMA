@@ -154,11 +154,25 @@
 
   .chat-header-info {
     flex: 1;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+  }
+
+  .chat-header-info:hover {
+    background-color: #2a2a2a;
   }
 
   .chat-header-name {
     font-size: 18px;
     font-weight: bold;
+  }
+
+  .chat-header-subtitle {
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
   }
 
   .messages-container {
@@ -664,6 +678,144 @@
     padding: 5px;
     line-height: 1;
   }
+
+  /* Add these new styles */
+  .user-actions-modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #1a1a1a;
+    border-radius: 15px;
+    padding: 20px;
+    z-index: 1001;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .user-actions-content {
+    position: relative;
+  }
+
+  .user-actions-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #333;
+    text-align: center;
+    position: relative;
+  }
+
+  .user-actions-header h2 {
+    margin: 0;
+    color: white;
+    font-size: 20px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .close-modal {
+    color: #666;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 5px;
+    position: absolute;
+    right: 0;
+  }
+
+  .close-modal:hover {
+    color: white;
+  }
+
+  .user-info-section {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .user-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-right: 15px;
+    background: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .avatar-initials {
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+  }
+
+  .user-details h3 {
+    margin: 0;
+    color: white;
+    font-size: 18px;
+  }
+
+  .user-username {
+    color: #666;
+    font-size: 14px;
+    margin-top: 4px;
+  }
+
+  .user-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .action-button {
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: white;
+    width: 100%;
+  }
+
+  .action-button.delete {
+    background-color: #2a2a2a;
+  }
+
+  .action-button.delete:hover {
+    background-color: #dc3545;
+  }
+
+  .action-button.block {
+    background-color: #2a2a2a;
+  }
+
+  .action-button.block:hover {
+    background-color: #6c757d;
+  }
+
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+  }
 </style>
 
 <div class="chat-container">
@@ -785,8 +937,7 @@
   <div class="chat-area">
     <div class="chat-header">
       {% if active_chat %}
-        
-        <div class="chat-header-info">
+        <div class="chat-header-info" onclick="openUserActionsModal()">
           <div class="chat-header-name">
             {% if active_chat.sender == request.user %}
               {{ active_chat.recipient.first_name }} {{ active_chat.recipient.last_name }}
@@ -794,6 +945,7 @@
               {{ active_chat.sender.first_name }} {{ active_chat.sender.last_name }}
             {% endif %}
           </div>
+          <div class="chat-header-subtitle">Click for actions</div>
         </div>
       {% endif %}
     </div>
@@ -903,6 +1055,70 @@
       </div>
     </div>
   </div>
+
+  <!-- Add user actions modal -->
+  <div id="userActionsModal" class="user-actions-modal">
+    <div class="user-actions-content">
+      <div class="user-actions-header">
+        <h2>Chat Actions</h2>
+        <span class="close-modal" onclick="closeUserActionsModal()">&times;</span>
+      </div>
+      <div class="user-info-section">
+        <div class="user-avatar">
+          {% if active_chat %}
+            {% if active_chat.sender == request.user %}
+              {% if active_chat.recipient.profile_picture %}
+                <img src="{{ active_chat.recipient.profile_picture.url }}" alt="Profile Picture">
+              {% else %}
+                <div class="avatar-initials">
+                  {{ active_chat.recipient.first_name|slice:":1" }}{{ active_chat.recipient.last_name|slice:":1" }}
+                </div>
+              {% endif %}
+            {% else %}
+              {% if active_chat.sender.profile_picture %}
+                <img src="{{ active_chat.sender.profile_picture.url }}" alt="Profile Picture">
+              {% else %}
+                <div class="avatar-initials">
+                  {{ active_chat.sender.first_name|slice:":1" }}{{ active_chat.sender.last_name|slice:":1" }}
+                </div>
+              {% endif %}
+            {% endif %}
+          {% endif %}
+        </div>
+        <div class="user-details">
+          <h3>
+            {% if active_chat %}
+              {% if active_chat.sender == request.user %}
+                {{ active_chat.recipient.first_name }} {{ active_chat.recipient.last_name }}
+              {% else %}
+                {{ active_chat.sender.first_name }} {{ active_chat.sender.last_name }}
+              {% endif %}
+            {% endif %}
+          </h3>
+          <div class="user-username">
+            {% if active_chat %}
+              {% if active_chat.sender == request.user %}
+                @{{ active_chat.recipient.username }}
+              {% else %}
+                @{{ active_chat.sender.username }}
+              {% endif %}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="user-actions">
+        <button class="action-button delete" onclick="handleDeleteChat()">
+          Delete Chat
+        </button>
+        <button class="action-button block" onclick="handleBlockUser()">
+          Block User
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add this right before the userActionsModal div -->
+  <div id="modalBackdrop" class="modal-backdrop"></div>
 
   <script>
     // Single function to handle both navbar and chat "Add" buttons
@@ -1635,6 +1851,138 @@
           console.error('Error loading chat:', error);
         });
     }
+
+    // Remove the chat context menu related functions and add these new functions
+    function openUserActionsModal() {
+      const modal = document.getElementById('userActionsModal');
+      const backdrop = document.getElementById('modalBackdrop');
+      
+      modal.style.display = 'block';
+      backdrop.style.display = 'block';
+      
+      // Close modal when clicking outside
+      backdrop.onclick = function() {
+        closeUserActionsModal();
+      };
+    }
+
+    function closeUserActionsModal() {
+      const modal = document.getElementById('userActionsModal');
+      const backdrop = document.getElementById('modalBackdrop');
+      
+      modal.style.display = 'none';
+      backdrop.style.display = 'none';
+    }
+
+    function handleDeleteChat() {
+      if (!confirm('Are you sure you want to delete this chat? This action cannot be undone.')) {
+        return;
+      }
+
+      const activeChatId = document.querySelector('.chat-item.active')?.dataset.chatId;
+      if (!activeChatId) {
+        alert('No active chat found');
+        return;
+      }
+
+      fetch('/delete_chat/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ chat_id: activeChatId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          // Remove the chat item from the list
+          const chatElement = document.querySelector(`[data-chat-id="${activeChatId}"]`);
+          if (chatElement) {
+            chatElement.remove();
+          }
+          // Clear the chat area
+          document.querySelector('.chat-header').innerHTML = '';
+          document.querySelector('.messages-container').innerHTML = 
+            '<div class="start-message">Select a chat to start messaging</div>';
+          document.querySelector('.input-area').style.display = 'none';
+          
+          closeUserActionsModal();
+        } else {
+          alert('Failed to delete chat. Please try again.');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to delete chat. Please try again.');
+      });
+    }
+
+    function handleBlockUser() {
+      if (!confirm('Are you sure you want to block this user? They will not be able to send you messages.')) {
+        return;
+      }
+
+      const activeChatId = document.querySelector('.chat-item.active')?.dataset.chatId;
+      if (!activeChatId) {
+        alert('No active chat found');
+        return;
+      }
+
+      fetch('/block_user/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ chat_id: activeChatId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          // Remove the chat item from the list
+          const chatElement = document.querySelector(`[data-chat-id="${activeChatId}"]`);
+          if (chatElement) {
+            chatElement.remove();
+          }
+          // Clear the chat area
+          document.querySelector('.chat-header').innerHTML = '';
+          document.querySelector('.messages-container').innerHTML = 
+            '<div class="start-message">Select a chat to start messaging</div>';
+          document.querySelector('.input-area').style.display = 'none';
+          
+          closeUserActionsModal();
+          
+          // Show success message
+          const notification = document.createElement('div');
+          notification.style.position = 'fixed';
+          notification.style.bottom = '20px';
+          notification.style.left = '50%';
+          notification.style.transform = 'translateX(-50%)';
+          notification.style.backgroundColor = '#4CAF50';
+          notification.style.color = 'white';
+          notification.style.padding = '10px 20px';
+          notification.style.borderRadius = '5px';
+          notification.style.zIndex = '10000';
+          notification.textContent = 'User blocked successfully';
+          document.body.appendChild(notification);
+          setTimeout(() => notification.remove(), 3000);
+        } else {
+          alert('Failed to block user. Please try again.');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to block user. Please try again.');
+      });
+    }
+
+    // Close modal when pressing Escape
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        closeUserActionsModal();
+      }
+    });
   </script>
 
   {% endblock %}
