@@ -36,5 +36,6 @@ urlpatterns = [
     path('api/broadcast/', create_broadcast, name='create_broadcast'),
     path('delete_chat/', views.delete_chat, name='delete_chat'),
     path('block_user/', views.block_user, name='block_user'),
+    path('check_if_user_is_blocked/', views.check_if_user_is_blocked, name='check_if_user_is_blocked'),
 ]
 

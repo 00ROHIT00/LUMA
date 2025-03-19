@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from .models import User, Chat, Message, Report, Notification, Broadcast
+from .models import User, Chat, Message, Report, Notification, Broadcast, BlockedUser
 from django.urls import reverse
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -121,6 +121,10 @@ def chat_list(request):
     # Get all chats where the current user is either sender or recipient
     chats = Chat.objects.filter(
         Q(sender=request.user) | Q(recipient=request.user)
+    ).exclude(
+        # Exclude chats with blocked users
+        Q(sender__in=BlockedUser.objects.filter(blocked=request.user).values('blocker')) |
+        Q(recipient__in=BlockedUser.objects.filter(blocked=request.user).values('blocker'))
     ).order_by('-updated_at')
     
     # Add unread message count for each chat
@@ -323,6 +327,15 @@ def send_message(request):
         
         try:
             chat = Chat.objects.get(id=chat_id)
+            
+            # Check if user is blocked
+            other_user = chat.recipient if chat.sender == request.user else chat.sender
+            if BlockedUser.is_blocked(request.user, other_user):
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'You cannot send messages to this user'
+                })
+            
             message = Message.objects.create(
                 chat=chat,
                 sender=request.user,
@@ -1066,18 +1079,58 @@ def block_user(request):
         if request.user not in [chat.sender, chat.recipient]:
             return JsonResponse({'status': 'error', 'message': 'Unauthorized'})
         
-        # Get the user to block
-        user_to_block = chat.sender if request.user == chat.recipient else chat.recipient
+        # Determine which user to block
+        user_to_block = chat.recipient if chat.sender == request.user else chat.sender
         
-        # Add the user to blocked_users
-        request.user.blocked_users.add(user_to_block)
+        # Check if already blocked
+        if BlockedUser.objects.filter(blocker=request.user, blocked=user_to_block).exists():
+            return JsonResponse({
+                'status': 'error',
+                'message': 'User is already blocked'
+            })
         
-        # Delete the chat
-        chat.delete()
+        # Create the block
+        BlockedUser.objects.create(
+            blocker=request.user,
+            blocked=user_to_block
+        )
         
         return JsonResponse({
             'status': 'success',
             'message': 'User blocked successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@login_required
+@require_POST
+def check_if_user_is_blocked(request):
+    try:
+        data = json.loads(request.body)
+        chat_id = data.get('chat_id')
+        
+        if not chat_id:
+            return JsonResponse({'status': 'error', 'message': 'Chat ID is required'})
+        
+        chat = get_object_or_404(Chat, id=chat_id)
+        
+        # Security check - ensure the user is part of this chat
+        if request.user not in [chat.sender, chat.recipient]:
+            return JsonResponse({'status': 'error', 'message': 'Unauthorized'})
+        
+        # Determine the other user
+        other_user = chat.recipient if chat.sender == request.user else chat.sender
+        
+        # Check if blocked
+        is_blocked = BlockedUser.is_blocked(request.user, other_user)
+        
+        return JsonResponse({
+            'status': 'success',
+            'is_blocked': is_blocked
         })
         
     except Exception as e:

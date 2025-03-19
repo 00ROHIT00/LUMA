@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.utils import timezone
+from django.db.models import Q
 
 class UserManager(BaseUserManager):
     def create_user(self, username, email, password=None, **extra_fields):
@@ -235,3 +236,22 @@ class Notification(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+class BlockedUser(models.Model):
+    blocker = models.ForeignKey(User, on_delete=models.CASCADE, related_name='blocked_users')
+    blocked = models.ForeignKey(User, on_delete=models.CASCADE, related_name='blocked_by')
+    blocked_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('blocker', 'blocked')
+        ordering = ['-blocked_at']
+
+    def __str__(self):
+        return f"{self.blocker.username} blocked {self.blocked.username}"
+
+    @classmethod
+    def is_blocked(cls, user1, user2):
+        """Check if user1 is blocked by user2 or vice versa"""
+        return cls.objects.filter(
+            (Q(blocker=user1, blocked=user2) | Q(blocker=user2, blocked=user1))
+        ).exists()
