@@ -1208,6 +1208,114 @@
     display: flex;
     align-items: center;
   }
+
+  /* Fullscreen image viewer styles */
+  .fullscreen-modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0);
+    backdrop-filter: blur(0px);
+    opacity: 0;
+    transition: background-color 0.3s ease, backdrop-filter 0.3s ease, opacity 0.3s ease;
+  }
+
+  .fullscreen-modal.visible {
+    background-color: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(5px);
+    opacity: 1;
+  }
+
+  .fullscreen-modal-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  #fullscreen-image {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    opacity: 0;
+    transform: scale(0.95);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+
+  .fullscreen-modal.visible #fullscreen-image {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .close-modal {
+    position: absolute;
+    top: 15px;
+    right: 25px;
+    color: #f1f1f1;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 10000;
+    transition: color 0.2s;
+  }
+
+  .close-modal:hover {
+    color: #bbb;
+  }
+
+  .download-button {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 4px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.2s, opacity 0.3s ease, transform 0.3s ease;
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  .fullscreen-modal.visible .download-button {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .download-button:hover {
+    background-color: #45a049;
+  }
+
+  /* Add pointer cursor to image attachments */
+  .message-attachment img {
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  .message-attachment img:hover {
+    transform: scale(1.03);
+  }
+</style>
+
+<div class="chat-container">
+  <!-- Add this right after the chat-container div -->
+  /* Add pointer cursor to image attachments */
+  .message-attachment img {
+    cursor: pointer;
+  }
 </style>
 
 <div class="chat-container">
@@ -1614,7 +1722,26 @@
   <!-- Add this right before the userActionsModal div -->
   <div id="modalBackdrop" class="modal-backdrop"></div>
 
+  <!-- Add this at the end of the body or after your context menu div -->
+  <div id="fullscreen-image-viewer" class="fullscreen-modal">
+    <div class="fullscreen-modal-content">
+      <span class="close-modal" onclick="closeImageViewer()">&times;</span>
+      <img id="fullscreen-image" src="" alt="Fullscreen Image">
+      <a id="download-image-btn" href="" download class="download-button">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Download
+      </a>
+    </div>
+  </div>
+
   <script>
+    // Set authentication status for use in JavaScript
+    const isUserAuthenticated = {% if request.user.is_authenticated %}true{% else %}false{% endif %};
+    
     // Single function to handle both navbar and chat "Add" buttons
     function openDialog() {
       document.getElementById("dialog").style.display = "flex";
@@ -2228,63 +2355,60 @@
 
     // Add this new function to handle chat loading
     function loadChat(chatItem, event) {
-      event.preventDefault();
-      const chatId = chatItem.dataset.chatId;
-      const url = chatItem.dataset.chatUrl;
+      // Prevent default if it's an anchor tag
+      if (event) {
+        event.preventDefault();
+      }
       
-      // Update active state
+      // Get the chat URL and ID
+      const chatUrl = chatItem.dataset.chatUrl;
+      const chatId = chatItem.dataset.chatId;
+      
+      // Set the chat as active
       document.querySelectorAll('.chat-item').forEach(item => {
         item.classList.remove('active');
       });
       chatItem.classList.add('active');
       
-      // Update URL without reloading
-      window.history.pushState({}, '', url);
+      // Remove unread indicator
+      chatItem.classList.remove('has-unread');
+      const unreadIndicator = chatItem.querySelector('.unread-indicator');
+      if (unreadIndicator) {
+        unreadIndicator.style.display = 'none';
+      }
       
-      // Fetch chat messages
-      fetch(url)
+      // Show loading spinner in the messages container
+      const messagesContainer = document.querySelector('.messages-container');
+      messagesContainer.innerHTML = '<div class="loading-spinner-container"><div class="loading-spinner"></div></div>';
+      
+      // Fetch the chat details with AJAX
+      fetch(chatUrl)
         .then(response => response.text())
         .then(html => {
-          // Create a temporary div to parse the HTML
-          const tempDiv = document.createElement('div');
-          tempDiv.innerHTML = html;
+          // Extract just the messages container content from the response
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          const newMessages = doc.querySelector('.messages-container').innerHTML;
           
-          // Update chat header
-          const newHeader = tempDiv.querySelector('.chat-header');
-          const currentHeader = document.querySelector('.chat-header');
-          if (newHeader && currentHeader) {
-            currentHeader.innerHTML = newHeader.innerHTML;
-          }
+          // Update the messages container
+          messagesContainer.innerHTML = newMessages;
           
-          // Update messages container
-          const newMessages = tempDiv.querySelector('.messages-container');
-          const currentMessages = document.querySelector('.messages-container');
-          if (newMessages && currentMessages) {
-            currentMessages.innerHTML = newMessages.innerHTML;
-          }
+          // Initialize image attachment click handlers for the loaded chat
+          setupImageAttachmentListeners();
           
-          // Update input area
-          const newInputArea = tempDiv.querySelector('.input-area');
-          const currentInputArea = document.querySelector('.input-area');
-          if (newInputArea && currentInputArea) {
-            currentInputArea.innerHTML = newInputArea.innerHTML;
-            currentInputArea.style.display = 'block';
-          }
+          // Update the URL without refreshing the page
+          history.pushState({}, '', chatUrl);
           
-          // Initialize file input and attachment preview
-          const fileInput = document.getElementById('fileInput');
-          const attachmentPreview = document.getElementById('attachmentPreview');
-          if (fileInput && attachmentPreview) {
-            fileInput.value = '';
-            attachmentPreview.classList.remove('show');
-          }
+          // Scroll to the bottom
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
           
-          // Scroll to bottom
-          scrollToBottom();
+          // Update the chat header
+          const chatHeader = document.querySelector('.chat-header');
+          chatHeader.innerHTML = doc.querySelector('.chat-header').innerHTML;
         })
         .catch(error => {
           console.error('Error loading chat:', error);
-          showToast('Error loading chat', 'error');
+          messagesContainer.innerHTML = '<div class="error-message">Error loading chat. Please try again.</div>';
         });
     }
 
@@ -2642,6 +2766,18 @@
               messageDiv.innerHTML = profilePicture + messageContent;
               messagesContainer.appendChild(messageDiv);
               
+              // Set up image attachment click listeners for the new message
+              if (data.has_attachment && data.attachment_type === 'image') {
+                const newImage = messageDiv.querySelector('.message-attachment img');
+                if (newImage) {
+                  newImage.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openImageViewer(this.src);
+                  });
+                }
+              }
+              
               // Update chat preview
               const activeChatItem = document.querySelector('.chat-item.active');
               if (activeChatItem) {
@@ -2808,6 +2944,120 @@
 
     // Also call initialization on window load as a fallback
     window.addEventListener('load', initializeChatInterface);
+
+    // Add this to your existing JavaScript
+    function openImageViewer(imageUrl) {
+      const viewer = document.getElementById('fullscreen-image-viewer');
+      const fullscreenImage = document.getElementById('fullscreen-image');
+      const downloadBtn = document.getElementById('download-image-btn');
+      const navbar = document.querySelector('.navbar');
+      
+      fullscreenImage.src = imageUrl;
+      
+      // Set up download button
+      if (downloadBtn) {
+        downloadBtn.href = imageUrl;
+        // Extract filename from URL to use as download name
+        const fileName = imageUrl.split('/').pop();
+        downloadBtn.setAttribute('download', fileName);
+      }
+      
+      // Slide navbar up
+      if (navbar) {
+        navbar.style.transition = 'transform 0.3s ease-out';
+        navbar.style.transform = 'translateY(-100%)';
+      }
+      
+      // Show the viewer with transition
+      viewer.style.display = 'block';
+      // Trigger reflow to ensure the transition works
+      viewer.offsetHeight;
+      viewer.classList.add('visible');
+      
+      // Prevent scrolling on the body when modal is open
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeImageViewer() {
+      const viewer = document.getElementById('fullscreen-image-viewer');
+      const navbar = document.querySelector('.navbar');
+      
+      // Slide navbar down
+      if (navbar) {
+        navbar.style.transition = 'transform 0.3s ease-out';
+        navbar.style.transform = 'translateY(0)';
+      }
+      
+      // Hide the viewer with transition
+      viewer.classList.remove('visible');
+      
+      // Wait for the transition to complete before hiding
+      setTimeout(() => {
+        viewer.style.display = 'none';
+      }, 300); // Match the transition duration (0.3s)
+      
+      // Re-enable scrolling on the body
+      document.body.style.overflow = 'auto';
+    }
+
+    // Close the image viewer when clicking outside the image
+    document.getElementById('fullscreen-image-viewer').addEventListener('click', function(event) {
+      if (event.target === this) {
+        closeImageViewer();
+      }
+    });
+
+    // Close on escape key
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape' && document.getElementById('fullscreen-image-viewer').style.display === 'block') {
+        closeImageViewer();
+      }
+    });
+
+    // Add click event listeners to all image attachments
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initial setup for existing images
+      setupImageAttachmentListeners();
+    });
+
+    // Function to set up click listeners for image attachments
+    function setupImageAttachmentListeners() {
+      const imageAttachments = document.querySelectorAll('.message-attachment img');
+      imageAttachments.forEach(img => {
+        img.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          openImageViewer(this.src);
+        });
+      });
+    }
+
+    // Update this function to add click listeners to new image attachments
+    // This should be called when new messages are added to the chat
+    function appendMessage(data) {
+      // Your existing appendMessage code
+      
+      // After appending the message, setup listeners for any new image attachments
+      setupImageAttachmentListeners();
+    }
+
+    // Initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      // Set up chat interface
+      initializeChatInterface();
+      
+      // Set up image attachment listeners for existing images
+      setupImageAttachmentListeners();
+      
+      // Check for notifications
+      checkNotifications();
+      
+      // Start notification polling if user is authenticated
+      // User authentication status is set in a script tag outside this code
+      if (typeof isUserAuthenticated !== 'undefined' && isUserAuthenticated) {
+        startNotificationPolling();
+      }
+    });
   </script>
 
   {% endblock %}
