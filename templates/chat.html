@@ -130,6 +130,7 @@
     margin-left: 0;
     display: flex;
     flex-direction: column;
+    overflow: hidden; /* Add this to prevent content overflow */
   }
 
   .chat-header {
@@ -183,6 +184,8 @@
     flex-direction: column;
     background-color: #1a1a1a;
     align-items: stretch;
+    min-height: 0; /* Add this to ensure proper flex behavior */
+    height: 100%; /* Add this to ensure container takes full height */
   }
 
   .messages-container:has(.start-message) {
@@ -242,6 +245,135 @@
     flex: 1;
   }
 
+  .message-attachment {
+    margin-top: 8px;
+    padding: 8px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    max-width: 300px;
+  }
+
+  .attachment-image {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 4px;
+  }
+
+  .file-icon {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 5px;
+  }
+
+  .file-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .file-name {
+    font-size: 14px;
+    word-break: break-word;
+    text-align: center;
+    max-width: 280px;
+    margin-bottom: 5px;
+  }
+
+  .file-link {
+    color: #3498db;
+    text-decoration: none;
+    font-size: 12px;
+    padding: 3px 10px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    transition: background-color 0.2s;
+  }
+
+  .file-link:hover {
+    background-color: rgba(0, 0, 0, 0.3);
+    text-decoration: underline;
+  }
+
+  .message-attachment .file-info {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .message-attachment .file-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #444;
+    border-radius: 4px;
+  }
+
+  .message-attachment .file-name {
+    color: white;
+    font-size: 14px;
+    word-break: break-all;
+  }
+
+  .message-attachment .file-size {
+    color: #aaa;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .attachment-preview {
+    display: none;
+    margin: 10px 0;
+    padding: 10px;
+    background: #2a2a2a;
+    border-radius: 8px;
+    position: relative;
+  }
+
+  .attachment-preview.show {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .attachment-preview img {
+    max-width: 100px;
+    max-height: 100px;
+    border-radius: 4px;
+  }
+
+  .attachment-preview .file-info {
+    flex: 1;
+  }
+
+  .attachment-preview .remove-attachment {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(255, 0, 0, 0.5);
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+
+  .attachment-preview .remove-attachment:hover {
+    background: rgba(255, 0, 0, 0.7);
+  }
+
+  #fileInput {
+    display: none;
+  }
+
   .message.deleted {
     font-style: italic;
     color: #666;
@@ -272,6 +404,8 @@
     border-top: 1px solid #333;
     display: flex;
     background-color: #1a1a1a;
+    position: relative; /* Add this to ensure proper stacking */
+    z-index: 1; /* Add this to ensure proper stacking */
   }
 
   .message-input {
@@ -285,6 +419,13 @@
     margin-right: 10px;
   }
 
+  .input-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .attach-button,
   .send-button {
     background-color: #333;
     border: none;
@@ -297,10 +438,53 @@
     align-items: center;
     justify-content: center;
     transition: background-color 0.2s;
+    position: relative;
   }
 
+  .attach-button:hover,
   .send-button:hover {
     background-color: #444;
+  }
+
+  .attach-button svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Add tooltip styles */
+  .tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 5px 10px;
+    background-color: #333;
+    color: white;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+    margin-bottom: 5px;
+    pointer-events: none;
+  }
+
+  .tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+  }
+
+  .attach-button:hover .tooltip,
+  .send-button:hover .tooltip {
+    opacity: 1;
+    visibility: visible;
   }
 
   .add-contact-button {
@@ -980,6 +1164,50 @@
   .block-confirmation-buttons button.confirm:hover {
     background-color: #ff5252;
   }
+
+  /* Add this CSS code */
+  .file-name-display {
+    position: absolute;
+    right: 100px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: #444;
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 12px;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+  }
+
+  .file-name {
+    margin-right: 5px;
+    color: white;
+  }
+
+  .remove-file {
+    background: none;
+    border: none;
+    color: #aaa;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0 2px;
+  }
+
+  .remove-file:hover {
+    color: white;
+  }
+
+  .input-container {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+  }
 </style>
 
 <div class="chat-container">
@@ -1062,9 +1290,9 @@
           onclick="loadChat(this, event)">
           <div class="chat-item-pfp">
             {% if chat.sender == request.user %}
-              {% if chat.recipient.profile_picture %}
+              {% if chat.recipient_profile_pic %}
                 <img
-                  src="{{ chat.recipient.profile_picture.url }}"
+                  src="{{ chat.recipient_profile_pic }}"
                   alt="Profile Picture"
                   class="pfp-image"
                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
@@ -1078,9 +1306,9 @@
                 </div>
               {% endif %}
             {% else %}
-              {% if chat.sender.profile_picture %}
+              {% if chat.sender_profile_pic %}
                 <img
-                  src="{{ chat.sender.profile_picture.url }}"
+                  src="{{ chat.sender_profile_pic }}"
                   alt="Profile Picture"
                   class="pfp-image"
                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
@@ -1162,6 +1390,43 @@
                   <i>Message deleted</i>
                 {% else %}
                   {{ message.content }}
+                  {% if message.attachment %}
+                    {% if message.attachment_type == 'image' %}
+                      <div class="message-attachment">
+                        <img src="{{ message.attachment.url }}" alt="{{ message.attachment_name }}" class="attachment-image">
+                      </div>
+                    {% else %}
+                      <div class="message-attachment">
+                        <div class="file-icon">
+                          {% if message.attachment_type == 'pdf' %}
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                              <path d="M14 2V8H20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                              <path d="M12 18C12 17.4 11.6 17 11 17C10.4 17 10 17.4 10 18C10 18.6 10.4 19 11 19C11.6 19 12 18.6 12 18Z" fill="white"/>
+                              <path d="M12 13C12 12.4 11.6 12 11 12C10.4 12 10 12.4 10 13V16C10 16.6 10.4 17 11 17C11.6 17 12 16.6 12 16V13Z" fill="white"/>
+                            </svg>
+                          {% elif message.attachment_type == 'doc' %}
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                              <path d="M14 2V8H20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                              <path d="M16 13H8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                              <path d="M16 17H8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                              <path d="M10 9H9H8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                          {% else %}
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                              <path d="M14 2V8H20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                          {% endif %}
+                        </div>
+                        <div class="file-info">
+                          <div class="file-name">{{ message.attachment_name }}</div>
+                          <a href="{{ message.attachment.url }}" target="_blank" class="file-link">Download</a>
+                        </div>
+                      </div>
+                    {% endif %}
+                  {% endif %}
                 {% endif %}
                 <div class="message-time">{{ message.sent_at|localtime|date:"g:i A" }}</div>
               </div>
@@ -1177,38 +1442,77 @@
       {% endif %}
     </div>
     {% if active_chat %}
-    <div class="input-area">
-      <input
-        type="text"
-        class="message-input"
-        placeholder="Type a message..."
-        id="messageInput"
-        onkeypress="if(event.key === 'Enter') sendMessage()"
-      />
-      <button class="send-button" onclick="sendMessage()">
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M22 2L11 13"
-            stroke="white"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-          <path
-            d="M22 2L15 22L11 13L2 9L22 2Z"
-            stroke="white"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-      </button>
+    <div class="input-area" style="display: block;">
+      <div class="chat-footer">
+        <div class="input-container">
+          <input
+            type="text"
+            id="messageInput"
+            placeholder="Type a message..."
+            class="message-input"
+            onkeydown="if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"
+          >
+          <input type="file" id="fileInput" accept="image/*,.pdf,.doc,.docx,.txt" style="display: none;" onchange="handleAttachment(event)">
+          <div class="input-buttons">
+            <button class="attach-button" onclick="document.getElementById('fileInput').click()">
+              <span class="tooltip">Add attachment</span>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M21.44 11.05L12.25 20.24C11.1242 21.3658 9.5972 21.9983 8.005 21.9983C6.4128 21.9983 4.88584 21.3658 3.76 20.24C2.63416 19.1142 2.00171 17.5872 2.00171 15.995C2.00171 14.4028 2.63416 12.8758 3.76 11.75L12.95 2.56C13.7006 1.80944 14.7186 1.38086 15.78 1.38086C16.8414 1.38086 17.8594 1.80944 18.61 2.56C19.3606 3.31056 19.7892 4.32856 19.7892 5.39C19.7892 6.45144 19.3606 7.46944 18.61 8.22L9.42 17.41C9.0348 17.7952 8.52577 18.0095 7.995 18.0095C7.46423 18.0095 6.95519 17.7952 6.57 17.41C6.18481 17.0248 5.97053 16.5158 5.97053 15.985C5.97053 15.4542 6.18481 14.9452 6.57 14.56L15.76 5.37"
+                  stroke="white"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <button class="send-button" onclick="sendMessage()">
+              <span class="tooltip">Send message</span>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M22 2L11 13"
+                  stroke="white"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M22 2L15 22L11 13L2 9L22 2Z"
+                  stroke="white"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="attachment-preview" id="attachmentPreview">
+      <button class="remove-attachment" onclick="removeAttachment()">&times;</button>
+      <div class="file-info">
+        <div class="file-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 2V8H20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="file-name" id="attachmentName"></div>
+        <div class="file-size" id="attachmentSize"></div>
+      </div>
     </div>
     {% endif %}
   </div>
@@ -1463,126 +1767,32 @@
       });
     }
 
-    function sendMessage() {
-      const messageInput = document.getElementById("messageInput");
-      const content = messageInput.value.trim();
-      
-      if (!content) return;
-
-      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-      const activeChatId = document.querySelector('.chat-item.active')?.dataset.chatId;
-      
-      if (!activeChatId) {
-        console.error('No active chat found');
-        return;
-      }
-
-      // Check if user is blocked before sending message
-      checkIfUserIsBlocked(activeChatId)
-        .then(isBlocked => {
-          if (isBlocked) {
-            showToast('You cannot send messages to this user', 'error');
-            return;
-          }
-
-          // Proceed with sending message if not blocked
-          fetch("/send_message/", {
-            method: "POST",
-            headers: {
-              "X-CSRFToken": csrfToken,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              chat_id: activeChatId,
-              message: content,
-            }),
-          })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.status === "success") {
-              // Remove the "No messages yet" prompt if it exists
-              const noMessagesPrompt = document.getElementById("no-messages-prompt");
-              if (noMessagesPrompt) {
-                noMessagesPrompt.remove();
-              }
-              
-              // Add the new message to the messages container
-              const messagesContainer = document.querySelector(".messages-container");
-              const messageDiv = document.createElement("div");
-              messageDiv.className = "message message-sent";
-              messageDiv.dataset.messageId = data.message_id;
-              messageDiv.dataset.senderId = "{{ request.user.id }}";
-              messageDiv.setAttribute('oncontextmenu', 'showContextMenu(event, this)');
-              
-              // Create profile picture element
-              const profilePicture = `
-                <div class="message-pfp">
-                  {% if request.user.profile_picture %}
-                    <img src="{{ request.user.profile_picture.url }}" alt="Profile Picture">
-                  {% else %}
-                    <div class="pfp-initials">
-                      {{ request.user.first_name|slice:":1" }}{{ request.user.last_name|slice:":1" }}
-                    </div>
-                  {% endif %}
-                </div>
-              `;
-              
-              // Create message content
-              const messageContent = `
-                <div class="message-content">
-                  ${content}
-                  <div class="message-time">${data.sent_at}</div>
-                </div>
-              `;
-              
-              messageDiv.innerHTML = profilePicture + messageContent;
-              messagesContainer.appendChild(messageDiv);
-              
-              // Update chat preview
-              const activeChatItem = document.querySelector('.chat-item.active');
-              if (activeChatItem) {
-                const previewElement = activeChatItem.querySelector('.chat-item-preview');
-                if (previewElement) {
-                  previewElement.textContent = content;
-                }
-                const timeElement = activeChatItem.querySelector('.chat-item-time');
-                if (timeElement) {
-                  timeElement.textContent = data.sent_at;
-                }
-              }
-              
-              // Clear the input
-              messageInput.value = "";
-              
-              // Scroll to the bottom
-              scrollToBottom();
-            } else {
-              console.error('Error sending message:', data.message);
-            }
-          })
-          .catch((error) => {
-            console.error('Error sending message:', error);
-          });
-        });
-    }
-
     // Handle profile pictures and initials
     document.querySelectorAll(".chat-item").forEach((chatItem) => {
       const pfpImage = chatItem.querySelector(".pfp-image");
       const pfpInitials = chatItem.querySelector(".pfp-initials");
-      const nameElement = chatItem.querySelector(".chat-item-name");
 
-      if (pfpImage && pfpImage.src) {
-        // Show image if the src is valid
+      if (pfpImage) {
+        // Set initial display to block
         pfpImage.style.display = "block";
-        pfpInitials.style.display = "none";
-      } else {
-        // Fallback: Show initials
-        const firstName = nameElement.dataset.firstName || '';
-        const lastName = nameElement.dataset.lastName || '';
-        const initials = (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
-        pfpInitials.innerText = initials;
-        pfpImage.style.display = "none";
+        
+        // Add error handler for the image
+        pfpImage.onerror = function() {
+          console.log("Profile picture failed to load, showing initials");
+          this.style.display = "none";
+          if (pfpInitials) {
+            pfpInitials.style.display = "flex";
+          }
+        };
+        
+        // Add load handler for the image
+        pfpImage.onload = function() {
+          console.log("Profile picture loaded successfully");
+          this.style.display = "block";
+          if (pfpInitials) {
+            pfpInitials.style.display = "none";
+          }
+        };
       }
     });
 
@@ -1595,6 +1805,13 @@
           messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }, 100);
       }
+
+      // Initialize input area if there's an active chat
+      const activeChatId = document.querySelector('.chat-item.active')?.dataset.chatId;
+      const inputArea = document.querySelector('.input-area');
+      if (activeChatId && inputArea) {
+        inputArea.style.display = 'block';
+      }
     });
 
     // Also scroll to bottom when messages are loaded or when switching chats
@@ -1606,7 +1823,16 @@
     }
 
     // Call scrollToBottom when the page loads
-    window.onload = scrollToBottom;
+    window.onload = function() {
+      scrollToBottom();
+      
+      // Ensure input area is visible if there's an active chat
+      const activeChatId = document.querySelector('.chat-item.active')?.dataset.chatId;
+      const inputArea = document.querySelector('.input-area');
+      if (activeChatId && inputArea) {
+        inputArea.style.display = 'block';
+      }
+    };
 
     // Ensure images are loaded before scrolling
     document.querySelectorAll('.messages-container img').forEach(img => {
@@ -2042,6 +2268,15 @@
           const currentInputArea = document.querySelector('.input-area');
           if (newInputArea && currentInputArea) {
             currentInputArea.innerHTML = newInputArea.innerHTML;
+            currentInputArea.style.display = 'block';
+          }
+          
+          // Initialize file input and attachment preview
+          const fileInput = document.getElementById('fileInput');
+          const attachmentPreview = document.getElementById('attachmentPreview');
+          if (fileInput && attachmentPreview) {
+            fileInput.value = '';
+            attachmentPreview.classList.remove('show');
           }
           
           // Scroll to bottom
@@ -2049,6 +2284,7 @@
         })
         .catch(error => {
           console.error('Error loading chat:', error);
+          showToast('Error loading chat', 'error');
         });
     }
 
@@ -2176,7 +2412,7 @@
 
     function handleBlockUser() {
       showBlockConfirmation();
-    }
+      }
 
     function confirmBlockUser() {
       const activeChatId = document.querySelector('.chat-item.active')?.dataset.chatId;
@@ -2243,6 +2479,335 @@
         return false;
       });
     }
+
+    // Add these new functions for attachment handling
+    let selectedFile = null;
+
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        selectedFile = file;
+        const preview = document.getElementById('attachmentPreview');
+        const fileName = document.getElementById('attachmentName');
+        const fileSize = document.getElementById('attachmentSize');
+        
+        fileName.textContent = file.name;
+        fileSize.textContent = formatFileSize(file.size);
+        
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            preview.innerHTML = `
+              <button class="remove-attachment" onclick="removeAttachment()">&times;</button>
+              <img src="${e.target.result}" alt="Preview">
+              <div class="file-info">
+                <div class="file-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 16L8.586 11.414C9.367 10.633 10.633 10.633 11.414 11.414L16 16M14 14L15.586 12.414C16.367 11.633 17.633 11.633 18.414 12.414L20 14M6 20H18C19.105 20 20 19.105 20 18V6C20 4.895 19.105 4 18 4H6C4.895 4 4 4.895 4 6V18C4 19.105 4.895 20 6 20Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="file-name">${file.name}</div>
+                <div class="file-size">${formatFileSize(file.size)}</div>
+              </div>
+            `;
+          };
+          reader.readAsDataURL(file);
+        }
+        
+        preview.classList.add('show');
+      }
+    });
+
+    function removeAttachment() {
+      selectedFile = null;
+      document.getElementById('fileInput').value = '';
+      document.getElementById('attachmentPreview').classList.remove('show');
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Modify the sendMessage function to handle attachments
+    function sendMessage() {
+      const messageInput = document.getElementById('messageInput');
+      const message = messageInput.value.trim();
+      const fileInput = document.getElementById('fileInput');
+      const activeChatId = document.querySelector('.chat-item.active')?.dataset.chatId;
+      
+      if (!activeChatId) {
+        console.error('No active chat found');
+        return;
+      }
+      
+      // Don't send if both message and file are empty
+      if (!message && !fileInput.files.length) {
+        return;
+      }
+
+      // Check if user is blocked before sending
+      checkIfUserIsBlocked(activeChatId)
+        .then(isBlocked => {
+          if (isBlocked) {
+            showToast('You cannot send messages to this user', 'error');
+            return;
+          }
+          
+          const formData = new FormData();
+          formData.append('chat_id', activeChatId);
+          formData.append('message', message);
+          
+          // Add attachment if present
+          if (fileInput.files.length > 0) {
+            formData.append('attachment', fileInput.files[0]);
+          }
+          
+          // Send message with FormData
+          fetch('/send_message/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-CSRFToken': getCookie('csrftoken')
+            }
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.status === 'success') {
+              // Remove the "No messages yet" prompt if it exists
+              const noMessagesPrompt = document.getElementById('no-messages-prompt');
+              if (noMessagesPrompt) {
+                noMessagesPrompt.remove();
+              }
+              
+              // Add the new message to the messages container
+              const messagesContainer = document.querySelector('.messages-container');
+              const messageDiv = document.createElement('div');
+              messageDiv.className = 'message message-sent';
+              messageDiv.dataset.messageId = data.message_id;
+              messageDiv.dataset.senderId = "{{ request.user.id }}";
+              messageDiv.setAttribute('oncontextmenu', 'showContextMenu(event, this)');
+              
+              // Create profile picture element
+              const profilePicture = `
+                <div class="message-pfp">
+                  {% if request.user.profile_picture %}
+                    <img src="{{ request.user.profile_picture.url }}" alt="Profile Picture">
+                  {% else %}
+                    <div class="pfp-initials">
+                      {{ request.user.first_name|slice:":1" }}{{ request.user.last_name|slice:":1" }}
+                    </div>
+                  {% endif %}
+                </div>
+              `;
+              
+              // Create message content
+              let messageContent = `
+                <div class="message-content">
+                  ${message}
+              `;
+              
+              // Add attachment if present
+              if (data.has_attachment) {
+                if (data.attachment_type === 'image') {
+                  messageContent += `
+                    <div class="message-attachment">
+                      <img src="${data.attachment_url}" alt="${data.attachment_name}" class="attachment-image">
+                    </div>
+                  `;
+                } else {
+                  messageContent += `
+                    <div class="message-attachment">
+                      <div class="file-icon">
+                        ${getFileIcon(data.attachment_type)}
+                      </div>
+                      <div class="file-info">
+                        <div class="file-name">${data.attachment_name}</div>
+                        <a href="${data.attachment_url}" target="_blank" class="file-link">Download</a>
+                      </div>
+                    </div>
+                  `;
+                }
+              }
+              
+              // Add message time
+              messageContent += `
+                  <div class="message-time">${data.sent_at}</div>
+                </div>
+              `;
+              
+              messageDiv.innerHTML = profilePicture + messageContent;
+              messagesContainer.appendChild(messageDiv);
+              
+              // Update chat preview
+              const activeChatItem = document.querySelector('.chat-item.active');
+              if (activeChatItem) {
+                const previewElement = activeChatItem.querySelector('.chat-item-preview');
+                if (previewElement) {
+                  if (message) {
+                    previewElement.textContent = message;
+                  } else if (data.has_attachment) {
+                    previewElement.textContent = `Sent ${data.attachment_name}`;
+                  }
+                }
+                
+                const timeElement = activeChatItem.querySelector('.chat-item-time');
+                if (timeElement) {
+                  timeElement.textContent = data.sent_at;
+                }
+              }
+              
+              // Clear the input and attachment
+              messageInput.value = '';
+              removeAttachment();
+              
+              // Scroll to the bottom
+              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            } else {
+              showToast(data.message, 'error');
+            }
+          })
+          .catch(error => {
+            console.error('Error sending message:', error);
+            showToast('Error sending message', 'error');
+          });
+        });
+    }
+
+    // Helper function to get file icon based on type
+    function getFileIcon(type) {
+      switch(type) {
+        case 'pdf':
+          return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 2V8H20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 18C12 17.4 11.6 17 11 17C10.4 17 10 17.4 10 18C10 18.6 10.4 19 11 19C11.6 19 12 18.6 12 18Z" fill="white"/>
+            <path d="M12 13C12 12.4 11.6 12 11 12C10.4 12 10 12.4 10 13V16C10 16.6 10.4 17 11 17C11.6 17 12 16.6 12 16V13Z" fill="white"/>
+          </svg>`;
+        case 'doc':
+          return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 2V8H20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M16 13H8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M16 17H8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M10 9H9H8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>`;
+        default:
+          return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 2V8H20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>`;
+      }
+    }
+
+    // Helper function to get CSRF token from cookies
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+
+    function handleAttachment(event) {
+      const file = event.target.files[0];
+      const messageInput = document.getElementById('messageInput');
+      
+      if (file) {
+        // Update the placeholder text to show the selected file
+        messageInput.placeholder = `Sending: ${file.name}`;
+        
+        // Add a small filename display near the input
+        const fileNameDisplay = document.createElement('div');
+        fileNameDisplay.id = 'fileNameDisplay';
+        fileNameDisplay.className = 'file-name-display';
+        fileNameDisplay.innerHTML = `
+          <span class="file-name">${file.name}</span>
+          <button class="remove-file" onclick="removeAttachment()">×</button>
+        `;
+        
+        // Remove any existing file name display
+        const existingDisplay = document.getElementById('fileNameDisplay');
+        if (existingDisplay) {
+          existingDisplay.remove();
+        }
+        
+        // Add the file name display to the message input container
+        const messageInputContainer = document.querySelector('.input-container');
+        messageInputContainer.insertBefore(fileNameDisplay, messageInput);
+        
+        // Adjust the input padding to make room for the file display
+        messageInput.style.paddingRight = '80px';
+      }
+    }
+
+    function removeAttachment() {
+      const fileInput = document.getElementById('fileInput');
+      const messageInput = document.getElementById('messageInput');
+      const fileNameDisplay = document.getElementById('fileNameDisplay');
+      
+      fileInput.value = '';
+      messageInput.placeholder = 'Type a message...';
+      messageInput.style.paddingRight = '';
+      
+      if (fileNameDisplay) {
+        fileNameDisplay.remove();
+      }
+    }
+
+    // Add this new initialization function
+    function initializeChatInterface() {
+      const activeChatId = document.querySelector('.chat-item.active')?.dataset.chatId;
+      const inputArea = document.querySelector('.input-area');
+      const messagesContainer = document.querySelector('.messages-container');
+      
+      if (activeChatId) {
+        // Show input area if there's an active chat
+        if (inputArea) {
+          inputArea.style.display = 'block';
+        }
+        
+        // Ensure messages are visible
+        if (messagesContainer) {
+          messagesContainer.style.display = 'flex';
+          scrollToBottom();
+        }
+      }
+    }
+
+    // Update the DOMContentLoaded event listener
+    document.addEventListener("DOMContentLoaded", function() {
+      initializeChatInterface();
+      
+      // Set up other event listeners
+      const fileInput = document.getElementById('fileInput');
+      if (fileInput) {
+        fileInput.addEventListener('change', handleAttachment);
+      }
+      
+      const messageInput = document.getElementById('messageInput');
+      if (messageInput) {
+        messageInput.addEventListener('keydown', function(event) {
+          if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            sendMessage();
+          }
+        });
+      }
+    });
+
+    // Also call initialization on window load as a fallback
+    window.addEventListener('load', initializeChatInterface);
   </script>
 
   {% endblock %}

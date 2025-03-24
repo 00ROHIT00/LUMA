@@ -27,7 +27,7 @@ class User(AbstractBaseUser):
     last_name = models.CharField(max_length=30)
     username = models.CharField(max_length=30, unique=True)
     email = models.EmailField(unique=True)
-    profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)  # Optional field
+    profile_picture = models.ImageField(upload_to='profile_pics', blank=True, null=True)  # Removed trailing slash
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
@@ -139,6 +139,9 @@ class Message(models.Model):
     read_by = models.ManyToManyField(User, related_name='read_messages', blank=True)
     deleted_for = models.ManyToManyField(User, related_name='deleted_messages', blank=True)
     deleted_for_everyone = models.BooleanField(default=False)
+    attachment = models.FileField(upload_to='chat_attachments', null=True, blank=True)  # Removed trailing slash
+    attachment_type = models.CharField(max_length=50, null=True, blank=True)
+    attachment_name = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return f"Message from {self.sender.username} at {self.sent_at}"

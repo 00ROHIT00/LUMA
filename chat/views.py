@@ -127,7 +127,7 @@ def chat_list(request):
         Q(recipient__in=BlockedUser.objects.filter(blocked=request.user).values('blocker'))
     ).order_by('-updated_at')
     
-    # Add unread message count for each chat
+    # Add unread message count and profile picture URLs for each chat
     for chat in chats:
         # Only count messages from the other user as unread
         other_user = chat.recipient if chat.sender == request.user else chat.sender
@@ -147,6 +147,10 @@ def chat_list(request):
             chat.last_message = last_message.content
         else:
             chat.last_message = "No messages yet"
+            
+        # Add profile picture URLs
+        chat.sender_profile_pic = chat.sender.profile_picture.url if chat.sender.profile_picture else None
+        chat.recipient_profile_pic = chat.recipient.profile_picture.url if chat.recipient.profile_picture else None
     
     # Debug print statements
     print(f"Number of chats found: {chats.count()}")
@@ -321,11 +325,14 @@ def start_chat(request):
 @require_POST
 def send_message(request):
     if request.method == 'POST':
-        data = json.loads(request.body)
-        chat_id = data.get('chat_id')
-        message_content = data.get('message')
-        
         try:
+            chat_id = request.POST.get('chat_id')
+            message_content = request.POST.get('message', '')
+            attachment = request.FILES.get('attachment')
+            
+            if not chat_id:
+                return JsonResponse({'status': 'error', 'message': 'Chat ID is required'})
+            
             chat = Chat.objects.get(id=chat_id)
             
             # Check if user is blocked
@@ -336,26 +343,64 @@ def send_message(request):
                     'message': 'You cannot send messages to this user'
                 })
             
+            # Create message with content
             message = Message.objects.create(
                 chat=chat,
                 sender=request.user,
                 content=message_content,
                 sent_at=timezone.now()
             )
+            
+            # Add attachment if present
+            if attachment:
+                # Determine attachment type
+                content_type = attachment.content_type
+                if content_type.startswith('image/'):
+                    attachment_type = 'image'
+                elif content_type == 'application/pdf':
+                    attachment_type = 'pdf'
+                elif content_type in ['application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']:
+                    attachment_type = 'doc'
+                else:
+                    attachment_type = 'other'
+                
+                message.attachment = attachment
+                message.attachment_type = attachment_type
+                message.attachment_name = attachment.name
+                message.save()
+            
             # Mark the message as read by the sender immediately
             message.read_by.add(request.user)
             
+            # Update chat timestamp
             chat.updated_at = timezone.now()
             chat.save()
             
-            return JsonResponse({
+            # Prepare response data
+            response_data = {
                 'status': 'success',
                 'message': message.content,
                 'message_id': message.id,
                 'sent_at': timezone.localtime(message.sent_at).strftime('%I:%M %p')
-            })
+            }
+            
+            # Add attachment data if present
+            if attachment:
+                response_data.update({
+                    'has_attachment': True,
+                    'attachment_type': attachment_type,
+                    'attachment_name': attachment.name,
+                    'attachment_url': message.attachment.url if message.attachment else None
+                })
+            
+            return JsonResponse(response_data)
+            
         except Chat.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Chat not found'})
+        except Exception as e:
+            print(f"Error sending message: {str(e)}")
+            return JsonResponse({'status': 'error', 'message': str(e)})
+    
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
 
 @login_required
