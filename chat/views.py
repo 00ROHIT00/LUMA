@@ -1183,3 +1183,88 @@ def check_if_user_is_blocked(request):
             'status': 'error',
             'message': str(e)
         })
+
+@login_required
+def check_message_status(request, message_id):
+    """
+    Check if a message has been read by the recipient.
+    Returns a JSON response with the read status.
+    """
+    try:
+        message = Message.objects.get(id=message_id)
+        
+        # Make sure the user is authorized to check this message
+        chat = message.chat
+        if request.user != chat.sender and request.user != chat.recipient:
+            return JsonResponse({
+                'status': 'error', 
+                'message': 'You are not authorized to view this message'
+            })
+        
+        # Get the other user in the chat (not the current user)
+        other_user = chat.recipient if chat.sender == request.user else chat.sender
+        
+        # Check if the message is read by the other user
+        is_read = message.is_read_by(other_user)
+        
+        return JsonResponse({
+            'status': 'success',
+            'is_read': is_read
+        })
+        
+    except Message.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Message not found'
+        })
+    except Exception as e:
+        print(f"Error checking message status: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@login_required
+def mark_messages_read(request, chat_id):
+    """
+    Mark all messages in a chat as read by the current user.
+    Returns a JSON response with the count of messages marked as read.
+    """
+    try:
+        chat = Chat.objects.get(id=chat_id)
+        
+        # Make sure the user is authorized to access this chat
+        if request.user != chat.sender and request.user != chat.recipient:
+            return JsonResponse({
+                'status': 'error', 
+                'message': 'You are not authorized to access this chat'
+            })
+        
+        # Find all unread messages sent by the other user
+        if request.user == chat.sender:
+            unread_messages = chat.messages.filter(sender=chat.recipient).exclude(read_by=request.user)
+        else:
+            unread_messages = chat.messages.filter(sender=chat.sender).exclude(read_by=request.user)
+        
+        # Mark all unread messages as read
+        count = 0
+        for message in unread_messages:
+            message.read_by.add(request.user)
+            count += 1
+        
+        return JsonResponse({
+            'status': 'success',
+            'count': count
+        })
+        
+    except Chat.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Chat not found'
+        })
+    except Exception as e:
+        print(f"Error marking messages as read: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        })

@@ -37,5 +37,7 @@ urlpatterns = [
     path('delete_chat/', views.delete_chat, name='delete_chat'),
     path('block_user/', views.block_user, name='block_user'),
     path('check_if_user_is_blocked/', views.check_if_user_is_blocked, name='check_if_user_is_blocked'),
+    path('check_message_status/<int:message_id>/', views.check_message_status, name='check_message_status'),
+    path('mark_messages_read/<int:chat_id>/', views.mark_messages_read, name='mark_messages_read'),
 ]
 

@@ -3190,8 +3190,8 @@
 
     // Start a polling mechanism to check read receipts
     function startReadReceiptPolling() {
-      // Check read receipts every few seconds
-      setInterval(checkReadReceipts, 5000); // Check every 5 seconds
+      // Check read receipts more frequently for better responsiveness
+      setInterval(checkReadReceipts, 2000); // Check every 2 seconds
     }
 
     // Modify the loadChat function to mark messages as read when a chat is loaded
