@@ -394,9 +394,37 @@
 
   .message-time {
     font-size: 12px;
-    color: #666;
-    margin-top: 5px;
+    color: #888;
+    margin-top: 4px;
     text-align: right;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .message-read-status {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+    margin-left: 4px;
+  }
+
+  .read-receipt {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .read-receipt-icon {
+    font-size: 14px;
+    color: #888;
+  }
+
+  .read-receipt.read .read-receipt-icon {
+    color: #2196f3;
+  }
+
+  /* Remove unnecessary text elements */
+  .read-receipt-text {
+    display: none;
   }
 
   .input-area {
@@ -1536,7 +1564,16 @@
                     {% endif %}
                   {% endif %}
                 {% endif %}
-                <div class="message-time">{{ message.sent_at|localtime|date:"g:i A" }}</div>
+                <div class="message-time">
+                  {{ message.sent_at|localtime|date:"g:i A" }}
+                  {% if message.sender == request.user and not message.deleted_for_everyone %}
+                  <div class="message-read-status" data-message-id="{{ message.id }}">
+                    <span class="read-receipt" id="read-receipt-{{ message.id }}">
+                      <span class="read-receipt-icon">&#10003;</span>
+                    </span>
+                  </div>
+                  {% endif %}
+                </div>
               </div>
             </div>
           {% endfor %}
@@ -2757,10 +2794,16 @@
                 }
               }
               
-              // Add message time
+              // Add message time with read receipt
               messageContent += `
-                  <div class="message-time">${data.sent_at}</div>
-                </div>
+                  <div class="message-time">
+                    ${data.sent_at}
+                    <div class="message-read-status" data-message-id="${data.message_id}">
+                      <span class="read-receipt" id="read-receipt-${data.message_id}">
+                        <span class="read-receipt-icon">&#10003;</span>
+                      </span>
+                    </div>
+                  </div>
               `;
               
               messageDiv.innerHTML = profilePicture + messageContent;
@@ -3052,12 +3095,154 @@
       // Check for notifications
       checkNotifications();
       
+      // Check initial read receipts
+      checkReadReceipts();
+      
+      // Start read receipt polling
+      startReadReceiptPolling();
+      
+      // Mark initial messages as read
+      if (document.querySelector('.chat-item.active')) {
+        markMessagesAsRead();
+      }
+      
       // Start notification polling if user is authenticated
       // User authentication status is set in a script tag outside this code
       if (typeof isUserAuthenticated !== 'undefined' && isUserAuthenticated) {
         startNotificationPolling();
       }
     });
+
+    // Mark all messages in the current chat as read when it's viewed
+    function markMessagesAsRead() {
+      const activeChatId = document.querySelector('.chat-item.active')?.dataset.chatId;
+      if (!activeChatId) return;
+      
+      fetch(`/mark_messages_read/${activeChatId}/`, {
+        method: 'GET',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken')
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          console.log(`Marked ${data.count} messages as read`);
+        }
+      })
+      .catch(error => {
+        console.error('Error marking messages as read:', error);
+      });
+    }
+
+    // Function to check read receipts for sent messages
+    function checkReadReceipts() {
+      // Get all sent messages in the active chat
+      const sentMessages = document.querySelectorAll('.message-sent');
+      if (!sentMessages.length) return;
+      
+      // Check read status for each sent message
+      sentMessages.forEach(message => {
+        const messageId = message.dataset.messageId;
+        if (!messageId) return;
+        
+        fetch(`/check_message_status/${messageId}/`, {
+          method: 'GET',
+          headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            const readReceipt = document.getElementById(`read-receipt-${messageId}`);
+            if (readReceipt) {
+              if (data.is_read) {
+                // Message is read - blue tick
+                readReceipt.classList.add('read');
+              } else {
+                // Message is delivered but not read - grey tick
+                readReceipt.classList.remove('read');
+              }
+            }
+          }
+        })
+        .catch(error => {
+          console.error(`Error checking read status for message ${messageId}:`, error);
+        });
+      });
+    }
+
+    // Start a polling mechanism to check read receipts
+    function startReadReceiptPolling() {
+      // Check read receipts every few seconds
+      setInterval(checkReadReceipts, 5000); // Check every 5 seconds
+    }
+
+    // Modify the loadChat function to mark messages as read when a chat is loaded
+    function loadChat(chatItem, event) {
+      // Prevent default if it's an anchor tag
+      if (event) {
+        event.preventDefault();
+      }
+      
+      // Get the chat URL and ID
+      const chatUrl = chatItem.dataset.chatUrl;
+      const chatId = chatItem.dataset.chatId;
+      
+      // Set the chat as active
+      document.querySelectorAll('.chat-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      chatItem.classList.add('active');
+      
+      // Remove unread indicator
+      chatItem.classList.remove('has-unread');
+      const unreadIndicator = chatItem.querySelector('.unread-indicator');
+      if (unreadIndicator) {
+        unreadIndicator.style.display = 'none';
+      }
+      
+      // Show loading spinner in the messages container
+      const messagesContainer = document.querySelector('.messages-container');
+      messagesContainer.innerHTML = '<div class="loading-spinner-container"><div class="loading-spinner"></div></div>';
+      
+      // Fetch the chat details with AJAX
+      fetch(chatUrl)
+        .then(response => response.text())
+        .then(html => {
+          // Extract just the messages container content from the response
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          const newMessages = doc.querySelector('.messages-container').innerHTML;
+          
+          // Update the messages container
+          messagesContainer.innerHTML = newMessages;
+          
+          // Initialize image attachment click handlers for the loaded chat
+          setupImageAttachmentListeners();
+          
+          // Mark all messages in this chat as read
+          markMessagesAsRead();
+          
+          // Start checking read receipts
+          checkReadReceipts();
+          
+          // Update the URL without refreshing the page
+          history.pushState({}, '', chatUrl);
+          
+          // Scroll to the bottom
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          
+          // Update the chat header
+          const chatHeader = document.querySelector('.chat-header');
+          chatHeader.innerHTML = doc.querySelector('.chat-header').innerHTML;
+        })
+        .catch(error => {
+          console.error('Error loading chat:', error);
+          messagesContainer.innerHTML = '<div class="error-message">Error loading chat. Please try again.</div>';
+        });
+    }
   </script>
 
   {% endblock %}
