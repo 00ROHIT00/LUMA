@@ -2038,11 +2038,11 @@
 
       // Set the sender's name
       {% if active_chat %}
-        if (senderId === currentUserId) {
-          contextMenuName.textContent = "{{ request.user.first_name }} {{ request.user.last_name }}";
-        } else {
-          contextMenuName.textContent = "{% if active_chat.sender == request.user %}{{ active_chat.recipient.first_name }} {{ active_chat.recipient.last_name }}{% else %}{{ active_chat.sender.first_name }} {{ active_chat.sender.last_name }}{% endif %}";
-        }
+      if (senderId === currentUserId) {
+        contextMenuName.textContent = "{{ request.user.first_name }} {{ request.user.last_name }}";
+      } else {
+        contextMenuName.textContent = "{% if active_chat.sender == request.user %}{{ active_chat.recipient.first_name }} {{ active_chat.recipient.last_name }}{% else %}{{ active_chat.sender.first_name }} {{ active_chat.sender.last_name }}{% endif %}";
+      }
       {% endif %}
       
       // Show/hide "Delete for everyone" option based on whether user is the sender
@@ -2694,7 +2694,15 @@
     }
 
     // Modify the sendMessage function to handle attachments
+    let isSendingMessage = false; // Add a flag to prevent duplicate submissions
+
     function sendMessage() {
+      // Prevent duplicate submissions
+      if (isSendingMessage) {
+        console.log('Message already being sent, preventing duplicate submission');
+        return;
+      }
+
       const messageInput = document.getElementById('messageInput');
       const message = messageInput.value.trim();
       const fileInput = document.getElementById('fileInput');
@@ -2710,11 +2718,15 @@
         return;
       }
 
+      // Set the flag to prevent duplicate submissions
+      isSendingMessage = true;
+
       // Check if user is blocked before sending
       checkIfUserIsBlocked(activeChatId)
         .then(isBlocked => {
           if (isBlocked) {
             showToast('You cannot send messages to this user', 'error');
+            isSendingMessage = false; // Reset flag
             return;
           }
           
@@ -2737,6 +2749,9 @@
           })
           .then(response => response.json())
           .then(data => {
+            // Reset flag after response is received
+            isSendingMessage = false;
+            
             if (data.status === 'success') {
               // Remove the "No messages yet" prompt if it exists
               const noMessagesPrompt = document.getElementById('no-messages-prompt');
@@ -2852,6 +2867,7 @@
           .catch(error => {
             console.error('Error sending message:', error);
             showToast('Error sending message', 'error');
+            isSendingMessage = false; // Reset flag on error
           });
         });
     }
@@ -3106,11 +3122,10 @@
         markMessagesAsRead();
       }
       
-      // Start notification polling if user is authenticated
-      // User authentication status is set in a script tag outside this code
-      if (typeof isUserAuthenticated !== 'undefined' && isUserAuthenticated) {
-        startNotificationPolling();
-      }
+      // Remove the reference to startNotificationPolling which is not defined and causing duplicate messages
+      // if (typeof isUserAuthenticated !== 'undefined' && isUserAuthenticated) {
+      //   startNotificationPolling();
+      // }
     });
 
     // Mark all messages in the current chat as read when it's viewed
