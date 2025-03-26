@@ -1348,43 +1348,67 @@
   .message-attachment img:hover {
     transform: scale(1.03);
   }
-</style>
 
-<div class="chat-container">
-  <!-- Add this right after the chat-container div -->
-  /* Add pointer cursor to image attachments */
-  .message-attachment img {
+  /* Pinned message styles */
+  .pinned-message-container {
+    display: none;
+    background-color: #2a2a2a;
+    border-bottom: 1px solid #444;
+    padding: 10px 15px;
+    margin-bottom: 10px;
     cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .pinned-message-container:hover {
+    background-color: #333;
+  }
+
+  .pinned-message-container.active {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .pinned-message-icon {
+    color: #3498db;
+    font-size: 16px;
+  }
+
+  .pinned-message-content {
+    flex: 1;
+    font-size: 14px;
+    color: #ddd;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: calc(100% - 70px);
+  }
+
+  .pinned-message-unpin {
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+
+  .pinned-message-unpin:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
   }
 </style>
 
+<link
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+  rel="stylesheet"
+/>
+
 <div class="chat-container">
-  <!-- Add this right after the chat-container div -->
-  <div id="deleteConfirmationModal" class="delete-confirmation-modal">
-    <div class="delete-confirmation-content">
-      <div class="delete-confirmation-title">Delete Chat</div>
-      <div class="delete-confirmation-message">
-        Are you sure you want to delete this chat? All messages will be permanently lost and cannot be recovered.
-      </div>
-      <div class="delete-confirmation-buttons">
-        <button class="delete-confirmation-button cancel" onclick="closeDeleteConfirmation()">Cancel</button>
-        <button class="delete-confirmation-button confirm" onclick="confirmDeleteChat()">Delete</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Add this right after the deleteConfirmationModal div -->
-  <div id="blockConfirmationModal" class="block-confirmation-modal">
-    <div class="block-confirmation-content">
-      <h3>Block User</h3>
-      <p>Are you sure you want to block this user? You won't be able to receive messages from them, and they won't be notified.</p>
-      <div class="block-confirmation-buttons">
-        <button class="cancel" onclick="closeBlockConfirmation()">Cancel</button>
-        <button class="confirm" onclick="confirmBlockUser()">Block User</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Add this right after the chat-container div -->
   <div id="message-context-menu" class="context-menu">
     <div class="context-menu-header">
@@ -1394,6 +1418,9 @@
       <div class="context-menu-name" id="contextMenuName">
         <!-- Name will be set dynamically -->
       </div>
+    </div>
+    <div class="context-menu-item" onclick="pinMessage(this)" data-message-id="">
+      Pin Message
     </div>
     <div class="context-menu-item" onclick="copyMessage(this)" data-message-id="">
       Copy Message
@@ -1518,6 +1545,18 @@
         </div>
       {% endif %}
     </div>
+    
+    <!-- Pinned message container -->
+    <div id="pinnedMessageContainer" class="pinned-message-container" onclick="scrollToPinnedMessage()">
+      <div class="pinned-message-icon">
+        <i class="fa-solid fa-map-pin"></i>
+      </div>
+      <div id="pinnedMessageContent" class="pinned-message-content"></div>
+      <button class="pinned-message-unpin" onclick="unpinMessage(event)">
+        Unpin
+      </button>
+    </div>
+    
     <div class="messages-container">
       {% if active_chat %}
         {% if messages %}
@@ -2129,6 +2168,77 @@
       // Position menu
       contextMenu.style.left = rightEdgeExceeded ? `${x - menuWidth}px` : `${x}px`;
       contextMenu.style.top = bottomEdgeExceeded ? `${y - menuHeight}px` : `${y}px`;
+    }
+
+    function pinMessage(menuItem) {
+      const messageId = menuItem.dataset.messageId;
+      if (!messageId) return;
+      
+      // Find the message element
+      const messageElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
+      if (!messageElement) return;
+      
+      // Get message content
+      const messageContent = messageElement.querySelector('.message-content').textContent.trim();
+      
+      // Save the pinned message info in sessionStorage
+      const pinnedMessageInfo = {
+        messageId: messageId,
+        content: messageContent
+      };
+      sessionStorage.setItem('pinnedMessage', JSON.stringify(pinnedMessageInfo));
+      
+      // Update the pinned message container
+      const pinnedMessageContent = document.getElementById('pinnedMessageContent');
+      const pinnedMessageContainer = document.getElementById('pinnedMessageContainer');
+      
+      pinnedMessageContent.textContent = messageContent;
+      pinnedMessageContent.dataset.messageId = messageId;
+      pinnedMessageContainer.classList.add('active');
+      
+      // Show success notification
+      const notification = document.createElement('div');
+      notification.style.position = 'fixed';
+      notification.style.bottom = '20px';
+      notification.style.left = '50%';
+      notification.style.transform = 'translateX(-50%)';
+      notification.style.backgroundColor = '#3498db';
+      notification.style.color = 'white';
+      notification.style.padding = '10px 20px';
+      notification.style.borderRadius = '5px';
+      notification.style.zIndex = '10000';
+      notification.textContent = 'Message pinned!';
+      document.body.appendChild(notification);
+      
+      setTimeout(() => notification.remove(), 2000);
+      hideContextMenu();
+    }
+    
+    function unpinMessage(event) {
+      event.stopPropagation(); // Prevent the container click from firing
+      
+      // Remove the pinned message from sessionStorage
+      sessionStorage.removeItem('pinnedMessage');
+      
+      // Hide the pinned message container
+      const pinnedMessageContainer = document.getElementById('pinnedMessageContainer');
+      pinnedMessageContainer.classList.remove('active');
+      
+      // Show feedback notification
+      const notification = document.createElement('div');
+      notification.style.position = 'fixed';
+      notification.style.bottom = '20px';
+      notification.style.left = '50%';
+      notification.style.transform = 'translateX(-50%)';
+      notification.style.backgroundColor = '#666';
+      notification.style.color = 'white';
+      notification.style.padding = '10px 20px';
+      notification.style.borderRadius = '5px';
+      notification.style.zIndex = '10000';
+      notification.textContent = 'Message unpinned';
+      document.body.appendChild(notification);
+      
+      setTimeout(() => notification.remove(), 2000);
     }
 
     function copyMessage(menuItem) {
@@ -3600,6 +3710,60 @@
     function searchUser() {
       searchFriend();
     }
+
+    // Add a function to scroll to the pinned message
+    function scrollToPinnedMessage() {
+      const messageId = document.getElementById('pinnedMessageContent').dataset.messageId;
+      if (!messageId) return;
+      
+      const messageElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
+      if (!messageElement) return;
+      
+      // Scroll the message into view with smooth behavior
+      messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      // Highlight the message briefly
+      messageElement.style.transition = 'background-color 0.5s';
+      messageElement.style.backgroundColor = 'rgba(52, 152, 219, 0.3)';
+      
+      setTimeout(() => {
+        messageElement.style.backgroundColor = '';
+        setTimeout(() => {
+          messageElement.style.transition = '';
+        }, 500);
+      }, 1500);
+    }
+    
+    // Function to restore pinned message on page load
+    function restorePinnedMessage() {
+      const pinnedMessageJSON = sessionStorage.getItem('pinnedMessage');
+      if (!pinnedMessageJSON) return;
+      
+      try {
+        const pinnedMessage = JSON.parse(pinnedMessageJSON);
+        const messageElement = document.querySelector(`.message[data-message-id="${pinnedMessage.messageId}"]`);
+        
+        // If the message exists in this chat, restore the pin
+        if (messageElement) {
+          const pinnedMessageContent = document.getElementById('pinnedMessageContent');
+          const pinnedMessageContainer = document.getElementById('pinnedMessageContainer');
+          
+          pinnedMessageContent.textContent = pinnedMessage.content;
+          pinnedMessageContent.dataset.messageId = pinnedMessage.messageId;
+          pinnedMessageContainer.classList.add('active');
+        }
+      } catch (error) {
+        console.error('Error restoring pinned message:', error);
+        sessionStorage.removeItem('pinnedMessage');
+      }
+    }
+
+    // Call the restore function when the page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      restorePinnedMessage();
+      
+      // Other existing initialization code...
+    });
   </script>
 
   {% endblock %}
