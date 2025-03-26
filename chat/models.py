@@ -110,6 +110,7 @@ class Chat(models.Model):
     recipient = models.ForeignKey(User, related_name='recipient_chats', on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    archived_by = models.ManyToManyField(User, related_name='archived_chats', blank=True)
 
     def __str__(self):
         return f"Chat between {self.sender.username} and {self.recipient.username}"
@@ -127,6 +128,20 @@ class Chat(models.Model):
         except Exception as e:
             print(f"Error deleting chat {self.id}: {str(e)}")
             raise
+
+    def is_archived_by(self, user):
+        """Check if the chat is archived by the given user"""
+        return self.archived_by.filter(id=user.id).exists()
+    
+    def archive_for_user(self, user):
+        """Archive the chat for the given user"""
+        self.archived_by.add(user)
+        self.save()
+    
+    def unarchive_for_user(self, user):
+        """Unarchive the chat for the given user"""
+        self.archived_by.remove(user)
+        self.save()
 
     class Meta:
         db_table = 'chat_chat'

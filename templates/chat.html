@@ -920,6 +920,7 @@
     border-bottom: 1px solid #333;
     text-align: center;
     position: relative;
+    padding-right: 30px; /* Add space for the close button */
   }
 
   .user-actions-header h2 {
@@ -937,6 +938,8 @@
     padding: 5px;
     position: absolute;
     right: 0;
+    top: 50%;
+    transform: translateY(-50%);
   }
 
   .close-modal:hover {
@@ -1016,6 +1019,14 @@
 
   .action-button.block:hover {
     background-color: #6c757d;
+  }
+
+  .action-button.archive {
+    background-color: #2a2a2a;
+  }
+
+  .action-button.archive:hover {
+    background-color: #4a4a4a;
   }
 
   .modal-backdrop {
@@ -1491,16 +1502,19 @@
   <div class="chat-area">
     <div class="chat-header">
       {% if active_chat %}
-        <div class="chat-header-info" onclick="openUserActionsModal()">
-          <div class="chat-header-name">
-            {% if active_chat.sender == request.user %}
-              {{ active_chat.recipient.first_name }} {{ active_chat.recipient.last_name }}
-            {% else %}
-              {{ active_chat.sender.first_name }} {{ active_chat.sender.last_name }}
-            {% endif %}
-          </div>
-          <div class="chat-header-subtitle">Click for actions</div>
+      <div class="chat-header-info" onclick="openUserActionsModal()" 
+           data-username="{% if active_chat.sender == request.user %}{{ active_chat.recipient.username }}{% else %}{{ active_chat.sender.username }}{% endif %}"
+           data-has-profile-picture="{% if active_chat.sender == request.user %}{% if active_chat.recipient.profile_picture %}true{% else %}false{% endif %}{% else %}{% if active_chat.sender.profile_picture %}true{% else %}false{% endif %}{% endif %}"
+           data-profile-picture="{% if active_chat.sender == request.user %}{% if active_chat.recipient.profile_picture %}{{ active_chat.recipient.profile_picture.url }}{% endif %}{% else %}{% if active_chat.sender.profile_picture %}{{ active_chat.sender.profile_picture.url }}{% endif %}{% endif %}">
+        <div class="chat-header-name">
+          {% if active_chat.sender == request.user %}
+            {{ active_chat.recipient.first_name }} {{ active_chat.recipient.last_name }}
+          {% else %}
+            {{ active_chat.sender.first_name }} {{ active_chat.sender.last_name }}
+          {% endif %}
         </div>
+        <div class="chat-header-subtitle">Click for actions</div>
+      </div>
       {% endif %}
     </div>
     <div class="messages-container">
@@ -1583,7 +1597,7 @@
       {% else %}
         <!-- Start messaging prompt -->
         <div class="start-message">Add a friend to start messaging!</div>
-        <button class="add-contact-button" onclick="openDialog()">Add</button>
+        <button class="add-contact-button" onclick="openFriendDialog()">Add</button>
       {% endif %}
     </div>
     {% if active_chat %}
@@ -1663,7 +1677,7 @@
   </div>
 
   <!-- Dialog Box -->
-  <div class="dialog-overlay" id="dialog" onclick="handleOverlayClick(event)">
+  <div class="dialog-overlay" id="friendDialog" onclick="handleOverlayClick(event)">
     <div class="dialog-box">
       <div class="dialog-title">Add New Contact</div>
       {% csrf_token %}
@@ -1671,15 +1685,15 @@
         <input
           type="text"
           class="input-field"
-          id="username"
+          id="friendUsername"
           placeholder="Enter Username"
-          onkeypress="if(event.key === 'Enter') searchUser()"
+          onkeypress="if(event.key === 'Enter') searchFriend()"
         />
       </div>
       <div id="search-result"></div>
       <div class="dialog-buttons">
-        <button class="dialog-button" onclick="searchUser()">Search</button>
-        <button class="dialog-button" onclick="closeDialog()">Close</button>
+        <button class="dialog-button" onclick="searchFriend()">Search</button>
+        <button class="dialog-button" onclick="closeFriendDialog()">Close</button>
       </div>
     </div>
   </div>
@@ -1746,6 +1760,9 @@
         </div>
       </div>
       <div class="user-actions">
+        <button class="action-button archive" onclick="handleArchiveChat()">
+          Archive Chat
+        </button>
         <button class="action-button delete" onclick="handleDeleteChat()">
           Delete Chat
         </button>
@@ -1775,31 +1792,63 @@
     </div>
   </div>
 
+  <!-- Add archived chats modal after other modals -->
+  <div id="archivedChatsModal" class="user-actions-modal">
+    <div class="user-actions-content">
+      <div class="user-actions-header">
+        <h2>Archived Chats</h2>
+        <span class="close-modal" onclick="closeArchivedChatsModal()">&times;</span>
+      </div>
+      <div id="archivedChatsContainer" style="
+          min-height: 100px;
+          padding: 10px;
+      ">
+        <div class="loading-spinner-container">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Set authentication status for use in JavaScript
     const isUserAuthenticated = {% if request.user.is_authenticated %}true{% else %}false{% endif %};
     
-    // Single function to handle both navbar and chat "Add" buttons
-    function openDialog() {
-      document.getElementById("dialog").style.display = "flex";
+    // Use the same function names as in base.html for consistency
+    function openFriendDialog() {
+      document.getElementById("friendDialog").style.display = "flex";
       // Clear previous search results and input when opening
       document.getElementById("search-result").innerHTML = "";
-      document.getElementById("username").value = "";
+      document.getElementById("friendUsername").value = "";
+      // Focus the input field
+      setTimeout(() => {
+        document.getElementById("friendUsername").focus();
+      }, 100);
+    }
+    
+    // Single function to handle both navbar and chat "Add" buttons
+    function openDialog() {
+      openFriendDialog(); // Use the shared function
     }
 
+    function closeFriendDialog() {
+      document.getElementById("friendDialog").style.display = "none";
+    }
+    
+    // Legacy function for backward compatibility
     function closeDialog() {
-      document.getElementById("dialog").style.display = "none";
+      closeFriendDialog();
     }
 
     function handleOverlayClick(event) {
       // Close dialog only if clicking the overlay itself, not its children
-      if (event.target.classList.contains('dialog-overlay')) {
-        closeDialog();
+      if (event.target.id === 'friendDialog') {
+        closeFriendDialog();
       }
     }
 
     function searchUser() {
-      const username = document.getElementById("username").value;
+      const username = document.getElementById("friendUsername").value;
       const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
       const searchResult = document.getElementById("search-result");
       
@@ -2433,15 +2482,24 @@
           // Initialize image attachment click handlers for the loaded chat
           setupImageAttachmentListeners();
           
+          // Mark all messages in this chat as read
+          markMessagesAsRead();
+          
+          // Start checking read receipts
+          checkReadReceipts();
+          
           // Update the URL without refreshing the page
           history.pushState({}, '', chatUrl);
           
           // Scroll to the bottom
           messagesContainer.scrollTop = messagesContainer.scrollHeight;
           
-          // Update the chat header
+          // Update the chat header, preserving all data attributes
           const chatHeader = document.querySelector('.chat-header');
-          chatHeader.innerHTML = doc.querySelector('.chat-header').innerHTML;
+          const newChatHeader = doc.querySelector('.chat-header');
+          if (chatHeader && newChatHeader) {
+            chatHeader.innerHTML = newChatHeader.innerHTML;
+          }
         })
         .catch(error => {
           console.error('Error loading chat:', error);
@@ -2451,9 +2509,45 @@
 
     // Remove the chat context menu related functions and add these new functions
     function openUserActionsModal() {
+      // Get the current active chat information
+      const activeChatId = window.location.pathname.split('/').filter(part => part).pop();
       const modal = document.getElementById('userActionsModal');
       const backdrop = document.getElementById('modalBackdrop');
       
+      // Get the current recipient's information from the chat header
+      const chatHeaderName = document.querySelector('.chat-header-name').textContent.trim();
+      
+      // Update modal content with current chat user info
+      const userAvatar = modal.querySelector('.user-avatar');
+      const userNameElement = modal.querySelector('.user-details h3');
+      const userUsernameElement = modal.querySelector('.user-username');
+      
+      // Set the user name
+      if (userNameElement) {
+        userNameElement.textContent = chatHeaderName;
+      }
+      
+      // For username, we'll need to get it from the data attributes we'll add
+      const chatHeader = document.querySelector('.chat-header-info');
+      if (chatHeader && chatHeader.dataset.username) {
+        userUsernameElement.textContent = '@' + chatHeader.dataset.username;
+      }
+      
+      // For avatar, either use the image or initials based on chat header data
+      if (chatHeader && chatHeader.dataset.hasProfilePicture === 'true') {
+        // Use image
+        userAvatar.innerHTML = `<img src="${chatHeader.dataset.profilePicture}" alt="Profile Picture">`;
+      } else {
+        // Use initials
+        const nameParts = chatHeaderName.split(' ');
+        const initials = nameParts.length >= 2 ? 
+          `${nameParts[0].charAt(0)}${nameParts[1].charAt(0)}` : 
+          chatHeaderName.substring(0, 2);
+        
+        userAvatar.innerHTML = `<div class="avatar-initials">${initials}</div>`;
+      }
+      
+      // Show the modal
       modal.style.display = 'block';
       backdrop.style.display = 'block';
       
@@ -3194,71 +3288,319 @@
       setInterval(checkReadReceipts, 2000); // Check every 2 seconds
     }
 
-    // Modify the loadChat function to mark messages as read when a chat is loaded
-    function loadChat(chatItem, event) {
-      // Prevent default if it's an anchor tag
-      if (event) {
-        event.preventDefault();
+    function handleArchiveChat() {
+      const activeChatId = document.querySelector('.chat-item.active')?.dataset.chatId;
+      if (!activeChatId) {
+        showToast('No active chat selected', 'error');
+        return;
       }
-      
-      // Get the chat URL and ID
-      const chatUrl = chatItem.dataset.chatUrl;
-      const chatId = chatItem.dataset.chatId;
-      
-      // Set the chat as active
-      document.querySelectorAll('.chat-item').forEach(item => {
-        item.classList.remove('active');
+
+      fetch('/archive_chat/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ chat_id: activeChatId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          // Remove chat from the list
+          const chatElement = document.querySelector(`[data-chat-id="${activeChatId}"]`);
+          if (chatElement) {
+            chatElement.remove();
+          }
+          
+          // Clear the chat area
+          document.querySelector('.chat-header').innerHTML = '';
+          document.querySelector('.messages-container').innerHTML = 
+            '<div class="start-message">Select a chat to start messaging or check archived chats</div>';
+          document.querySelector('.input-area').style.display = 'none';
+          
+          // Close the user actions modal
+          closeUserActionsModal();
+          
+          // Show success message
+          showToast('Chat archived successfully');
+        } else {
+          showToast(data.message || 'Error archiving chat', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error archiving chat:', error);
+        showToast('Error archiving chat', 'error');
       });
-      chatItem.classList.add('active');
+    }
+
+    function loadArchivedChats() {
+      const container = document.getElementById('archivedChatsContainer');
+      if (!container) return;
       
-      // Remove unread indicator
-      chatItem.classList.remove('has-unread');
-      const unreadIndicator = chatItem.querySelector('.unread-indicator');
-      if (unreadIndicator) {
-        unreadIndicator.style.display = 'none';
+      // Show loading spinner
+      container.innerHTML = '<div class="loading-spinner-container"><div class="loading-spinner"></div></div>';
+      
+      // Fetch archived chats
+      fetch('/get_archived_chats/', {
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          if (data.chats && data.chats.length > 0) {
+            // Create HTML for each archived chat
+            const chatsHtml = data.chats.map(chat => `
+              <div class="archived-chat-item" data-chat-id="${chat.id}">
+                <div class="chat-avatar">
+                  ${chat.other_user.profile_picture 
+                    ? `<img src="${chat.other_user.profile_picture}" alt="Profile">`
+                    : `<div class="avatar-initials">${chat.other_user.first_name.charAt(0)}${chat.other_user.last_name.charAt(0)}</div>`
+                  }
+                </div>
+                <div class="chat-info">
+                  <div class="chat-name">${chat.other_user.first_name} ${chat.other_user.last_name}</div>
+                  <div class="chat-last-message">${chat.last_message}</div>
+                </div>
+                <div class="chat-actions">
+                  <button class="unarchive-btn" onclick="unarchiveChat(${chat.id})">Unarchive</button>
+                  <button class="open-btn" onclick="openArchivedChat(${chat.id})">Open</button>
+                </div>
+              </div>
+            `).join('');
+            
+            container.innerHTML = `
+              <div class="archived-chats-list">
+                ${chatsHtml}
+              </div>
+            `;
+            
+            // Add CSS for archived chat items
+            const style = document.createElement('style');
+            style.textContent = `
+              .archived-chats-list {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+              }
+              .archived-chat-item {
+                display: flex;
+                align-items: center;
+                padding: 10px;
+                border-radius: 8px;
+                background: #2a2a2a;
+                transition: background 0.2s;
+              }
+              .archived-chat-item:hover {
+                background: #333;
+              }
+              .chat-avatar {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                overflow: hidden;
+                margin-right: 10px;
+                background: #333;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              }
+              .chat-avatar img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+              }
+              .avatar-initials {
+                color: white;
+                font-size: 16px;
+                font-weight: bold;
+              }
+              .chat-info {
+                flex: 1;
+              }
+              .chat-name {
+                font-weight: bold;
+                margin-bottom: 3px;
+              }
+              .chat-last-message {
+                font-size: 12px;
+                color: #aaa;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 150px;
+              }
+              .chat-actions {
+                display: flex;
+                gap: 5px;
+              }
+              .chat-actions button {
+                padding: 5px 10px;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 12px;
+              }
+              .unarchive-btn {
+                background: #444;
+                color: white;
+              }
+              .unarchive-btn:hover {
+                background: #555;
+              }
+              .open-btn {
+                background: #2196f3;
+                color: white;
+              }
+              .open-btn:hover {
+                background: #0d8bf2;
+              }
+            `;
+            document.head.appendChild(style);
+          } else {
+            container.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">No archived chats</div>';
+          }
+        } else {
+          container.innerHTML = `<div style="text-align: center; padding: 20px; color: #ff6b6b;">${data.message || 'Error loading archived chats'}</div>`;
+        }
+      })
+      .catch(error => {
+        console.error('Error loading archived chats:', error);
+        container.innerHTML = '<div style="text-align: center; padding: 20px; color: #ff6b6b;">Error loading archived chats</div>';
+      });
+    }
+
+    function openArchivedChatsModal() {
+      const modal = document.getElementById('archivedChatsModal');
+      const backdrop = document.getElementById('modalBackdrop');
+      
+      if (modal && backdrop) {
+        modal.style.display = 'block';
+        backdrop.style.display = 'block';
+        
+        // Load archived chats
+        loadArchivedChats();
+      }
+    }
+    
+    function closeArchivedChatsModal() {
+      const modal = document.getElementById('archivedChatsModal');
+      const backdrop = document.getElementById('modalBackdrop');
+      
+      if (modal && backdrop) {
+        modal.style.display = 'none';
+        backdrop.style.display = 'none';
+      }
+    }
+
+    function unarchiveChat(chatId) {
+      fetch('/unarchive_chat/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ chat_id: chatId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          // Reload the archived chats list
+          loadArchivedChats();
+          
+          // Reload the main chat list
+          window.location.reload();
+        } else {
+          showToast(data.message || 'Error unarchiving chat', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error unarchiving chat:', error);
+        showToast('Error unarchiving chat', 'error');
+      });
+    }
+
+    function openArchivedChat(chatId) {
+      // Navigate to the chat detail page
+      window.location.href = `/chats/${chatId}/`;
+    }
+
+    // Initialize archive button if it exists in the base template
+    document.addEventListener('DOMContentLoaded', function() {
+      const archiveButton = document.getElementById('archiveButton');
+      if (archiveButton) {
+        archiveButton.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          openArchivedChatsModal();
+        });
       }
       
-      // Show loading spinner in the messages container
-      const messagesContainer = document.querySelector('.messages-container');
-      messagesContainer.innerHTML = '<div class="loading-spinner-container"><div class="loading-spinner"></div></div>';
+      // Check if we should open the archived chats modal on page load
+      if (sessionStorage.getItem('openArchives') === 'true') {
+        // Clear the flag
+        sessionStorage.removeItem('openArchives');
+        // Open the modal after a short delay to ensure everything is loaded
+        setTimeout(() => {
+          openArchivedChatsModal();
+        }, 500);
+      }
+    });
+
+    function searchFriend() {
+      const username = document.getElementById("friendUsername").value;
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+      const searchResult = document.getElementById("search-result");
       
-      // Fetch the chat details with AJAX
-      fetch(chatUrl)
-        .then(response => response.text())
-        .then(html => {
-          // Extract just the messages container content from the response
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, 'text/html');
-          const newMessages = doc.querySelector('.messages-container').innerHTML;
+      if (!username.trim()) {
+        searchResult.innerHTML = '<div class="search-result-item" style="color: #ff6b6b;">Please enter a username</div>';
+        return;
+      }
+      
+      console.log("Searching for user:", username);
+      searchResult.innerHTML = '<div class="search-result-item">Searching...</div>';
+
+      fetch("/search_user/", {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrfToken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: username,
+        }),
+      })
+      .then(response => response.json())
+      .then((data) => {
+        console.log("Search response data:", data);
+        if (data.status === "success") {
+          const resultDiv = document.createElement('div');
+          resultDiv.className = 'search-result-item';
+          resultDiv.textContent = `${data.first_name} ${data.last_name}`;
+          resultDiv.addEventListener('click', function() {
+            console.log('Search result clicked');
+            startChat(data.username);
+          });
           
-          // Update the messages container
-          messagesContainer.innerHTML = newMessages;
-          
-          // Initialize image attachment click handlers for the loaded chat
-          setupImageAttachmentListeners();
-          
-          // Mark all messages in this chat as read
-          markMessagesAsRead();
-          
-          // Start checking read receipts
-          checkReadReceipts();
-          
-          // Update the URL without refreshing the page
-          history.pushState({}, '', chatUrl);
-          
-          // Scroll to the bottom
-          messagesContainer.scrollTop = messagesContainer.scrollHeight;
-          
-          // Update the chat header
-          const chatHeader = document.querySelector('.chat-header');
-          chatHeader.innerHTML = doc.querySelector('.chat-header').innerHTML;
-        })
-        .catch(error => {
-          console.error('Error loading chat:', error);
-          messagesContainer.innerHTML = '<div class="error-message">Error loading chat. Please try again.</div>';
-        });
+          searchResult.innerHTML = '';
+          searchResult.appendChild(resultDiv);
+        } else {
+          searchResult.innerHTML = `<div class="search-result-item" style="color: #ff6b6b;">${data.message}</div>`;
+        }
+      })
+      .catch((error) => {
+        console.error('Error in searchUser:', error);
+        searchResult.innerHTML = '<div class="search-result-item" style="color: #ff6b6b;">An error occurred. Please try again.</div>';
+      });
+    }
+    
+    // Legacy function for backward compatibility
+    function searchUser() {
+      searchFriend();
     }
   </script>
 
   {% endblock %}
 </div>
+

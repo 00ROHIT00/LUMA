@@ -338,6 +338,11 @@
           </a>
         </li>
         <li>
+          <a href="#" data-tooltip="Archived">
+            <i class="fa-solid fa-box-archive" id="archiveButton"></i>
+          </a>
+        </li>
+        <li>
           <a href="{% url 'profile' %}" data-tooltip="Profile">
             <i class="fa-solid fa-user"></i>
           </a>
@@ -365,8 +370,9 @@
 
     <!-- Modal Popup Code Start -->
     <div
-      class="modal"
+      class="dialog-overlay"
       id="friendDialog"
+      onclick="handleOverlayClick(event)"
       style="
         display: none;
         position: fixed;
@@ -381,6 +387,7 @@
       "
     >
       <div
+        class="dialog-box"
         style="
           background: #1e1e1e;
           padding: 30px;
@@ -389,58 +396,76 @@
           width: 400px;
         "
       >
-        <span
-          onclick="closeFriendDialog()"
-          style="
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            cursor: pointer;
-            color: white;
-            font-size: 20px;
-          "
-          >&times;</span
-        >
-        <h2 style="margin-bottom: 20px; color: white">Add New Contact</h2>
-        <input
-          type="text"
-          class="input-field"
-          id="friendUsername"
-          placeholder="Enter Username"
-          style="
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border-radius: 10px;
-            border: none;
-            background-color: #2a2a2a;
-            color: white;
-            outline: none;
-          "
-        />
-        
-        <div id="search-result"></div>
-        <div class="buttons">
-          <button class="add-contact-button" onclick="searchFriend()">Search</button>
-          <button class="dialog-close" onclick="closeFriendDialog()">Close</button>
+        <div class="dialog-title" style="margin-bottom: 20px; color: white; font-size: 20px; font-weight: bold;">Add New Contact</div>
+        {% csrf_token %}
+        <div style="position: relative;">
+          <input
+            type="text"
+            class="input-field"
+            id="friendUsername"
+            placeholder="Enter Username"
+            onkeypress="if(event.key === 'Enter') searchFriend()"
+            style="
+              width: 100%;
+              padding: 12px;
+              margin-bottom: 15px;
+              border-radius: 10px;
+              border: none;
+              background-color: #2a2a2a;
+              color: white;
+              outline: none;
+            "
+          />
         </div>
         
-
+        <div id="search-result" style="margin-top: 15px; text-align: center; width: 100%;"></div>
+        
+        <div class="dialog-buttons" style="display: flex; justify-content: space-between; margin-top: 20px;">
+          <button 
+            class="dialog-button" 
+            onclick="searchFriend()" 
+            style="padding: 10px 20px; border: none; border-radius: 5px; background-color: #2196f3; color: white; cursor: pointer;"
+          >
+            Search
+          </button>
+          <button 
+            class="dialog-button" 
+            onclick="closeFriendDialog()" 
+            style="padding: 10px 20px; border: none; border-radius: 5px; background-color: #444; color: white; cursor: pointer;"
+          >
+            Close
+          </button>
+        </div>
+      </div>
     </div>
     <!-- Modal Popup Code End -->
 
     <script>
       function openFriendDialog() {
-        document.getElementById("dialog").style.display = "flex";
+        document.getElementById("friendDialog").style.display = "flex";
+        // Clear previous search results and input when opening
+        document.getElementById("search-result").innerHTML = "";
+        document.getElementById("friendUsername").value = "";
+        // Focus the input field
+        setTimeout(() => {
+          document.getElementById("friendUsername").focus();
+        }, 100);
       }
     
-      function closeDialog() {
-        document.getElementById("dialog").style.display = "none";
+      function closeFriendDialog() {
+        document.getElementById("friendDialog").style.display = "none";
+      }
+      
+      function handleOverlayClick(event) {
+        // Close dialog only if clicking the overlay itself, not its children
+        if (event.target.id === 'friendDialog') {
+          closeFriendDialog();
+        }
       }
     
-      function searchUser() {
-        const username = document.getElementById("username").value;
-        const csrfToken = "{{ csrf_token }}";
+      function searchFriend() {
+        const username = document.getElementById("friendUsername").value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
         const searchResult = document.getElementById("search-result");
         
         if (!username.trim()) {
@@ -463,43 +488,28 @@
         })
         .then((response) => response.json())
         .then((data) => {
-          console.log("Search response:", data);
+          console.log("Search response data:", data);
           if (data.status === "success") {
             const resultDiv = document.createElement('div');
             resultDiv.className = 'search-result-item';
-            resultDiv.setAttribute('role', 'button');
-            resultDiv.setAttribute('aria-label', 'Click to add contact');
-            resultDiv.textContent = `${data.first_name.charAt(0).toUpperCase() + data.first_name.slice(1)} ${data.last_name.charAt(0).toUpperCase() + data.last_name.slice(1)}`;
+            resultDiv.style.padding = '12px';
+            resultDiv.style.borderRadius = '10px';
+            resultDiv.style.backgroundColor = '#2a2a2a';
+            resultDiv.style.color = 'white';
+            resultDiv.style.cursor = 'pointer';
+            resultDiv.style.transition = 'background-color 0.3s ease';
+            resultDiv.style.textAlign = 'center';
+            resultDiv.style.display = 'flex';
+            resultDiv.style.justifyContent = 'center';
+            resultDiv.style.alignItems = 'center';
+            resultDiv.style.margin = '0 auto';
+            resultDiv.style.position = 'relative';
             
-            // Add click handler to start chat
+            resultDiv.textContent = `${data.first_name} ${data.last_name}`;
+            
             resultDiv.addEventListener('click', function() {
               console.log('Starting chat with:', data.username);
-              fetch("/start_chat/", {
-                method: "POST",
-                headers: {
-                  "X-CSRFToken": csrfToken,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  username: data.username
-                }),
-              })
-              .then(response => response.json())
-              .then(chatData => {
-                console.log("Chat creation response:", chatData);
-                if (chatData.status === 'success') {
-                  // Close the dialog
-                  closeDialog();
-                  // Redirect to the new chat
-                  window.location.href = `/chats/${chatData.chat_id}/`;
-                } else {
-                  searchResult.innerHTML = `<div class="search-result-item" style="color: #ff6b6b;">${chatData.message}</div>`;
-                }
-              })
-              .catch(error => {
-                console.error('Error starting chat:', error);
-                searchResult.innerHTML = '<div class="search-result-item" style="color: #ff6b6b;">Error starting chat. Please try again.</div>';
-              });
+              startChatFromBase(data.username);
             });
             
             searchResult.innerHTML = '';
@@ -511,6 +521,40 @@
         .catch(error => {
           console.error('Error searching user:', error);
           searchResult.innerHTML = '<div class="search-result-item" style="color: #ff6b6b;">Error searching user. Please try again.</div>';
+        });
+      }
+      
+      function startChatFromBase(username) {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        console.log("Starting chat with:", username);
+
+        fetch("/start_chat/", {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": csrfToken,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: username
+          }),
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log("Chat creation response:", data);
+          if (data.status === 'success') {
+            // Close the dialog
+            closeFriendDialog();
+            // Redirect to the new chat
+            window.location.href = `/chats/${data.chat_id}/`;
+          } else {
+            const searchResult = document.getElementById("search-result");
+            searchResult.innerHTML = `<div class="search-result-item" style="color: #ff6b6b;">${data.message}</div>`;
+          }
+        })
+        .catch(error => {
+          console.error('Error starting chat:', error);
+          const searchResult = document.getElementById("search-result");
+          searchResult.innerHTML = '<div class="search-result-item" style="color: #ff6b6b;">Error starting chat. Please try again.</div>';
         });
       }
     </script>
@@ -699,14 +743,31 @@
           });
         }
 
-        // Set up modal click-outside-to-close
-        const modal = document.getElementById('notificationsModal');
-        console.log('Notifications modal element:', modal);
-        
-        if (modal) {
-          modal.addEventListener('click', function(e) {
-            if (e.target === modal) {
+        // Set up modal click-outside-to-close for notifications modal
+        const notificationsModal = document.getElementById('notificationsModal');
+        if (notificationsModal) {
+          notificationsModal.addEventListener('click', function(e) {
+            if (e.target === notificationsModal) {
               closeNotificationsModal();
+            }
+          });
+        }
+
+        // Set up archive button click handler
+        const archiveButton = document.getElementById('archiveButton');
+        if (archiveButton) {
+          archiveButton.addEventListener('click', function(e) {
+            console.log('Archive button clicked');
+            e.preventDefault();
+            e.stopPropagation();
+            // Only open if we're on the chat page
+            if (window.openArchivedChatsModal) {
+              openArchivedChatsModal();
+            } else {
+              // Redirect to chat page if not on it
+              window.location.href = "/chats/";
+              // Set a session storage flag to open archives on arrival
+              sessionStorage.setItem('openArchives', 'true');
             }
           });
         }

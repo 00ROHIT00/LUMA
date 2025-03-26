@@ -125,6 +125,9 @@ def chat_list(request):
         # Exclude chats with blocked users
         Q(sender__in=BlockedUser.objects.filter(blocked=request.user).values('blocker')) |
         Q(recipient__in=BlockedUser.objects.filter(blocked=request.user).values('blocker'))
+    ).exclude(
+        # Exclude chats archived by this user
+        archived_by=request.user
     ).order_by('-updated_at')
     
     # Add unread message count and profile picture URLs for each chat
@@ -1264,6 +1267,122 @@ def mark_messages_read(request, chat_id):
         })
     except Exception as e:
         print(f"Error marking messages as read: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@login_required
+@require_POST
+def archive_chat(request):
+    """Archive a chat for the current user."""
+    try:
+        data = json.loads(request.body)
+        chat_id = data.get('chat_id')
+        
+        if not chat_id:
+            return JsonResponse({'status': 'error', 'message': 'Chat ID is required'})
+        
+        chat = get_object_or_404(Chat, id=chat_id)
+        
+        # Security check - ensure the user is part of this chat
+        if request.user not in [chat.sender, chat.recipient]:
+            return JsonResponse({'status': 'error', 'message': 'Unauthorized'})
+        
+        # Archive the chat for this user
+        chat.archive_for_user(request.user)
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Chat archived successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@login_required
+@require_POST
+def unarchive_chat(request):
+    """Unarchive a chat for the current user."""
+    try:
+        data = json.loads(request.body)
+        chat_id = data.get('chat_id')
+        
+        if not chat_id:
+            return JsonResponse({'status': 'error', 'message': 'Chat ID is required'})
+        
+        chat = get_object_or_404(Chat, id=chat_id)
+        
+        # Security check - ensure the user is part of this chat
+        if request.user not in [chat.sender, chat.recipient]:
+            return JsonResponse({'status': 'error', 'message': 'Unauthorized'})
+        
+        # Unarchive the chat for this user
+        chat.unarchive_for_user(request.user)
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Chat unarchived successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@login_required
+def get_archived_chats(request):
+    """Get all archived chats for the current user."""
+    try:
+        # Get all archived chats for the current user
+        archived_chats = Chat.objects.filter(
+            (Q(sender=request.user) | Q(recipient=request.user)),
+            archived_by=request.user
+        ).exclude(
+            # Exclude chats with blocked users
+            Q(sender__in=BlockedUser.objects.filter(blocked=request.user).values('blocker')) |
+            Q(recipient__in=BlockedUser.objects.filter(blocked=request.user).values('blocker'))
+        ).order_by('-updated_at')
+        
+        # Format the chat data for JSON response
+        chats_data = []
+        for chat in archived_chats:
+            # Get the other user in the conversation
+            other_user = chat.recipient if chat.sender == request.user else chat.sender
+            
+            # Get the last message
+            last_message = chat.messages.filter(
+                deleted_for_everyone=False
+            ).exclude(
+                deleted_for=request.user
+            ).order_by('-sent_at').first()
+            
+            # Create chat entry
+            chat_data = {
+                'id': chat.id,
+                'other_user': {
+                    'id': other_user.id,
+                    'username': other_user.username,
+                    'first_name': other_user.first_name,
+                    'last_name': other_user.last_name,
+                    'profile_picture': other_user.profile_picture.url if other_user.profile_picture else None
+                },
+                'last_message': last_message.content if last_message else "No messages",
+                'last_message_time': last_message.sent_at.strftime('%H:%M') if last_message else None,
+                'updated_at': chat.updated_at.strftime('%Y-%m-%d')
+            }
+            chats_data.append(chat_data)
+        
+        return JsonResponse({
+            'status': 'success',
+            'chats': chats_data
+        })
+        
+    except Exception as e:
         return JsonResponse({
             'status': 'error',
             'message': str(e)

@@ -39,5 +39,8 @@ urlpatterns = [
     path('check_if_user_is_blocked/', views.check_if_user_is_blocked, name='check_if_user_is_blocked'),
     path('check_message_status/<int:message_id>/', views.check_message_status, name='check_message_status'),
     path('mark_messages_read/<int:chat_id>/', views.mark_messages_read, name='mark_messages_read'),
+    path('archive_chat/', views.archive_chat, name='archive_chat'),
+    path('unarchive_chat/', views.unarchive_chat, name='unarchive_chat'),
+    path('get_archived_chats/', views.get_archived_chats, name='get_archived_chats'),
 ]
 
