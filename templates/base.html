@@ -320,6 +320,12 @@
         </li>
 
         <li>
+          <a href="#" data-tooltip="Start Group" onclick="startGroupChat()">
+            <i class="fa-solid fa-user-group"></i>
+          </a>
+        </li>
+
+        <li>
           <a href="#" data-tooltip="Notifications" id="notificationBell">
             <i class="fa-solid fa-bell" id="bellIcon"></i>
             <span
@@ -440,6 +446,124 @@
     </div>
     <!-- Modal Popup Code End -->
 
+    <!-- Group Chat Modal Start -->
+    <div
+      class="dialog-overlay"
+      id="groupChatDialog"
+      onclick="handleGroupDialogOverlayClick(event)"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        justify-content: center;
+        align-items: center;
+        z-index: 200;
+      "
+    >
+      <div
+        class="dialog-box"
+        style="
+          background: #1e1e1e;
+          padding: 30px;
+          border-radius: 15px;
+          text-align: center;
+          width: 450px;
+        "
+      >
+        <div class="dialog-title" style="margin-bottom: 20px; color: white; font-size: 20px; font-weight: bold;">Create Group Chat</div>
+        {% csrf_token %}
+        <div style="position: relative;">
+          <input
+            type="text"
+            class="input-field"
+            id="groupName"
+            placeholder="Group Name"
+            onkeypress="if(event.key === 'Enter') { event.preventDefault(); document.getElementById('participantUsername').focus(); }"
+            style="
+              width: 100%;
+              padding: 12px;
+              margin-bottom: 15px;
+              border-radius: 10px;
+              border: none;
+              background-color: #2a2a2a;
+              color: white;
+              outline: none;
+            "
+          />
+          
+          <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <input
+              type="text"
+              class="input-field"
+              id="participantUsername"
+              placeholder="Add Participant (username)"
+              onkeypress="if(event.key === 'Enter') { event.preventDefault(); addParticipant(); }"
+              style="
+                flex: 1;
+                padding: 12px;
+                border-radius: 10px;
+                border: none;
+                background-color: #2a2a2a;
+                color: white;
+                outline: none;
+              "
+            />
+            <button 
+              onclick="addParticipant()"
+              style="
+                padding: 8px 15px;
+                border: none;
+                border-radius: 10px;
+                background-color: #3498db;
+                color: white;
+                cursor: pointer;
+              "
+            >
+              Add
+            </button>
+          </div>
+          
+          <div 
+            id="participantsList" 
+            style="
+              background-color: #2a2a2a;
+              border-radius: 10px;
+              padding: 10px;
+              min-height: 100px;
+              max-height: 150px;
+              overflow-y: auto;
+              margin-bottom: 15px;
+              text-align: left;
+            "
+          >
+            <div style="color: #888; text-align: center;">No participants added yet</div>
+          </div>
+        </div>
+        
+        <div class="dialog-buttons" style="display: flex; justify-content: space-between; margin-top: 20px;">
+          <button 
+            class="dialog-button" 
+            onclick="createGroupChat()" 
+            style="padding: 10px 20px; border: none; border-radius: 5px; background-color: #2196f3; color: white; cursor: pointer;"
+          >
+            Create Group
+          </button>
+          <button 
+            class="dialog-button" 
+            onclick="closeGroupChatDialog()" 
+            style="padding: 10px 20px; border: none; border-radius: 5px; background-color: #444; color: white; cursor: pointer;"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Group Chat Modal End -->
+
     <script>
       function openFriendDialog() {
         document.getElementById("friendDialog").style.display = "flex";
@@ -452,6 +576,28 @@
         }, 100);
       }
     
+      function startGroupChat() {
+        // Open the group chat dialog
+        document.getElementById("groupChatDialog").style.display = "flex";
+        
+        // Clear previous inputs
+        document.getElementById("groupName").value = "";
+        document.getElementById("participantUsername").value = "";
+        document.getElementById("participantsList").innerHTML = '<div style="color: #888; text-align: center;">No participants added yet</div>';
+        
+        // Reset participants array
+        window.groupParticipants = [];
+        
+        // Focus the group name input field
+        setTimeout(() => {
+          document.getElementById("groupName").focus();
+        }, 100);
+      }
+      
+      function closeGroupChatDialog() {
+        document.getElementById("groupChatDialog").style.display = "none";
+      }
+      
       function closeFriendDialog() {
         document.getElementById("friendDialog").style.display = "none";
       }
@@ -462,21 +608,106 @@
           closeFriendDialog();
         }
       }
-    
-      function searchFriend() {
-        const username = document.getElementById("friendUsername").value;
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-        const searchResult = document.getElementById("search-result");
+      
+      function handleGroupDialogOverlayClick(event) {
+        // Close dialog only if clicking the overlay itself, not its children
+        if (event.target.id === 'groupChatDialog') {
+          closeGroupChatDialog();
+        }
+      }
+      
+      // Initialize global array to store participants
+      window.groupParticipants = [];
+      
+      function addParticipant() {
+        const username = document.getElementById("participantUsername").value.trim();
+        const participantsList = document.getElementById("participantsList");
         
-        if (!username.trim()) {
-          searchResult.innerHTML = '<div class="search-result-item" style="color: #ff6b6b;">Please enter a username</div>';
+        if (!username) {
+          showNotification("Please enter a username", "#ff6b6b");
           return;
         }
         
-        console.log("Searching for user:", username);
-        searchResult.innerHTML = '<div class="search-result-item">Searching...</div>';
-
-        fetch("/search_user/", {
+        // Check if username is already in the list
+        if (window.groupParticipants.includes(username)) {
+          showNotification("User already added", "#ff6b6b");
+          document.getElementById("participantUsername").value = "";
+          return;
+        }
+        
+        // Validate if user exists
+        validateUser(username).then(isValid => {
+          if (isValid) {
+            // Add to array
+            window.groupParticipants.push(username);
+            
+            // Clear "No participants" message if it's the first participant
+            if (window.groupParticipants.length === 1) {
+              participantsList.innerHTML = '';
+            }
+            
+            // Create participant element
+            const participantElem = document.createElement('div');
+            participantElem.style.display = 'flex';
+            participantElem.style.justifyContent = 'space-between';
+            participantElem.style.alignItems = 'center';
+            participantElem.style.backgroundColor = '#333';
+            participantElem.style.padding = '8px 12px';
+            participantElem.style.borderRadius = '5px';
+            participantElem.style.marginBottom = '5px';
+            
+            participantElem.innerHTML = `
+              <span>${username}</span>
+              <button 
+                onclick="removeParticipant('${username}')" 
+                style="
+                  background: none;
+                  border: none;
+                  color: #ff6b6b;
+                  cursor: pointer;
+                  font-size: 14px;
+                "
+              >
+                ✕
+              </button>
+            `;
+            
+            participantsList.appendChild(participantElem);
+            document.getElementById("participantUsername").value = "";
+            showNotification("Participant added", "#4CAF50");
+          } else {
+            showNotification("User not found", "#ff6b6b");
+          }
+        });
+      }
+      
+      function removeParticipant(username) {
+        // Remove from array
+        window.groupParticipants = window.groupParticipants.filter(p => p !== username);
+        
+        // Update UI
+        const participantsList = document.getElementById("participantsList");
+        
+        // Rebuild the list
+        if (window.groupParticipants.length === 0) {
+          participantsList.innerHTML = '<div style="color: #888; text-align: center;">No participants added yet</div>';
+        } else {
+          // Remove the specific element
+          const elements = participantsList.querySelectorAll('div');
+          elements.forEach(elem => {
+            if (elem.querySelector('span') && elem.querySelector('span').textContent === username) {
+              elem.remove();
+            }
+          });
+        }
+        
+        showNotification("Participant removed", "#666");
+      }
+      
+      function validateUser(username) {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        return fetch("/search_user/", {
           method: "POST",
           headers: {
             "X-CSRFToken": csrfToken,
@@ -488,75 +719,457 @@
         })
         .then((response) => response.json())
         .then((data) => {
-          console.log("Search response data:", data);
-          if (data.status === "success") {
-            const resultDiv = document.createElement('div');
-            resultDiv.className = 'search-result-item';
-            resultDiv.style.padding = '12px';
-            resultDiv.style.borderRadius = '10px';
-            resultDiv.style.backgroundColor = '#2a2a2a';
-            resultDiv.style.color = 'white';
-            resultDiv.style.cursor = 'pointer';
-            resultDiv.style.transition = 'background-color 0.3s ease';
-            resultDiv.style.textAlign = 'center';
-            resultDiv.style.display = 'flex';
-            resultDiv.style.justifyContent = 'center';
-            resultDiv.style.alignItems = 'center';
-            resultDiv.style.margin = '0 auto';
-            resultDiv.style.position = 'relative';
-            
-            resultDiv.textContent = `${data.first_name} ${data.last_name}`;
-            
-            resultDiv.addEventListener('click', function() {
-              console.log('Starting chat with:', data.username);
-              startChatFromBase(data.username);
-            });
-            
-            searchResult.innerHTML = '';
-            searchResult.appendChild(resultDiv);
-          } else {
-            searchResult.innerHTML = `<div class="search-result-item" style="color: #ff6b6b;">${data.message}</div>`;
-          }
+          return data.status === "success";
         })
         .catch(error => {
-          console.error('Error searching user:', error);
-          searchResult.innerHTML = '<div class="search-result-item" style="color: #ff6b6b;">Error searching user. Please try again.</div>';
+          console.error('Error validating user:', error);
+          return false;
         });
       }
       
-      function startChatFromBase(username) {
+      function createGroupChat() {
+        const groupName = document.getElementById("groupName").value.trim();
+        
+        if (!groupName) {
+          showNotification("Please enter a group name", "#ff6b6b");
+          return;
+        }
+        
+        if (window.groupParticipants.length === 0) {
+          showNotification("Please add at least one participant", "#ff6b6b");
+          return;
+        }
+        
+        // Show loading indicator
+        showNotification("Creating group...", "#3498db");
+        
+        // Get CSRF token
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-        console.log("Starting chat with:", username);
-
-        fetch("/start_chat/", {
-          method: "POST",
+        
+        // Send request to backend to create group
+        fetch('/create_group_chat/', {
+          method: 'POST',
           headers: {
-            "X-CSRFToken": csrfToken,
-            "Content-Type": "application/json",
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            username: username
-          }),
+            group_name: groupName,
+            participants: window.groupParticipants
+          })
         })
         .then(response => response.json())
         .then(data => {
-          console.log("Chat creation response:", data);
           if (data.status === 'success') {
-            // Close the dialog
-            closeFriendDialog();
-            // Redirect to the new chat
-            window.location.href = `/chats/${data.chat_id}/`;
+            // Close the modal
+            closeGroupChatDialog();
+            
+            // Show success message
+            showNotification(`Group "${groupName}" created successfully!`, "#4CAF50");
+            
+            // If we're on the chat page, add to the list immediately
+            if (document.querySelector('.chat-list')) {
+              addGroupToList(data);
+            } else {
+              // Redirect to chats page
+              window.location.href = "/chats/";
+            }
           } else {
-            const searchResult = document.getElementById("search-result");
-            searchResult.innerHTML = `<div class="search-result-item" style="color: #ff6b6b;">${data.message}</div>`;
+            showNotification(data.message || "Failed to create group", "#ff6b6b");
           }
         })
         .catch(error => {
-          console.error('Error starting chat:', error);
-          const searchResult = document.getElementById("search-result");
-          searchResult.innerHTML = '<div class="search-result-item" style="color: #ff6b6b;">Error starting chat. Please try again.</div>';
+          console.error('Error creating group:', error);
+          showNotification("Failed to create group. Please try again.", "#ff6b6b");
         });
       }
+      
+      function addGroupToList(groupData) {
+        const chatList = document.querySelector('.chat-list');
+        if (!chatList) return;
+        
+        // Create a new chat item for the group
+        const chatItem = document.createElement('div');
+        chatItem.className = 'chat-item';
+        chatItem.style.cursor = 'pointer';
+        chatItem.dataset.groupId = groupData.group_id;
+        
+        chatItem.innerHTML = `
+          <div class="chat-item-pfp">
+            <div class="pfp-initials" style="background-color: #3498db;">
+              <i class="fa-solid fa-user-group" style="font-size: 16px;"></i>
+            </div>
+          </div>
+          <div class="chat-item-details">
+            <div class="chat-item-name">${groupData.group_name}</div>
+            <div class="chat-item-preview">Group chat created</div>
+          </div>
+          <div class="chat-item-time">
+            ${new Date(groupData.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+          </div>
+        `;
+        
+        // Add to the beginning of the chat list
+        if (chatList.firstChild) {
+          chatList.insertBefore(chatItem, chatList.firstChild);
+        } else {
+          chatList.appendChild(chatItem);
+        }
+        
+        // Remove any "no chats" messages
+        const noChatsMsg = chatList.querySelector('div[style*="text-align: center"]');
+        if (noChatsMsg) {
+          noChatsMsg.remove();
+        }
+        
+        // Add click event to open the group chat
+        chatItem.addEventListener('click', function() {
+          openGroupChat(groupData.group_id);
+        });
+      }
+      
+      // Function to open the group chat interface
+      function openGroupChat(groupId) {
+        // Get CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        // Make the chat item active
+        document.querySelectorAll('.chat-item').forEach(item => {
+          item.classList.remove('active');
+        });
+        document.querySelector(`.chat-item[data-group-id="${groupId}"]`)?.classList.add('active');
+        
+        // Show loading in the messages container
+        const messagesContainer = document.querySelector('.messages-container');
+        if (messagesContainer) {
+          messagesContainer.innerHTML = '<div style="text-align: center; padding: 20px;">Loading messages...</div>';
+        }
+        
+        // Show the input area immediately to prevent it from disappearing
+        const inputArea = document.querySelector('.input-area');
+        if (inputArea) {
+          inputArea.style.display = 'flex'; // Use flex instead of block for better alignment
+          console.log('Setting input area to flex for group chat', groupId);
+        }
+        
+        // Fetch group data and messages from server
+        fetch(`/group/${groupId}/messages/`, {
+          headers: {
+            'X-CSRFToken': csrfToken
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status !== 'success') {
+            showNotification(data.message || "Failed to load group chat", "#ff6b6b");
+            return;
+          }
+          
+          // Update the chat header
+          const chatHeader = document.querySelector('.chat-header');
+          if (chatHeader) {
+            chatHeader.innerHTML = `
+              <div class="chat-header-info">
+                <div class="chat-header-name">
+                  ${data.group_name} <span style="font-size: 12px; color: #999;">(${data.participants.length} members)</span>
+                </div>
+                <div class="chat-header-subtitle">Group chat</div>
+              </div>
+            `;
+          }
+          
+          // Show a list of group members in a tooltip
+          const participantNames = data.participants
+            .filter(p => !p.is_you)
+            .map(p => p.name)
+            .join(', ');
+            
+          const chatHeaderInfo = document.querySelector('.chat-header-info');
+          if (chatHeaderInfo) {
+            chatHeaderInfo.title = `Members: You, ${participantNames}`;
+          }
+          
+          // Update messages container with group messages
+          if (messagesContainer) {
+            messagesContainer.innerHTML = '';
+            
+            // Add system message about group creation if no messages
+            if (data.messages.length === 0 || 
+                (data.messages.length === 1 && data.messages[0].content.includes('Group created'))) {
+              const systemMsg = document.createElement('div');
+              systemMsg.className = 'system-message';
+              systemMsg.style.textAlign = 'center';
+              systemMsg.style.padding = '10px';
+              systemMsg.style.margin = '10px 0';
+              systemMsg.style.color = '#999';
+              systemMsg.style.fontSize = '14px';
+              systemMsg.innerHTML = `Group "${data.group_name}" with members: <strong>You, ${participantNames}</strong>`;
+              messagesContainer.appendChild(systemMsg);
+            }
+            
+            // Add all messages
+            data.messages.forEach(msg => {
+              // Skip duplicate system messages
+              if (msg.content.includes('Group created with') && messagesContainer.querySelector('.system-message')) {
+                return;
+              }
+              
+              const messageElem = document.createElement('div');
+              const isYou = msg.sender_name === 'You';
+              
+              if (msg.sender_name === 'system') {
+                // System message
+                messageElem.className = 'system-message';
+                messageElem.style.textAlign = 'center';
+                messageElem.style.padding = '10px';
+                messageElem.style.margin = '10px 0';
+                messageElem.style.color = '#999';
+                messageElem.style.fontSize = '14px';
+                messageElem.innerHTML = msg.content;
+              } else {
+                // Regular message
+                messageElem.className = isYou ? 'message message-sent' : 'message message-received';
+                messageElem.innerHTML = `
+                  <div class="message-pfp">
+                    <div class="pfp-initials">
+                      ${msg.sender_name.slice(0, 2)}
+                    </div>
+                  </div>
+                  <div class="message-content">
+                    ${msg.content}
+                    <div class="message-time">
+                      ${new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </div>
+                  </div>
+                `;
+              }
+              
+              messagesContainer.appendChild(messageElem);
+            });
+            
+            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          }
+          
+          // Set up the message input to handle group messages
+          const messageInput = document.getElementById('messageInput');
+          if (messageInput) {
+            // Clear previous input
+            messageInput.value = '';
+            
+            // Save the original sendMessage function if not saved already
+            if (!window.originalSendMessage && window.sendMessage) {
+              window.originalSendMessage = window.sendMessage;
+            }
+            
+            // Override the sendMessage function for groups
+            window.sendMessage = function() {
+              const content = messageInput.value.trim();
+              if (!content) return;
+              
+              // Disable input to prevent double submits
+              messageInput.disabled = true;
+              
+              // Add immediate UI feedback by showing the message locally
+              const messageElem = document.createElement('div');
+              messageElem.className = 'message message-sent';
+              messageElem.innerHTML = `
+                <div class="message-pfp">
+                  <div class="pfp-initials">
+                    You
+                  </div>
+                </div>
+                <div class="message-content">
+                  ${content}
+                  <div class="message-time">
+                    ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  </div>
+                </div>
+              `;
+              messagesContainer.appendChild(messageElem);
+              
+              // Update preview in chat list immediately
+              const chatItem = document.querySelector(`.chat-item[data-group-id="${groupId}"]`);
+              if (chatItem) {
+                const previewElem = chatItem.querySelector('.chat-item-preview');
+                if (previewElem) {
+                  previewElem.textContent = `You: ${content.length > 30 ? content.substring(0, 27) + '...' : content}`;
+                }
+                
+                // Move to top of list if not already there
+                const chatList = document.querySelector('.chat-list');
+                if (chatList && chatList.firstChild !== chatItem) {
+                  chatList.insertBefore(chatItem, chatList.firstChild);
+                }
+              }
+              
+              // Scroll to bottom
+              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+              
+              // Clear input
+              messageInput.value = '';
+              
+              // Send message to server
+              fetch(`/group/${groupId}/send_message/`, {
+                method: 'POST',
+                headers: {
+                  'X-CSRFToken': csrfToken,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  content: content
+                })
+              })
+              .then(response => response.json())
+              .then(data => {
+                // Re-enable input
+                messageInput.disabled = false;
+                
+                if (data.status !== 'success') {
+                  showNotification(data.message || "Failed to send message", "#ff6b6b");
+                  return;
+                }
+                
+                // No need to add the message again since we already added it for immediate feedback
+              })
+              .catch(error => {
+                // Re-enable input
+                messageInput.disabled = false;
+                console.error('Error sending message:', error);
+                showNotification("Failed to send message. Please try again.", "#ff6b6b");
+              });
+            };
+            
+            // Mark this as a group chat to help restore original behavior
+            window.currentChatIsGroup = true;
+            window.currentGroupId = groupId;
+          }
+          
+          // Ensure the input area is visible
+          if (inputArea) {
+            inputArea.style.display = 'flex';
+            
+            // Focus on the input field
+            if (messageInput) {
+              setTimeout(() => {
+                messageInput.focus();
+              }, 100);
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error loading group chat:', error);
+          showNotification("Failed to load group chat. Please try again.", "#ff6b6b");
+        });
+      }
+      
+      // Function to load groups from server instead of localStorage
+      function loadUserGroups() {
+        const chatList = document.querySelector('.chat-list');
+        if (!chatList) return;
+        
+        // Get CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        // Fetch user's groups from server
+        fetch('/get_user_groups/', {
+          headers: {
+            'X-CSRFToken': csrfToken
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status !== 'success') {
+            console.error('Failed to load groups:', data.message);
+            return;
+          }
+          
+          // Add each group to the chat list
+          data.groups.forEach(group => {
+            const chatItem = document.createElement('div');
+            chatItem.className = 'chat-item';
+            chatItem.style.cursor = 'pointer';
+            chatItem.dataset.groupId = group.id;
+            
+            chatItem.innerHTML = `
+              <div class="chat-item-pfp">
+                <div class="pfp-initials" style="background-color: #3498db;">
+                  <i class="fa-solid fa-user-group" style="font-size: 16px;"></i>
+                </div>
+              </div>
+              <div class="chat-item-details">
+                <div class="chat-item-name">${group.name}</div>
+                <div class="chat-item-preview">${group.preview}</div>
+              </div>
+              <div class="chat-item-time">
+                ${new Date(group.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+              </div>
+            `;
+            
+            // Add to the chat list
+            chatList.appendChild(chatItem);
+            
+            // Add click event to open the group chat
+            chatItem.addEventListener('click', function() {
+              openGroupChat(group.id);
+            });
+          });
+        })
+        .catch(error => {
+          console.error('Error loading groups:', error);
+        });
+      }
+      
+      // Helper to show notifications
+      function showNotification(message, bgColor) {
+        const notification = document.createElement('div');
+        notification.style.position = 'fixed';
+        notification.style.bottom = '20px';
+        notification.style.left = '50%';
+        notification.style.transform = 'translateX(-50%)';
+        notification.style.backgroundColor = bgColor || '#3498db';
+        notification.style.color = 'white';
+        notification.style.padding = '10px 20px';
+        notification.style.borderRadius = '5px';
+        notification.style.zIndex = '10000';
+        notification.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+          notification.style.opacity = '0';
+          notification.style.transition = 'opacity 0.5s ease';
+          setTimeout(() => notification.remove(), 500);
+        }, 2500);
+      }
+      
+      function searchFriend() {
+        // Existing search friend code...
+      }
+      
+      // Add event listener to regular chat items to restore original sendMessage
+      document.addEventListener('DOMContentLoaded', function() {
+        // When loading a chat page, check for normal chat item clicks
+        // Load user's groups immediately instead of with a delay
+        if (document.querySelector('.chat-list')) {
+          loadUserGroups();
+        }
+        
+        // Then set up event listeners for regular chat items
+        setTimeout(() => {
+          const regularChatItems = document.querySelectorAll('.chat-item:not([data-group-id])');
+          regularChatItems.forEach(item => {
+            // Add event listener to restore original sendMessage when clicking a regular chat
+            item.addEventListener('click', function() {
+              if (window.originalSendMessage && window.currentChatIsGroup) {
+                window.sendMessage = window.originalSendMessage;
+                window.currentChatIsGroup = false;
+                window.currentGroupId = null;
+              }
+            });
+          });
+        }, 500); // Shorter delay just for event listeners
+      });
     </script>
 
     <!-- NOTIFICATIONS POP UP -->

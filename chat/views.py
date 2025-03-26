@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from .models import User, Chat, Message, Report, Notification, Broadcast, BlockedUser
+from .models import User, Chat, Message, Report, Notification, Broadcast, BlockedUser, GroupChat, GroupMessage
 from django.urls import reverse
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -1387,3 +1387,197 @@ def get_archived_chats(request):
             'status': 'error',
             'message': str(e)
         })
+
+@login_required
+def create_group_chat(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        group_name = data.get('group_name')
+        participants = data.get('participants', [])
+        
+        # Validate inputs
+        if not group_name:
+            return JsonResponse({'status': 'error', 'message': 'Group name is required'})
+        
+        if not participants:
+            return JsonResponse({'status': 'error', 'message': 'At least one participant is required'})
+        
+        # Create group chat
+        try:
+            group = GroupChat.objects.create(
+                name=group_name,
+                created_by=request.user
+            )
+            
+            # Add creator as a participant
+            group.participants.add(request.user)
+            
+            # Add other participants
+            for username in participants:
+                try:
+                    user = User.objects.get(username=username)
+                    group.participants.add(user)
+                except User.DoesNotExist:
+                    continue
+            
+            # Create system message
+            GroupMessage.objects.create(
+                group=group,
+                sender=request.user,
+                content=f"Group created with {group.participants.count()} members"
+            )
+            
+            return JsonResponse({
+                'status': 'success',
+                'group_id': group.id,
+                'group_name': group.name,
+                'created_at': group.created_at.isoformat(),
+                'participants': list(group.participants.values('username', 'first_name', 'last_name'))
+            })
+            
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+@login_required
+def get_user_groups(request):
+    # Get all groups the user is a member of
+    groups = GroupChat.objects.filter(participants=request.user).order_by('-updated_at')
+    
+    group_data = []
+    for group in groups:
+        # Get the latest message for preview
+        latest_message = group.messages.order_by('-created_at').first()
+        preview = ''
+        if latest_message:
+            sender_name = latest_message.sender.username
+            if latest_message.sender == request.user:
+                sender_name = 'You'
+            preview = f"{sender_name}: {latest_message.content}"
+            if len(preview) > 30:
+                preview = preview[:27] + '...'
+        else:
+            preview = 'Group chat created'
+        
+        # Format participants list
+        participants = list(group.participants.exclude(id=request.user.id).values('username', 'first_name', 'last_name'))
+        
+        group_data.append({
+            'id': group.id,
+            'name': group.name,
+            'preview': preview,
+            'created_at': group.created_at.isoformat(),
+            'updated_at': group.updated_at.isoformat(),
+            'participants': participants,
+            'participants_count': group.participants.count()
+        })
+    
+    return JsonResponse({'status': 'success', 'groups': group_data})
+
+@login_required
+def get_group_messages(request, group_id):
+    try:
+        # Check if user is a participant
+        group = GroupChat.objects.get(id=group_id)
+        if request.user not in group.participants.all():
+            return JsonResponse({'status': 'error', 'message': 'You are not a member of this group'})
+        
+        # Get messages
+        messages = group.messages.all()
+        message_data = []
+        for msg in messages:
+            sender_name = msg.sender.first_name + ' ' + msg.sender.last_name
+            if msg.sender == request.user:
+                sender_name = 'You'
+            
+            message_data.append({
+                'id': msg.id,
+                'sender_id': msg.sender.id,
+                'sender_name': sender_name,
+                'sender_username': msg.sender.username,
+                'content': msg.content,
+                'created_at': msg.created_at.isoformat()
+            })
+        
+        # Format participants
+        participants = []
+        for user in group.participants.all():
+            participants.append({
+                'id': user.id,
+                'username': user.username,
+                'name': f"{user.first_name} {user.last_name}",
+                'is_you': user == request.user
+            })
+        
+        return JsonResponse({
+            'status': 'success',
+            'group_id': group.id,
+            'group_name': group.name,
+            'messages': message_data,
+            'participants': participants
+        })
+        
+    except GroupChat.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Group chat not found'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)})
+
+@login_required
+def send_group_message(request, group_id):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            content = data.get('content')
+            
+            if not content:
+                return JsonResponse({'status': 'error', 'message': 'Message content is required'})
+            
+            # Check if user is a participant
+            group = GroupChat.objects.get(id=group_id)
+            if request.user not in group.participants.all():
+                return JsonResponse({'status': 'error', 'message': 'You are not a member of this group'})
+            
+            # Check for duplicate messages (prevent double submission)
+            # Check if the exact same message was sent by the same user in the last 5 seconds
+            recent_duplicate = GroupMessage.objects.filter(
+                group=group,
+                sender=request.user,
+                content=content,
+                created_at__gte=timezone.now() - timezone.timedelta(seconds=5)
+            ).exists()
+            
+            if recent_duplicate:
+                # If this is a duplicate, just return success without creating a new message
+                return JsonResponse({
+                    'status': 'success',
+                    'message_id': 0,  # Use 0 as a placeholder
+                    'sender_name': 'You',
+                    'content': content,
+                    'created_at': timezone.now().isoformat()
+                })
+            
+            # Create message
+            message = GroupMessage.objects.create(
+                group=group,
+                sender=request.user,
+                content=content
+            )
+            
+            # Update group's updated_at timestamp
+            group.save()  # This will trigger auto_now
+            
+            return JsonResponse({
+                'status': 'success',
+                'message_id': message.id,
+                'sender_name': 'You',
+                'content': message.content,
+                'created_at': message.created_at.isoformat()
+            })
+            
+        except GroupChat.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Group chat not found'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})

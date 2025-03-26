@@ -1641,7 +1641,7 @@
       {% endif %}
     </div>
     {% if active_chat %}
-    <div class="input-area" style="display: block;">
+    <div class="input-area" style="display: flex;">
       <div class="chat-footer">
         <div class="input-container">
           <input
@@ -2574,6 +2574,13 @@
         unreadIndicator.style.display = 'none';
       }
       
+      // Ensure the input area is visible right away
+      const inputArea = document.querySelector('.input-area');
+      if (inputArea) {
+        inputArea.style.display = 'flex';
+        console.log('Setting input area display to flex for chat', chatId);
+      }
+      
       // Show loading spinner in the messages container
       const messagesContainer = document.querySelector('.messages-container');
       messagesContainer.innerHTML = '<div class="loading-spinner-container"><div class="loading-spinner"></div></div>';
@@ -2610,6 +2617,11 @@
           const newChatHeader = doc.querySelector('.chat-header');
           if (chatHeader && newChatHeader) {
             chatHeader.innerHTML = newChatHeader.innerHTML;
+          }
+          
+          // Ensure input area is visible again (double-check)
+          if (inputArea) {
+            inputArea.style.display = 'flex';
           }
         })
         .catch(error => {
@@ -3172,9 +3184,10 @@
       const messagesContainer = document.querySelector('.messages-container');
       
       if (activeChatId) {
-        // Show input area if there's an active chat
+        // Show input area if there's an active chat - use flex instead of block
         if (inputArea) {
-          inputArea.style.display = 'block';
+          inputArea.style.display = 'flex';
+          console.log('Setting input area display to flex for active chat', activeChatId);
         }
         
         // Ensure messages are visible
@@ -3182,12 +3195,25 @@
           messagesContainer.style.display = 'flex';
           scrollToBottom();
         }
+      } else {
+        console.log('No active chat found, input area will be hidden');
       }
     }
 
     // Update the DOMContentLoaded event listener
     document.addEventListener("DOMContentLoaded", function() {
       initializeChatInterface();
+      
+      // Add a forced refresh of the input area visibility after a slight delay
+      setTimeout(() => {
+        const activeChatId = document.querySelector('.chat-item.active')?.dataset.chatId;
+        const inputArea = document.querySelector('.input-area');
+        
+        if (activeChatId && inputArea) {
+          console.log('Forced refresh of input area display');
+          inputArea.style.display = 'flex';
+        }
+      }, 300);
       
       // Set up other event listeners
       const fileInput = document.getElementById('fileInput');
