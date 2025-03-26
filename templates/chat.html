@@ -986,6 +986,7 @@
     color: #666;
     font-size: 14px;
     margin-top: 4px;
+    text-align: left;
   }
 
   .user-actions {
@@ -1506,15 +1507,15 @@
            data-username="{% if active_chat.sender == request.user %}{{ active_chat.recipient.username }}{% else %}{{ active_chat.sender.username }}{% endif %}"
            data-has-profile-picture="{% if active_chat.sender == request.user %}{% if active_chat.recipient.profile_picture %}true{% else %}false{% endif %}{% else %}{% if active_chat.sender.profile_picture %}true{% else %}false{% endif %}{% endif %}"
            data-profile-picture="{% if active_chat.sender == request.user %}{% if active_chat.recipient.profile_picture %}{{ active_chat.recipient.profile_picture.url }}{% endif %}{% else %}{% if active_chat.sender.profile_picture %}{{ active_chat.sender.profile_picture.url }}{% endif %}{% endif %}">
-        <div class="chat-header-name">
-          {% if active_chat.sender == request.user %}
-            {{ active_chat.recipient.first_name }} {{ active_chat.recipient.last_name }}
-          {% else %}
-            {{ active_chat.sender.first_name }} {{ active_chat.sender.last_name }}
-          {% endif %}
+          <div class="chat-header-name">
+            {% if active_chat.sender == request.user %}
+              {{ active_chat.recipient.first_name }} {{ active_chat.recipient.last_name }}
+            {% else %}
+              {{ active_chat.sender.first_name }} {{ active_chat.sender.last_name }}
+            {% endif %}
+          </div>
+          <div class="chat-header-subtitle">Click for actions</div>
         </div>
-        <div class="chat-header-subtitle">Click for actions</div>
-      </div>
       {% endif %}
     </div>
     <div class="messages-container">
@@ -2087,11 +2088,11 @@
 
       // Set the sender's name
       {% if active_chat %}
-      if (senderId === currentUserId) {
-        contextMenuName.textContent = "{{ request.user.first_name }} {{ request.user.last_name }}";
-      } else {
-        contextMenuName.textContent = "{% if active_chat.sender == request.user %}{{ active_chat.recipient.first_name }} {{ active_chat.recipient.last_name }}{% else %}{{ active_chat.sender.first_name }} {{ active_chat.sender.last_name }}{% endif %}";
-      }
+        if (senderId === currentUserId) {
+          contextMenuName.textContent = "{{ request.user.first_name }} {{ request.user.last_name }}";
+        } else {
+          contextMenuName.textContent = "{% if active_chat.sender == request.user %}{{ active_chat.recipient.first_name }} {{ active_chat.recipient.last_name }}{% else %}{{ active_chat.sender.first_name }} {{ active_chat.sender.last_name }}{% endif %}";
+        }
       {% endif %}
       
       // Show/hide "Delete for everyone" option based on whether user is the sender
@@ -3514,8 +3515,8 @@
         } else {
           showToast(data.message || 'Error unarchiving chat', 'error');
         }
-      })
-      .catch(error => {
+        })
+        .catch(error => {
         console.error('Error unarchiving chat:', error);
         showToast('Error unarchiving chat', 'error');
       });

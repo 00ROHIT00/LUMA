@@ -1,0 +1,34 @@
+CREATE DATABASE questionone;
+
+CREATE TABLE Flight(
+    FlightID INT PRIMARY KEY,
+    FlightNumber INT NOT NULL,
+    Source VARCHAR(500) NOT NULL,
+    Destination VARCHAR(500) NOT NULL,
+    DepartureTime Time NOT NULL,
+    ArrivalTime Time NOT NULL);
+
+CREATE TABLE Passenger(
+    PassengerID INT PRIMARY KEY,
+    PassengerName VARCHAR(100) NOT NULL,
+    Age INT NOT NULL,
+    Contact INT NOT NULL)
+
+CREATE TABLE Ticket(
+    TicketID INT PRIMARY KEY,
+    FlightID INT,
+    PassengerID INT,
+    BookingDate DATE NOT NULL,
+    SeatNumber INT NOT NULL,
+    Price INT NOT NULL,
+    FOREIGN KEY (FlightID) REFERENCES flight(FlightID),
+    FOREIGN KEY (PassengerID) REFERENCES passenger(PassengerID))
+
+
+a) SELECT COUNT(passenger.PassengerName), ticket.FlightID from passenger, ticket WHERE passenger.PassengerID = ticket.TicketID GROUP BY ticket.FlightID;
+b) SELECT MIN(ticket.Price), MAX(ticket.Price), flight.FlightNumber from ticket, flight where ticket.FlightID = flight.FlightID GROUP BY flight.FlightNumber;
+c) SELECT flight.FlightNumber, COUNT(ticket.PassengerID) from flight, ticket where ticket.FlightID = flight.FlightID GROUP BY flight.FlightNumber HAVING COUNT(ticket.PassengerID) > 5;
+d) CREATE VIEW Details AS
+	SELECT flight.FlightNumber, flight.Source, flight.Destination, COUNT(ticket.PassengerID) FROM flight, ticket where ticket.FlightID = flight.FlightID GROUP BY flight.FlightID;
+
+SELECT * FROM Details;
