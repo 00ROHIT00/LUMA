@@ -220,95 +220,153 @@
     border-radius: 10px;
 }
 
+/* Modal styling fixes */
 .modal-backdrop {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.7); /* Darker semi-transparent background */
     display: none;
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    padding: 20px; /* Add padding around the modal */
 }
 
 .modal {
     background: #1e1e1e;
     padding: 2rem;
-    border-radius: 10px;
-    width: 90%;
-    max-width: 500px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 15px; /* Increased border-radius */
+    width: 800px; /* Set a fixed width */
+    max-width: 90%; /* But still responsive */
+    max-height: 90vh; /* Limit height */
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3); /* Enhanced shadow */
+    display: flex;
+    flex-direction: column;
+    overflow: auto; /* Add scrolling if content overflows */
+    position: relative; /* For positioning elements inside */
 }
 
 .modal-header {
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid #333;
+    text-align: center; /* Center the header */
 }
 
 .modal-header h2 {
     color: #fff;
-    font-size: 1.5rem;
+    font-size: 1.8rem;
     margin: 0;
 }
 
 .modal-body {
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Layout the items in a cleaner format */
+@media (min-width: 768px) {
+    .modal-body {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        align-items: start;
+    }
+    
+    /* Make the notes full width */
+    .modal-body .action-group:last-child {
+        grid-column: 1 / span 2;
+    }
 }
 
 .action-group {
-    margin-bottom: 1rem;
+    background: #252525; /* Slightly darker background */
+    padding: 1.5rem;
+    border-radius: 10px;
+    border: 1px solid #333;
+    display: flex;
+    flex-direction: column;
 }
 
 .action-group label {
-    display: block;
-    color: #bbb;
-    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    color: #fff; /* Brighter color */
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
 }
 
 .ban-duration {
     width: 100%;
-    padding: 0.5rem;
+    padding: 0.8rem;
     background: #2c2c2c;
     border: 1px solid #444;
     border-radius: 5px;
     color: #fff;
-    margin-top: 0.5rem;
+    margin-top: 0.8rem;
+    font-size: 1rem;
 }
 
 .modal-actions {
     display: flex;
-    gap: 1rem;
-    justify-content: flex-end;
+    gap: 1.5rem;
+    justify-content: center; /* Center the buttons */
+    margin-top: 1rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #333;
 }
 
 .modal-btn {
-    padding: 0.5rem 1rem;
+    padding: 0.8rem 1.5rem;
     border: none;
-    border-radius: 5px;
+    border-radius: 8px; /* Rounder corners */
     cursor: pointer;
-    font-size: 0.9rem;
-    transition: opacity 0.3s;
+    font-size: 1.1rem;
+    transition: all 0.2s ease;
+    font-weight: bold;
+    min-width: 120px;
+    text-transform: uppercase; /* Make buttons uppercase */
+    letter-spacing: 1px; /* Spacing between letters */
 }
 
 .modal-btn:hover {
-    opacity: 0.8;
+    opacity: 1;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
 .modal-btn.cancel {
-    background: #95a5a6;
+    background: #4e5a5a; /* More subdued color */
     color: #fff;
 }
 
 .modal-btn.confirm {
-    background: #2ecc71;
+    background: #27ae60; /* Brighter green */
     color: #fff;
 }
 
 .warning-checkbox, .ban-checkbox {
-    margin-right: 0.5rem;
+    margin-right: 0.8rem;
+    transform: scale(1.2);
+    accent-color: #27ae60; /* Match the confirm button color */
+}
+
+.textarea {
+    width: 100%;
+    background: #2c2c2c;
+    border: 1px solid #444;
+    border-radius: 8px; /* Rounder corners */
+    color: #fff;
+    padding: 1rem;
+    resize: vertical;
+    font-size: 1rem;
+    min-height: 120px; /* Not too tall */
+    line-height: 1.5;
 }
 {% endblock %}
 
@@ -395,10 +453,10 @@
                     <button class="action-btn resolve-btn" onclick="showResolveModal({{ report.id }})">
                         Resolve
                     </button>
-                    <button class="action-btn dismiss-btn" onclick="handleReport({{ report.id }}, 'dismiss')">
+                    <button class="action-btn dismiss-btn" onclick="showDismissModal({{ report.id }})">
                         Dismiss
                     </button>
-                    <button class="action-btn delete-btn" onclick="handleReport({{ report.id }}, 'delete')">
+                    <button class="action-btn delete-btn" onclick="showDeleteModal({{ report.id }})">
                         Delete Message
                     </button>
                 </div>
@@ -445,13 +503,13 @@
             <div class="action-group">
                 <label>
                     <input type="checkbox" class="warning-checkbox" id="warnUser">
-                    Send warning to user
+                    <span>Send warning to user</span>
                 </label>
             </div>
             <div class="action-group">
                 <label>
                     <input type="checkbox" class="ban-checkbox" id="banUser">
-                    Temporarily ban user
+                    <span>Temporarily ban user</span>
                 </label>
                 <select id="banDuration" class="ban-duration" disabled>
                     <option value="1">1 day</option>
@@ -462,13 +520,61 @@
                 </select>
             </div>
             <div class="action-group">
-                <label>Admin Notes</label>
-                <textarea id="adminNotes" class="notes-section textarea" rows="3" placeholder="Add notes about your decision..."></textarea>
+                <label for="adminNotes">Admin Notes</label>
+                <textarea id="adminNotes" class="textarea" rows="3" placeholder="Add notes about your decision..."></textarea>
             </div>
         </div>
         <div class="modal-actions">
             <button class="modal-btn cancel" onclick="closeResolveModal()">Cancel</button>
             <button class="modal-btn confirm" onclick="confirmResolve()">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- Dismiss Modal -->
+<div id="dismissModal" class="modal-backdrop">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Dismiss Report</h2>
+        </div>
+        <div class="modal-body">
+            <div class="action-group">
+                <p style="color: #fff; margin-bottom: 1rem;">Are you sure you want to dismiss this report? This action will mark the report as dismissed and no further action will be taken.</p>
+                <label for="dismissNotes">Admin Notes (Optional)</label>
+                <textarea id="dismissNotes" class="textarea" rows="3" placeholder="Add notes about your decision..."></textarea>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="modal-btn cancel" onclick="closeCustomModal('dismissModal')">Cancel</button>
+            <button class="modal-btn confirm" onclick="confirmDismiss()">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div id="deleteModal" class="modal-backdrop">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Delete Message</h2>
+        </div>
+        <div class="modal-body">
+            <div class="action-group">
+                <p style="color: #fff; margin-bottom: 1rem;">Are you sure you want to delete this message? This action cannot be undone and will remove the message completely.</p>
+            </div>
+            <div class="action-group">
+                <label>
+                    <input type="checkbox" class="warning-checkbox" id="warnUserDelete">
+                    <span>Send warning to user</span>
+                </label>
+            </div>
+            <div class="action-group">
+                <label for="deleteNotes">Admin Notes (Optional)</label>
+                <textarea id="deleteNotes" class="textarea" rows="3" placeholder="Add notes about your decision..."></textarea>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="modal-btn cancel" onclick="closeCustomModal('deleteModal')">Cancel</button>
+            <button class="modal-btn confirm" style="background-color: #e74c3c;" onclick="confirmDelete()">Delete</button>
         </div>
     </div>
 </div>
@@ -498,6 +604,16 @@ function showResolveModal(reportId) {
     document.getElementById('resolveModal').style.display = 'flex';
 }
 
+function showDismissModal(reportId) {
+    currentReportId = reportId;
+    document.getElementById('dismissModal').style.display = 'flex';
+}
+
+function showDeleteModal(reportId) {
+    currentReportId = reportId;
+    document.getElementById('deleteModal').style.display = 'flex';
+}
+
 function closeResolveModal() {
     currentReportId = null;
     document.getElementById('resolveModal').style.display = 'none';
@@ -505,6 +621,19 @@ function closeResolveModal() {
     document.getElementById('banUser').checked = false;
     document.getElementById('banDuration').disabled = true;
     document.getElementById('adminNotes').value = '';
+}
+
+function closeCustomModal(modalId) {
+    currentReportId = null;
+    document.getElementById(modalId).style.display = 'none';
+    
+    // Reset form fields if they exist
+    if (modalId === 'dismissModal') {
+        document.getElementById('dismissNotes').value = '';
+    } else if (modalId === 'deleteModal') {
+        document.getElementById('warnUserDelete').checked = false;
+        document.getElementById('deleteNotes').value = '';
+    }
 }
 
 function confirmResolve() {
@@ -525,15 +654,33 @@ function confirmResolve() {
     closeResolveModal();
 }
 
-function handleReport(reportId, action, options = {}) {
-    if (action === 'resolve') {
-        if (!confirm('Are you sure you want to resolve this report?')) {
-            return;
-        }
-    } else if (!confirm(`Are you sure you want to ${action} this report?`)) {
-        return;
-    }
+function confirmDismiss() {
+    if (!currentReportId) return;
+    
+    const notes = document.getElementById('dismissNotes').value;
+    
+    handleReport(currentReportId, 'dismiss', {
+        notes: notes
+    });
+    
+    closeCustomModal('dismissModal');
+}
 
+function confirmDelete() {
+    if (!currentReportId) return;
+    
+    const warning = document.getElementById('warnUserDelete').checked;
+    const notes = document.getElementById('deleteNotes').value;
+    
+    handleReport(currentReportId, 'delete', {
+        warning: warning,
+        notes: notes
+    });
+    
+    closeCustomModal('deleteModal');
+}
+
+function handleReport(reportId, action, options = {}) {
     fetch(`/api/reports/${reportId}/${action}/`, {
         method: 'POST',
         headers: {
