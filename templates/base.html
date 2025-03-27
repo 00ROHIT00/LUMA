@@ -929,6 +929,11 @@
               } else {
                 // Regular message
                 messageElem.className = isYou ? 'message message-sent' : 'message message-received';
+                messageElem.dataset.messageId = msg.id;
+                messageElem.dataset.senderId = msg.sender_id;
+                messageElem.dataset.senderName = msg.sender_name;
+                messageElem.dataset.isGroup = 'true';
+                messageElem.setAttribute('oncontextmenu', 'showContextMenu(event, this)');
                 messageElem.innerHTML = `
                   <div class="message-pfp">
                     <div class="pfp-initials">
@@ -973,6 +978,13 @@
               // Add immediate UI feedback by showing the message locally
               const messageElem = document.createElement('div');
               messageElem.className = 'message message-sent';
+              messageElem.dataset.senderId = "{{ request.user.id }}";
+              messageElem.dataset.senderName = "You";
+              messageElem.dataset.isGroup = 'true';
+              // We don't have a message ID yet, so we'll use a temporary one
+              const tempId = 'temp-' + Date.now();
+              messageElem.dataset.messageId = tempId;
+              messageElem.setAttribute('oncontextmenu', 'showContextMenu(event, this)');
               messageElem.innerHTML = `
                 <div class="message-pfp">
                   <div class="pfp-initials">

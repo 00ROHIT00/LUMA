@@ -2243,6 +2243,7 @@
       
       const messageId = messageElement.dataset.messageId;
       const senderId = messageElement.dataset.senderId;
+      const isGroupMessage = messageElement.dataset.isGroup === 'true';
       const currentUserId = "{{ request.user.id }}";
       
       if (!messageId) {
@@ -2259,14 +2260,25 @@
         contextMenuPfp.innerHTML = messagePfp.innerHTML;
       }
 
-      // Set the sender's name
-      {% if active_chat %}
+      // Set the sender's name based on message type (group or individual)
+      if (isGroupMessage) {
+        // For group messages
         if (senderId === currentUserId) {
           contextMenuName.textContent = "{{ request.user.first_name }} {{ request.user.last_name }}";
         } else {
-          contextMenuName.textContent = "{% if active_chat.sender == request.user %}{{ active_chat.recipient.first_name }} {{ active_chat.recipient.last_name }}{% else %}{{ active_chat.sender.first_name }} {{ active_chat.sender.last_name }}{% endif %}";
+          const senderName = messageElement.dataset.senderName || 'Unknown User';
+          contextMenuName.textContent = senderName;
         }
-      {% endif %}
+      } else {
+        // For individual chat messages
+        {% if active_chat %}
+          if (senderId === currentUserId) {
+            contextMenuName.textContent = "{{ request.user.first_name }} {{ request.user.last_name }}";
+          } else {
+            contextMenuName.textContent = "{% if active_chat.sender == request.user %}{{ active_chat.recipient.first_name }} {{ active_chat.recipient.last_name }}{% else %}{{ active_chat.sender.first_name }} {{ active_chat.sender.last_name }}{% endif %}";
+          }
+        {% endif %}
+      }
       
       // Show/hide "Delete for everyone" option based on whether user is the sender
       const deleteForEveryoneOption = contextMenu.querySelector('.sender-only');
@@ -2278,6 +2290,7 @@
       contextMenu.querySelectorAll('.context-menu-item').forEach(item => {
         item.dataset.messageId = messageId;
         item.dataset.messageContent = messageElement.querySelector('.message-content').textContent.trim();
+        item.dataset.isGroup = isGroupMessage ? 'true' : 'false';
       });
       
       // Position the context menu at the mouse position
@@ -2441,28 +2454,38 @@
 
     function deleteMessageForMe(menuItem) {
       const messageId = menuItem.dataset.messageId;
+      const isGroup = menuItem.dataset.isGroup === 'true';
+      
       if (!messageId) return;
-
-      fetch('/delete_message_for_me/', {
+      
+      // Different endpoint for group vs individual chat
+      const endpoint = isGroup ? '/delete_group_message_for_me/' : '/delete_message_for_me/';
+      const dataKey = isGroup ? 'message_id' : 'message_id';
+      
+      fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
         },
-        body: JSON.stringify({ message_id: messageId })
+        body: JSON.stringify({ [dataKey]: messageId })
       })
       .then(response => response.json())
       .then(data => {
         if (data.status === 'success') {
-          // Refresh the page to show changes
-          window.location.reload();
+          // Hide the message in the UI
+          const messageElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
+          if (messageElement) {
+            messageElement.style.display = 'none';
+          }
         } else {
-          alert('Failed to delete message. Please try again.');
+          // Show error notification
+          showToast(data.message || 'Failed to delete message', 'error');
         }
       })
       .catch(error => {
         console.error('Error:', error);
-        alert('Failed to delete message. Please try again.');
+        showToast('Error deleting message', 'error');
       });
       
       hideContextMenu();
@@ -2470,28 +2493,41 @@
 
     function deleteMessageForEveryone(menuItem) {
       const messageId = menuItem.dataset.messageId;
+      const isGroup = menuItem.dataset.isGroup === 'true';
+      
       if (!messageId) return;
-
-      fetch('/delete_message_for_everyone/', {
+      
+      // Different endpoint for group vs individual chat
+      const endpoint = isGroup ? '/delete_group_message_for_everyone/' : '/delete_message_for_everyone/';
+      const dataKey = isGroup ? 'message_id' : 'message_id';
+      
+      fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
         },
-        body: JSON.stringify({ message_id: messageId })
+        body: JSON.stringify({ [dataKey]: messageId })
       })
       .then(response => response.json())
       .then(data => {
         if (data.status === 'success') {
-          // Refresh the page to show changes
-          window.location.reload();
+          // Replace the message content with a deleted message indicator
+          const messageElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
+          if (messageElement) {
+            const contentElement = messageElement.querySelector('.message-content');
+            if (contentElement) {
+              contentElement.innerHTML = '<i style="color: #888;">This message was deleted</i>';
+            }
+          }
         } else {
-          alert('Failed to delete message. Please try again.');
+          // Show error notification
+          showToast(data.message || 'Failed to delete message for everyone', 'error');
         }
       })
       .catch(error => {
         console.error('Error:', error);
-        alert('Failed to delete message. Please try again.');
+        showToast('Error deleting message for everyone', 'error');
       });
       
       hideContextMenu();
@@ -2499,42 +2535,37 @@
 
     function reportMessage(menuItem) {
       const messageId = menuItem.dataset.messageId;
+      const isGroup = menuItem.dataset.isGroup === 'true';
+      
       if (!messageId) return;
-
-      fetch('/report_message/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        },
-        body: JSON.stringify({ message_id: messageId })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.status === 'success') {
-          // Show success notification
-          const notification = document.createElement('div');
-          notification.style.position = 'fixed';
-          notification.style.bottom = '20px';
-          notification.style.left = '50%';
-          notification.style.transform = 'translateX(-50%)';
-          notification.style.backgroundColor = '#4CAF50';
-          notification.style.color = 'white';
-          notification.style.padding = '10px 20px';
-          notification.style.borderRadius = '5px';
-          notification.style.zIndex = '10000';
-          notification.textContent = 'Message reported successfully';
-          document.body.appendChild(notification);
-          
-          setTimeout(() => notification.remove(), 3000);
-        } else {
-          alert(data.message);
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        alert('Failed to report message. Please try again.');
-      });
+      
+      // Different endpoint for group vs individual chat
+      const endpoint = isGroup ? '/report_group_message/' : '/report_message/';
+      const dataKey = isGroup ? 'message_id' : 'message_id';
+      
+      // Show confirmation
+      if (confirm('Are you sure you want to report this message?')) {
+        fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          },
+          body: JSON.stringify({ [dataKey]: messageId })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            showToast('Message reported successfully', 'success');
+          } else {
+            showToast(data.message || 'Failed to report message', 'error');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          showToast('Error reporting message', 'error');
+        });
+      }
       
       hideContextMenu();
     }

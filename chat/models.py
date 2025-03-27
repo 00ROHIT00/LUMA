@@ -302,3 +302,36 @@ class ArchivedGroupChat(models.Model):
     
     def __str__(self):
         return f"Archived entries for {self.group.name}"
+
+class DeletedGroupMessage(models.Model):
+    message = models.ForeignKey(GroupMessage, on_delete=models.CASCADE, related_name='deleted_for')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    deleted_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('message', 'user')
+    
+    def __str__(self):
+        return f"Message {self.message.id} deleted by {self.user.username}"
+
+class GroupMessageReport(models.Model):
+    REPORT_STATUSES = [
+        ('pending', 'Pending Review'),
+        ('reviewed', 'Reviewed'),
+        ('resolved', 'Resolved'),
+        ('dismissed', 'Dismissed'),
+    ]
+    
+    message = models.ForeignKey(GroupMessage, on_delete=models.CASCADE, related_name='reports')
+    reporter = models.ForeignKey(User, related_name='reported_group_messages', on_delete=models.CASCADE)
+    reported_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=REPORT_STATUSES, default='pending')
+    reviewed_by = models.ForeignKey(User, related_name='reviewed_group_reports', on_delete=models.SET_NULL, null=True, blank=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        unique_together = ('message', 'reporter')
+    
+    def __str__(self):
+        return f"Report by {self.reporter.username} on group message {self.message.id}"

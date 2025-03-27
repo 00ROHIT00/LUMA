@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from .models import User, Chat, Message, Report, Notification, Broadcast, BlockedUser, GroupChat, GroupMessage, ArchivedGroupChat
+from .models import User, Chat, Message, Report, Notification, Broadcast, BlockedUser, GroupChat, GroupMessage, ArchivedGroupChat, DeletedGroupMessage, GroupMessageReport
 from django.urls import reverse
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -1765,3 +1765,173 @@ def unarchive_group_chat(request):
         return JsonResponse({'status': 'error', 'message': 'Group chat not found'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)})
+
+@login_required
+@require_POST
+def delete_group_message_for_me(request):
+    """Delete a group message for the current user only."""
+    try:
+        data = json.loads(request.body)
+        message_id = data.get('message_id')
+        
+        if not message_id:
+            return JsonResponse({'status': 'error', 'message': 'Message ID is required'})
+        
+        try:
+            # Get the message
+            message = GroupMessage.objects.get(id=message_id)
+            
+            # Get the group
+            group = message.group
+            
+            # Check if the user is a participant of the group
+            if request.user not in group.participants.all():
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'You do not have permission to delete this message'
+                })
+            
+            # Create the deletion record
+            DeletedGroupMessage.objects.get_or_create(message=message, user=request.user)
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Message deleted for you'
+            })
+            
+        except GroupMessage.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Message not found'
+            })
+            
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Invalid JSON data'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@login_required
+@require_POST
+def delete_group_message_for_everyone(request):
+    """Delete a group message for everyone."""
+    try:
+        data = json.loads(request.body)
+        message_id = data.get('message_id')
+        
+        if not message_id:
+            return JsonResponse({'status': 'error', 'message': 'Message ID is required'})
+        
+        try:
+            # Get the message
+            message = GroupMessage.objects.get(id=message_id)
+            
+            # Only the sender or group creator can delete for everyone
+            if request.user != message.sender and request.user != message.group.created_by:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Only the sender or group creator can delete a message for everyone'
+                })
+            
+            # Update the message content to indicate it was deleted
+            message.content = "[This message was deleted]"
+            message.save()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Message deleted for everyone'
+            })
+            
+        except GroupMessage.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Message not found'
+            })
+            
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Invalid JSON data'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        })
+
+@login_required
+@require_POST
+def report_group_message(request):
+    """Report a group message."""
+    try:
+        data = json.loads(request.body)
+        message_id = data.get('message_id')
+        
+        if not message_id:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Message ID is required'
+            })
+        
+        try:
+            message = GroupMessage.objects.get(id=message_id)
+            
+            # Check if the user is a participant in the group
+            if request.user not in message.group.participants.all():
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'You do not have permission to report this message'
+                })
+            
+            # Check if user is reporting their own message
+            if message.sender == request.user:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'You cannot report your own message'
+                })
+            
+            # Check if user has already reported this message
+            existing_report = GroupMessageReport.objects.filter(
+                message=message,
+                reporter=request.user
+            ).exists()
+            
+            if existing_report:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'You have already reported this message'
+                })
+            
+            # Create the report
+            report = GroupMessageReport.objects.create(
+                message=message,
+                reporter=request.user,
+                status='pending'
+            )
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Message reported successfully'
+            })
+            
+        except GroupMessage.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Message not found'
+            })
+            
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Invalid JSON data'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        })

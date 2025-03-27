@@ -50,5 +50,8 @@ urlpatterns = [
     path('delete_group_chat/', views.delete_group_chat, name='delete_group_chat'),
     path('exit_group_chat/', views.exit_group_chat, name='exit_group_chat'),
     path('unarchive_group_chat/', views.unarchive_group_chat, name='unarchive_group_chat'),
+    path('delete_group_message_for_me/', views.delete_group_message_for_me, name='delete_group_message_for_me'),
+    path('delete_group_message_for_everyone/', views.delete_group_message_for_everyone, name='delete_group_message_for_everyone'),
+    path('report_group_message/', views.report_group_message, name='report_group_message'),
 ]
 
