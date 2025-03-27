@@ -431,13 +431,27 @@
     padding: 15px;
     border-top: 1px solid #333;
     display: flex;
+    width: 100%;
     background-color: #1a1a1a;
     position: relative; /* Add this to ensure proper stacking */
     z-index: 1; /* Add this to ensure proper stacking */
   }
+  
+  .chat-footer {
+    width: 100%;
+    display: flex;
+  }
+
+  .input-container {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+  }
 
   .message-input {
     flex: 1;
+    width: 100%;
     background-color: #2a2a2a;
     border: none;
     border-radius: 20px;
@@ -946,13 +960,13 @@
     color: white;
   }
 
-  .user-info-section {
+  .user-info-section, .group-info-section {
     display: flex;
     align-items: center;
     margin-bottom: 20px;
   }
 
-  .user-avatar {
+  .user-avatar, .group-avatar {
     width: 60px;
     height: 60px;
     border-radius: 50%;
@@ -964,7 +978,7 @@
     justify-content: center;
   }
 
-  .user-avatar img {
+  .user-avatar img, .group-avatar img {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -976,17 +990,95 @@
     font-weight: bold;
   }
 
-  .user-details h3 {
+  .user-details h3, .group-details h3 {
     margin: 0;
     color: white;
     font-size: 18px;
   }
 
-  .user-username {
+  .user-username, .group-subtitle {
     color: #666;
     font-size: 14px;
     margin-top: 4px;
     text-align: left;
+  }
+
+  .group-members-section {
+    margin-bottom: 20px;
+  }
+
+  .group-members-section h4 {
+    color: white;
+    font-size: 16px;
+    margin: 0 0 10px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #333;
+  }
+
+  .group-members-list {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .group-member {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-radius: 8px;
+    margin-bottom: 5px;
+    transition: background-color 0.2s;
+  }
+
+  .group-member:hover {
+    background-color: #252525;
+  }
+
+  .member-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-right: 10px;
+    background: #444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .member-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .member-initials {
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+  }
+
+  .member-details {
+    flex: 1;
+  }
+
+  .member-name {
+    color: white;
+    font-size: 14px;
+    margin-bottom: 2px;
+  }
+
+  .member-username {
+    color: #666;
+    font-size: 12px;
+  }
+
+  .member-role {
+    background-color: #3498db;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    margin-left: 5px;
   }
 
   .user-actions {
@@ -1003,6 +1095,7 @@
     cursor: pointer;
     transition: all 0.2s;
     color: white;
+    background-color: #b02c37;
     width: 100%;
   }
 
@@ -1641,14 +1734,15 @@
       {% endif %}
     </div>
     {% if active_chat %}
-    <div class="input-area" style="display: flex;">
-      <div class="chat-footer">
-        <div class="input-container">
+    <div class="input-area" style="display: flex; width: 100%;">
+      <div class="chat-footer" style="width: 100%; display: flex;">
+        <div class="input-container" style="width: 100%; display: flex; flex: 1;">
           <input
             type="text"
             id="messageInput"
             placeholder="Type a message..."
             class="message-input"
+            style="flex: 1; width: calc(100% - 60px);"
             onkeydown="if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"
           >
           <input type="file" id="fileInput" accept="image/*,.pdf,.doc,.docx,.txt" style="display: none;" onchange="handleAttachment(event)">
@@ -1808,6 +1902,46 @@
         </button>
         <button class="action-button block" onclick="handleBlockUser()">
           Block User
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add group chat info modal -->
+  <div id="groupChatInfoModal" class="user-actions-modal">
+    <div class="user-actions-content">
+      <div class="user-actions-header">
+        <h2>Group Information</h2>
+        <span class="close-modal" onclick="closeGroupChatInfoModal()">&times;</span>
+      </div>
+      <div class="group-info-section">
+        <div class="group-avatar">
+          <div class="avatar-initials" style="background-color: #3498db;">
+            <i class="fa-solid fa-user-group" style="font-size: 24px;"></i>
+          </div>
+        </div>
+        <div class="group-details">
+          <h3 id="groupChatName">Group Name</h3>
+          <div class="group-subtitle">
+            <span id="groupMemberCount">0</span> members
+          </div>
+        </div>
+      </div>
+      <div class="group-members-section">
+        <h4>Participants</h4>
+        <div id="groupMembersList" class="group-members-list">
+          <!-- Members will be loaded here -->
+        </div>
+      </div>
+      <div class="user-actions">
+        <button class="action-button archive" onclick="handleArchiveGroupChat()">
+          Archive Chat
+        </button>
+        <button class="action-button delete" onclick="handleDeleteGroupChat()">
+          Delete Chat
+        </button>
+        <button class="action-button exit" onclick="handleExitGroupChat()">
+          Exit Group
         </button>
       </div>
     </div>
@@ -2637,6 +2771,13 @@
       const modal = document.getElementById('userActionsModal');
       const backdrop = document.getElementById('modalBackdrop');
       
+      // Check if this is a group chat, if so, open the group chat modal instead
+      const chatHeader = document.querySelector('.chat-header-info');
+      if (chatHeader && chatHeader.dataset.isGroup === 'true') {
+        openGroupChatInfoModal();
+        return;
+      }
+      
       // Get the current recipient's information from the chat header
       const chatHeaderName = document.querySelector('.chat-header-name').textContent.trim();
       
@@ -2651,7 +2792,6 @@
       }
       
       // For username, we'll need to get it from the data attributes we'll add
-      const chatHeader = document.querySelector('.chat-header-info');
       if (chatHeader && chatHeader.dataset.username) {
         userUsernameElement.textContent = '@' + chatHeader.dataset.username;
       }
@@ -2678,6 +2818,282 @@
       backdrop.onclick = function() {
         closeUserActionsModal();
       };
+    }
+    
+    function openGroupChatInfoModal() {
+      // Get the current group chat information
+      const chatHeader = document.querySelector('.chat-header-info');
+      if (!chatHeader || chatHeader.dataset.isGroup !== 'true') {
+        return;
+      }
+      
+      const groupId = chatHeader.dataset.groupId;
+      if (!groupId) {
+        console.error('No group ID found');
+        return;
+      }
+      
+      const modal = document.getElementById('groupChatInfoModal');
+      const backdrop = document.getElementById('modalBackdrop');
+      
+      // Show loading state
+      const membersList = document.getElementById('groupMembersList');
+      if (membersList) {
+        membersList.innerHTML = '<div style="text-align: center; padding: 10px; color: #888;">Loading members...</div>';
+      }
+      
+      // Get the group name from the header
+      const groupNameElement = document.querySelector('.chat-header-name');
+      const groupName = groupNameElement ? groupNameElement.textContent.split('(')[0].trim() : 'Group Chat';
+      
+      // Update the group name in the modal
+      const modalGroupName = document.getElementById('groupChatName');
+      if (modalGroupName) {
+        modalGroupName.textContent = groupName;
+      }
+      
+      // Fetch group data from server
+      fetch(`/group/${groupId}/messages/`, {
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status !== 'success') {
+          showToast('Failed to load group information. Please try again.', 'error');
+          return;
+        }
+        
+        // Update group member count
+        const memberCount = document.getElementById('groupMemberCount');
+        if (memberCount) {
+          memberCount.textContent = data.participants.length;
+        }
+        
+        // Update participants list
+        if (membersList) {
+          membersList.innerHTML = '';
+          
+          data.participants.forEach(participant => {
+            const memberElement = document.createElement('div');
+            memberElement.className = 'group-member';
+            
+            const nameInitials = participant.name.split(' ').map(part => part[0]).join('').slice(0, 2);
+            
+            memberElement.innerHTML = `
+              <div class="member-avatar">
+                <div class="member-initials">${nameInitials}</div>
+              </div>
+              <div class="member-details">
+                <div class="member-name">
+                  ${participant.name}
+                  ${participant.is_you ? '<span class="member-role">You</span>' : ''}
+                </div>
+                <div class="member-username">@${participant.username}</div>
+              </div>
+            `;
+            
+            membersList.appendChild(memberElement);
+          });
+        }
+        
+        // Show the modal
+        modal.style.display = 'block';
+        backdrop.style.display = 'block';
+        
+        // Close modal when clicking outside
+        backdrop.onclick = function() {
+          closeGroupChatInfoModal();
+        };
+      })
+      .catch(error => {
+        console.error('Error loading group info:', error);
+        showToast('Failed to load group information. Please try again.', 'error');
+      });
+    }
+    
+    function closeGroupChatInfoModal() {
+      const modal = document.getElementById('groupChatInfoModal');
+      const backdrop = document.getElementById('modalBackdrop');
+      
+      modal.style.display = 'none';
+      backdrop.style.display = 'none';
+    }
+    
+    function handleArchiveGroupChat() {
+      // Get the current group chat ID from the header
+      const chatHeader = document.querySelector('.chat-header-info');
+      if (!chatHeader || chatHeader.dataset.isGroup !== 'true') {
+        showToast('No active group chat found', 'error');
+        return;
+      }
+      
+      const groupId = chatHeader.dataset.groupId;
+      if (!groupId) {
+        showToast('Group ID not found', 'error');
+        return;
+      }
+      
+      // Show loading indicator
+      showToast('Archiving group chat...', 'info');
+      
+      // Send request to archive the group chat
+      fetch('/archive_group_chat/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ group_id: groupId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          // Close the modal
+          closeGroupChatInfoModal();
+          
+          // Remove the chat from the list
+          const chatItem = document.querySelector(`.chat-item[data-group-id="${groupId}"]`);
+          if (chatItem) {
+            chatItem.remove();
+          }
+          
+          // Clear the chat area
+          document.querySelector('.chat-header').innerHTML = '';
+          document.querySelector('.messages-container').innerHTML = 
+            '<div class="start-message">Select a chat to start messaging</div>';
+          document.querySelector('.input-area').style.display = 'none';
+          
+          showToast('Group chat archived successfully');
+        } else {
+          showToast(data.message || 'Failed to archive group chat', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showToast('Failed to archive group chat. Please try again.', 'error');
+      });
+    }
+    
+    function handleDeleteGroupChat() {
+      // Get the current group chat ID from the header
+      const chatHeader = document.querySelector('.chat-header-info');
+      if (!chatHeader || chatHeader.dataset.isGroup !== 'true') {
+        showToast('No active group chat found', 'error');
+        return;
+      }
+      
+      const groupId = chatHeader.dataset.groupId;
+      if (!groupId) {
+        showToast('Group ID not found', 'error');
+        return;
+      }
+      
+      // Show confirmation first
+      if (!confirm('Are you sure you want to delete this group chat? This will delete the group for all members and cannot be undone.')) {
+        return;
+      }
+      
+      // Show loading indicator
+      showToast('Deleting group chat...', 'info');
+      
+      // Send request to delete the group chat
+      fetch('/delete_group_chat/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ group_id: groupId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          // Close the modal
+          closeGroupChatInfoModal();
+          
+          // Remove the chat from the list
+          const chatItem = document.querySelector(`.chat-item[data-group-id="${groupId}"]`);
+          if (chatItem) {
+            chatItem.remove();
+          }
+          
+          // Clear the chat area
+          document.querySelector('.chat-header').innerHTML = '';
+          document.querySelector('.messages-container').innerHTML = 
+            '<div class="start-message">Select a chat to start messaging</div>';
+          document.querySelector('.input-area').style.display = 'none';
+          
+          showToast('Group chat deleted successfully');
+        } else {
+          showToast(data.message || 'Failed to delete group chat', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showToast('Failed to delete group chat. Please try again.', 'error');
+      });
+    }
+    
+    function handleExitGroupChat() {
+      // Get the current group chat ID from the header
+      const chatHeader = document.querySelector('.chat-header-info');
+      if (!chatHeader || chatHeader.dataset.isGroup !== 'true') {
+        showToast('No active group chat found', 'error');
+        return;
+      }
+      
+      const groupId = chatHeader.dataset.groupId;
+      if (!groupId) {
+        showToast('Group ID not found', 'error');
+        return;
+      }
+      
+      // Show confirmation dialog
+      if (!confirm('Are you sure you want to leave this group chat?')) {
+        return;
+      }
+      
+      // Show loading indicator
+      showToast('Leaving group chat...', 'info');
+      
+      // Send request to exit the group chat
+      fetch('/exit_group_chat/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ group_id: groupId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          // Close the modal
+          closeGroupChatInfoModal();
+          
+          // Remove the chat from the list
+          const chatItem = document.querySelector(`.chat-item[data-group-id="${groupId}"]`);
+          if (chatItem) {
+            chatItem.remove();
+          }
+          
+          // Clear the chat area
+          document.querySelector('.chat-header').innerHTML = '';
+          document.querySelector('.messages-container').innerHTML = 
+            '<div class="start-message">Select a chat to start messaging</div>';
+          document.querySelector('.input-area').style.display = 'none';
+          
+          showToast(data.message || 'You have left the group chat');
+        } else {
+          showToast(data.message || 'Failed to leave group chat', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showToast('Failed to leave group chat. Please try again.', 'error');
+      });
     }
 
     function closeUserActionsModal() {
@@ -2770,12 +3186,16 @@
     // Close delete confirmation modal when clicking outside
     document.getElementById('modalBackdrop').addEventListener('click', function() {
       closeDeleteConfirmation();
+      closeUserActionsModal();
+      closeGroupChatInfoModal();
     });
 
     // Close delete confirmation modal when pressing Escape
     document.addEventListener('keydown', function(event) {
       if (event.key === 'Escape') {
         closeDeleteConfirmation();
+        closeUserActionsModal();
+        closeGroupChatInfoModal();
       }
     });
 
@@ -2983,6 +3403,7 @@
               messageDiv.dataset.messageId = data.message_id;
               messageDiv.dataset.senderId = "{{ request.user.id }}";
               messageDiv.setAttribute('oncontextmenu', 'showContextMenu(event, this)');
+              
               
               // Create profile picture element
               const profilePicture = `
@@ -3488,24 +3909,46 @@
         if (data.status === 'success') {
           if (data.chats && data.chats.length > 0) {
             // Create HTML for each archived chat
-            const chatsHtml = data.chats.map(chat => `
-              <div class="archived-chat-item" data-chat-id="${chat.id}">
-                <div class="chat-avatar">
-                  ${chat.other_user.profile_picture 
-                    ? `<img src="${chat.other_user.profile_picture}" alt="Profile">`
-                    : `<div class="avatar-initials">${chat.other_user.first_name.charAt(0)}${chat.other_user.last_name.charAt(0)}</div>`
-                  }
-                </div>
-                <div class="chat-info">
-                  <div class="chat-name">${chat.other_user.first_name} ${chat.other_user.last_name}</div>
-                  <div class="chat-last-message">${chat.last_message}</div>
-                </div>
-                <div class="chat-actions">
-                  <button class="unarchive-btn" onclick="unarchiveChat(${chat.id})">Unarchive</button>
-                  <button class="open-btn" onclick="openArchivedChat(${chat.id})">Open</button>
-                </div>
-              </div>
-            `).join('');
+            const chatsHtml = data.chats.map(chat => {
+              // Check if this is a group chat or individual chat
+              if (chat.is_group) {
+                // Group chat display
+                return `
+                  <div class="archived-chat-item" data-chat-id="${chat.id}" data-is-group="true">
+                    <div class="chat-avatar group-avatar">
+                      <div class="avatar-initials">${chat.name.charAt(0)}</div>
+                    </div>
+                    <div class="chat-info">
+                      <div class="chat-name">${chat.name} <span class="group-badge">Group · ${chat.participants_count}</span></div>
+                      <div class="chat-last-message">${chat.last_message}</div>
+                    </div>
+                    <div class="chat-actions">
+                      <button class="unarchive-btn" onclick="unarchiveGroupChat(${chat.id})">Unarchive</button>
+                    </div>
+                  </div>
+                `;
+              } else {
+                // Individual chat display
+                return `
+                  <div class="archived-chat-item" data-chat-id="${chat.id}" data-is-group="false">
+                    <div class="chat-avatar">
+                      ${chat.other_user.profile_picture 
+                        ? `<img src="${chat.other_user.profile_picture}" alt="Profile">`
+                        : `<div class="avatar-initials">${chat.other_user.first_name.charAt(0)}${chat.other_user.last_name.charAt(0)}</div>`
+                      }
+                    </div>
+                    <div class="chat-info">
+                      <div class="chat-name">${chat.name}</div>
+                      <div class="chat-last-message">${chat.last_message}</div>
+                    </div>
+                    <div class="chat-actions">
+                      <button class="unarchive-btn" onclick="unarchiveChat(${chat.id})">Unarchive</button>
+                      <button class="open-btn" onclick="openArchivedChat(${chat.id})">Open</button>
+                    </div>
+                  </div>
+                `;
+              }
+            }).join('');
             
             container.innerHTML = `
               <div class="archived-chats-list">
@@ -3543,6 +3986,9 @@
                 align-items: center;
                 justify-content: center;
               }
+              .group-avatar {
+                background: #2196f3;
+              }
               .chat-avatar img {
                 width: 100%;
                 height: 100%;
@@ -3559,6 +4005,15 @@
               .chat-name {
                 font-weight: bold;
                 margin-bottom: 3px;
+              }
+              .group-badge {
+                font-size: 11px;
+                background: #2196f3;
+                color: white;
+                padding: 1px 6px;
+                border-radius: 10px;
+                margin-left: 5px;
+                font-weight: normal;
               }
               .chat-last-message {
                 font-size: 12px;
@@ -3655,6 +4110,33 @@
         .catch(error => {
         console.error('Error unarchiving chat:', error);
         showToast('Error unarchiving chat', 'error');
+      });
+    }
+
+    function unarchiveGroupChat(groupId) {
+      fetch('/unarchive_group_chat/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ group_id: groupId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          // Reload the archived chats list
+          loadArchivedChats();
+          
+          // Reload the main chat list
+          window.location.reload();
+        } else {
+          showToast(data.message || 'Error unarchiving group chat', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error unarchiving group chat:', error);
+        showToast('Error unarchiving group chat', 'error');
       });
     }
 

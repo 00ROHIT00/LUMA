@@ -294,4 +294,11 @@ class GroupMessage(models.Model):
         ordering = ['created_at']
     
     def __str__(self):
-        return f"Message from {self.sender.username} in {self.group.name}"
+        return f"Message in {self.group.name} from {self.sender.username}"
+
+class ArchivedGroupChat(models.Model):
+    group = models.OneToOneField(GroupChat, on_delete=models.CASCADE, related_name='archived')
+    users = models.ManyToManyField(User, related_name='archived_group_chats')
+    
+    def __str__(self):
+        return f"Archived entries for {self.group.name}"

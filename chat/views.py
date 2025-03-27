@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from .models import User, Chat, Message, Report, Notification, Broadcast, BlockedUser, GroupChat, GroupMessage
+from .models import User, Chat, Message, Report, Notification, Broadcast, BlockedUser, GroupChat, GroupMessage, ArchivedGroupChat
 from django.urls import reverse
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -1364,6 +1364,7 @@ def get_archived_chats(request):
             # Create chat entry
             chat_data = {
                 'id': chat.id,
+                'is_group': False,
                 'other_user': {
                     'id': other_user.id,
                     'username': other_user.username,
@@ -1371,11 +1372,41 @@ def get_archived_chats(request):
                     'last_name': other_user.last_name,
                     'profile_picture': other_user.profile_picture.url if other_user.profile_picture else None
                 },
+                'name': f"{other_user.first_name} {other_user.last_name}",
                 'last_message': last_message.content if last_message else "No messages",
                 'last_message_time': last_message.sent_at.strftime('%H:%M') if last_message else None,
                 'updated_at': chat.updated_at.strftime('%Y-%m-%d')
             }
             chats_data.append(chat_data)
+            
+        # Get archived group chats
+        archived_group_ids = ArchivedGroupChat.objects.filter(
+            users=request.user
+        ).values_list('group_id', flat=True)
+        
+        archived_groups = GroupChat.objects.filter(
+            id__in=archived_group_ids
+        ).order_by('-updated_at')
+        
+        # Add group chat data
+        for group in archived_groups:
+            # Get the latest message
+            latest_message = group.messages.order_by('-created_at').first()
+            
+            # Create group chat entry
+            group_data = {
+                'id': group.id,
+                'is_group': True,
+                'name': group.name,
+                'participants_count': group.participants.count(),
+                'last_message': latest_message.content if latest_message else "No messages",
+                'last_message_time': latest_message.created_at.strftime('%H:%M') if latest_message else None,
+                'updated_at': group.updated_at.strftime('%Y-%m-%d')
+            }
+            chats_data.append(group_data)
+            
+        # Sort all chats by updated_at
+        chats_data.sort(key=lambda x: x['updated_at'], reverse=True)
         
         return JsonResponse({
             'status': 'success',
@@ -1581,3 +1612,156 @@ def send_group_message(request, group_id):
             return JsonResponse({'status': 'error', 'message': str(e)})
     
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+@login_required
+@require_POST
+def archive_group_chat(request):
+    data = json.loads(request.body)
+    group_id = data.get('group_id')
+    
+    if not group_id:
+        return JsonResponse({'status': 'error', 'message': 'Group ID is required'})
+    
+    try:
+        group = GroupChat.objects.get(id=group_id)
+        
+        # Check if user is a participant
+        if request.user not in group.participants.all():
+            return JsonResponse({'status': 'error', 'message': 'You are not a member of this group'})
+        
+        # We don't have a direct field for archived users in GroupChat model
+        # Let's use a similar approach as one-to-one chats with an M2M relation
+        if not hasattr(group, 'archived_by'):
+            # Create or get the ArchivedGroupChat model
+            archived_group, created = ArchivedGroupChat.objects.get_or_create(group=group)
+            archived_group.users.add(request.user)
+        else:
+            group.archived_by.add(request.user)
+        
+        return JsonResponse({'status': 'success', 'message': 'Group chat archived successfully'})
+            
+    except GroupChat.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Group chat not found'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)})
+
+@login_required
+@require_POST
+def delete_group_chat(request):
+    data = json.loads(request.body)
+    group_id = data.get('group_id')
+    
+    if not group_id:
+        return JsonResponse({'status': 'error', 'message': 'Group ID is required'})
+    
+    try:
+        group = GroupChat.objects.get(id=group_id)
+        
+        # Only the creator can delete the group
+        if group.created_by != request.user:
+            return JsonResponse({
+                'status': 'error', 
+                'message': 'Only the group creator can delete the group'
+            })
+        
+        # Delete all messages
+        group.messages.all().delete()
+        
+        # Delete the group
+        group.delete()
+        
+        return JsonResponse({'status': 'success', 'message': 'Group chat deleted successfully'})
+            
+    except GroupChat.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Group chat not found'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)})
+
+@login_required
+@require_POST
+def exit_group_chat(request):
+    data = json.loads(request.body)
+    group_id = data.get('group_id')
+    
+    if not group_id:
+        return JsonResponse({'status': 'error', 'message': 'Group ID is required'})
+    
+    try:
+        group = GroupChat.objects.get(id=group_id)
+        
+        # Check if user is a participant
+        if request.user not in group.participants.all():
+            return JsonResponse({'status': 'error', 'message': 'You are not a member of this group'})
+        
+        # If this user is the creator and there are other members, transfer ownership to the oldest member
+        if group.created_by == request.user and group.participants.count() > 1:
+            # Get the oldest member who is not the creator
+            new_owner = group.participants.exclude(id=request.user.id).order_by('id').first()
+            if new_owner:
+                group.created_by = new_owner
+                group.save()
+                
+                # Add system message
+                GroupMessage.objects.create(
+                    group=group,
+                    sender=request.user,
+                    content=f"Group ownership transferred to {new_owner.first_name} {new_owner.last_name}"
+                )
+        
+        # Remove user from participants
+        group.participants.remove(request.user)
+        
+        # Add system message
+        GroupMessage.objects.create(
+            group=group,
+            sender=request.user,
+            content=f"{request.user.first_name} {request.user.last_name} left the group"
+        )
+        
+        # If no participants left, delete the group
+        if group.participants.count() == 0:
+            group.delete()
+            return JsonResponse({'status': 'success', 'message': 'You left the group and it was deleted as no members remain'})
+            
+        return JsonResponse({'status': 'success', 'message': 'You left the group successfully'})
+            
+    except GroupChat.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Group chat not found'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)})
+
+@login_required
+@require_POST
+def unarchive_group_chat(request):
+    data = json.loads(request.body)
+    group_id = data.get('group_id')
+    
+    if not group_id:
+        return JsonResponse({'status': 'error', 'message': 'Group ID is required'})
+    
+    try:
+        # Find the group
+        group = GroupChat.objects.get(id=group_id)
+        
+        # Check if user is a participant
+        if request.user not in group.participants.all():
+            return JsonResponse({'status': 'error', 'message': 'You are not a member of this group'})
+        
+        # Remove user from archived users
+        try:
+            archived_group = ArchivedGroupChat.objects.get(group=group)
+            archived_group.users.remove(request.user)
+            
+            # If no users have it archived, delete the ArchivedGroupChat entry
+            if archived_group.users.count() == 0:
+                archived_group.delete()
+                
+        except ArchivedGroupChat.DoesNotExist:
+            pass  # Already not archived
+        
+        return JsonResponse({'status': 'success', 'message': 'Group chat unarchived successfully'})
+            
+    except GroupChat.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Group chat not found'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)})

@@ -46,5 +46,9 @@ urlpatterns = [
     path('get_user_groups/', views.get_user_groups, name='get_user_groups'),
     path('group/<int:group_id>/messages/', views.get_group_messages, name='get_group_messages'),
     path('group/<int:group_id>/send_message/', views.send_group_message, name='send_group_message'),
+    path('archive_group_chat/', views.archive_group_chat, name='archive_group_chat'),
+    path('delete_group_chat/', views.delete_group_chat, name='delete_group_chat'),
+    path('exit_group_chat/', views.exit_group_chat, name='exit_group_chat'),
+    path('unarchive_group_chat/', views.unarchive_group_chat, name='unarchive_group_chat'),
 ]
 
