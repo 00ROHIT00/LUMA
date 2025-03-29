@@ -6,12 +6,71 @@
     box-sizing: border-box;
   }
 
+  /* Fade In Animation for the entire page */
+  @keyframes fadeInPage {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .page-container {
+    animation: fadeInPage 1.2s ease-in-out;
+  }
+
+  /* Background Animation */
+  .background-waves {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(-45deg, #121212, #1a3a4a, #2b1942, #0d2e3f, #4a1942);
+    background-size: 300% 300%;
+    filter: blur(60px);
+    z-index: -1;
+    animation: gradient-move 12s ease infinite;
+    opacity: 0.8;
+  }
+
+  /* Make it more obvious by adding a secondary gradient */
+  .background-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 30% 50%, rgba(0, 229, 255, 0.2), transparent 70%);
+    z-index: -1;
+  }
+
+  @keyframes gradient-move {
+    0% {
+      background-position: 0% 50%;
+    }
+    25% {
+      background-position: 50% 100%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    75% {
+      background-position: 50% 0%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
   body {
     min-height: 100vh;
     width: 100%;
-    background-color: black;
+    background-color: rgba(0, 0, 0, 0.6);
     padding: 3rem 0;
     font-family: "Poppins", sans-serif;
+    position: relative;
   }
 
   .container {
@@ -19,6 +78,8 @@
     max-width: 1920px;
     margin: 0 auto;
     padding: 0 1.5rem;
+    position: relative;
+    z-index: 1;
   }
 
   @media (min-width: 768px) {
@@ -43,21 +104,24 @@
     font-weight: bold;
     color: white;
     margin-bottom: 1rem;
+    text-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
   }
 
   .header .divider {
     height: 0.25rem;
     width: 5rem;
-    background-color: #9ca3af;
+    background-color: #00e5ff;
     margin: 0 auto;
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
   }
 
   .section {
-    background-color: #e5e7eb;
+    background-color: rgba(229, 231, 235, 0.9);
     border-radius: 0.5rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     padding: 2rem;
     margin-bottom: 3rem;
+    backdrop-filter: blur(5px);
   }
 
   .section h2 {
@@ -136,6 +200,10 @@
     background-image: url("data:image/svg+xml,%3Csvg fill='%23092E20' role='img' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11.146 0h3.924v18.166c-2.013.382-3.491.535-5.096.535-4.791 0-7.288-2.166-7.288-6.32 0-4.002 2.65-6.6 6.753-6.6.637 0 1.121.05 1.707.203zm0 9.143a3.894 3.894 0 00-1.325-.204c-1.988 0-3.134 1.223-3.134 3.365 0 2.09 1.096 3.236 3.109 3.236.433 0 .79-.025 1.35-.102V9.142zM21.314 6.06v9.098c0 3.134-.229 4.638-.917 5.937-.637 1.249-1.478 2.039-3.211 2.905l-3.644-1.733c1.733-.815 2.574-1.53 3.109-2.625.561-1.121.739-2.421.739-5.835V6.059h3.924zM17.39.021h3.924v4.026H17.39z'/%3E%3C/svg%3E");
   }
 
+  .sqlite::before {
+    background-image: url("data:image/svg+xml,%3Csvg fill='%23003B57' role='img' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M21.678.521c-1.032-.92-2.28-.55-3.513.111a5.528 5.528 0 0 0-.254.12l-.009-.006-.008.004a58.396 58.396 0 0 0-2.193 1.25c-1.106.686-2.238 1.42-3.367 2.11-1.026.626-2.068 1.25-3.086 1.86-.962.576-1.92 1.152-2.861 1.724a91.821 91.821 0 0 0-2.772 1.775 90.881 90.881 0 0 0-2.609 1.828c-.817.597-1.632 1.196-2.33 1.893a.593.593 0 0 0-.023.026L9.694 23.75c.077-.047.154-.095.231-.143 1.104-.696 2.233-1.44 3.36-2.153 1.023-.648 2.062-1.284 3.074-1.901.96-.587 1.913-1.17 2.85-1.753a96.744 96.744 0 0 0 2.75-1.824 92.447 92.447 0 0 0 2.578-1.86c.811-.608 1.613-1.214 2.296-1.934l-5.154-13.661zm-1.296 1.321.232.615-1.986 1.252-.295-.607 2.05-1.26zm-3.334 2.242c.726-.468 1.376-.95 1.968-1.303l4.183 11.218c-.56.485-1.206.957-1.875 1.398-.892.587-1.849 1.15-2.796 1.703-.884.592-1.77 1.18-2.636 1.776-1.035.704-2.088 1.437-3.128 2.176-1.033.689-2.045 1.376-3.055 2.006-.583.383-1.16.77-1.733 1.148-.165.11-.33.219-.493.325L5.662 11.952c.807-.499 1.627-1.008 2.432-1.508a118.478 118.478 0 0 1 2.77-1.64c.965-.605 1.954-1.23 2.939-1.856 1.112-.704 2.201-1.422 3.245-2.185z'/%3E%3C/svg%3E");
+  }
+
   .api::before {
     background-image: url("data:image/svg+xml,%3Csvg fill='%234B5563' role='img' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8zm1-13h-2v6h2V7zm0 8h-2v2h2v-2z'/%3E%3C/svg%3E");
   }
@@ -171,14 +239,22 @@
   .feature-dot {
     width: 0.5rem;
     height: 0.5rem;
-    background-color: #9ca3af;
+    background-color: #00e5ff;
     border-radius: 50%;
     margin-right: 0.5rem;
     margin-top: 0.5rem;
+    box-shadow: 0 0 5px rgba(0, 229, 255, 0.5);
+  }
+
+  .technologies{
+    color : black;
   }
 </style>
 
-<div class="min-h-screen w-screen bg-black py-12">
+<div class="background-waves"></div>
+<div class="background-overlay"></div>
+
+<div class="page-container min-h-screen w-screen py-12">
   <div class="container">
     <div class="header">
       <h1>About <span>LUMA</span></h1>
@@ -205,7 +281,7 @@
       <h2>Technology Stack</h2>
       <div class="grid grid-cols-2">
         <div>
-          <h3>Frontend</h3>
+          <h3 class="technologies">Frontend</h3>
           <ul class="tech-list">
             <li class="tech-item react">HTML for website structure</li>
             <li class="tech-item css">CSS for styling</li>
@@ -213,11 +289,11 @@
           </ul>
         </div>
         <div>
-          <h3>Backend</h3>
+          <h3 class="technologies">Backend</h3>
           <ul class="tech-list">
             <li class="tech-item django">Django Framework</li>
             <li class="tech-item python">Python</li>
-            <li class="tech-item api">RESTful API</li>
+            <li class="tech-item sqlite">SQLite3</li>
           </ul>
         </div>
       </div>
@@ -234,69 +310,50 @@
           <h3>Code Editor</h3>
           <p>VS Code</p>
         </div>
-        <div class="min-h-screen w-screen bg-black py-12">
-          <div class="container">
-            <!-- Previous sections remain the same -->
-
-            <div class="section">
-              <h2>Development Tools</h2>
-              <div class="grid grid-cols-3">
-                <div class="dev-tool">
-                  <h3>Version Control</h3>
-                  <p>Git & GitHub</p>
-                </div>
-                <div class="dev-tool">
-                  <h3>Code Editor</h3>
-                  <p>VS Code</p>
-                </div>
-                <div class="dev-tool">
-                  <h3>Package Manager</h3>
-                  <p>pip</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="section">
-              <h2>Key Features</h2>
-              <div class="grid grid-cols-2">
-                <div>
-                  <ul class="features-list">
-                    <li class="feature-item">
-                      <div class="feature-dot"></div>
-                      <span>Responsive design for all device sizes</span>
-                    </li>
-                    <li class="feature-item">
-                      <div class="feature-dot"></div>
-                      <span>Modern and intuitive user interface</span>
-                    </li>
-                    <li class="feature-item">
-                      <div class="feature-dot"></div>
-                      <span>Fast and efficient data handling</span>
-                    </li>
-                  </ul>
-                </div>
-                <div>
-                  <ul class="features-list">
-                    <li class="feature-item">
-                      <div class="feature-dot"></div>
-                      <span>Secure authentication system</span>
-                    </li>
-                    <li class="feature-item">
-                      <div class="feature-dot"></div>
-                      <span>RESTful API architecture</span>
-                    </li>
-                    <li class="feature-item">
-                      <div class="feature-dot"></div>
-                      <span>Scalable backend infrastructure</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div class="dev-tool">
+          <h3>Package Manager</h3>
+          <p>pip</p>
         </div>
-        {% endblock %}
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Key Features</h2>
+      <div class="grid grid-cols-2">
+        <div>
+          <ul class="features-list">
+            <li class="feature-item">
+              <div class="feature-dot"></div>
+              <span>Responsive design for all device sizes</span>
+            </li>
+            <li class="feature-item">
+              <div class="feature-dot"></div>
+              <span>Modern and intuitive user interface</span>
+            </li>
+            <li class="feature-item">
+              <div class="feature-dot"></div>
+              <span>Fast and efficient data handling</span>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <ul class="features-list">
+            <li class="feature-item">
+              <div class="feature-dot"></div>
+              <span>Secure authentication system</span>
+            </li>
+            <li class="feature-item">
+              <div class="feature-dot"></div>
+              <span>RESTful API architecture</span>
+            </li>
+            <li class="feature-item">
+              <div class="feature-dot"></div>
+              <span>Scalable backend infrastructure</span>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
   </div>
 </div>
+{% endblock %}

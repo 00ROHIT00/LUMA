@@ -1672,7 +1672,7 @@
                 {{ chat.sender.first_name }} {{ chat.sender.last_name }}
               {% endif %}
             </div>
-            <div class="chat-item-preview">
+            <div class="chat-item-preview" style="display: none;">
               {{ chat.last_message|truncatewords:10 }}
             </div>
           </div>
