@@ -7,6 +7,7 @@ urlpatterns = [
     path('register/', views.register, name='register'),
     path('signin/', views.signin, name='signin'),
     path("about/", about, name="about"),
+    path('get_razorpay_key/', views.get_razorpay_key, name='get_razorpay_key'),
     # path('chats/', chat_view, name='chat'),
     path('logout/', views.logout_view, name='logout'),
     path('check_notifications/', views.check_notifications, name='check_notifications'),

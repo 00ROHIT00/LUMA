@@ -2262,6 +2262,181 @@
       }
     });
 
+    // Function to initialize the chat interface
+    function initializeChatInterface() {
+      // Handle focus for the message input
+      const messageInput = document.getElementById('messageInput');
+      if (messageInput) {
+        messageInput.focus();
+      }
+      
+      // Set up event listeners for the attachment preview
+      setupAttachmentPreviewListeners();
+      
+      // Make sure input area is visible
+      const activeChatId = document.querySelector('.chat-item.active')?.dataset.chatId;
+      const inputArea = document.querySelector('.input-area');
+      if (activeChatId && inputArea) {
+        inputArea.style.display = 'flex';
+      }
+    }
+
+    // Function to handle image viewer
+    function openImageViewer(imageUrl) {
+      const viewer = document.getElementById('fullscreen-image-viewer');
+      const fullscreenImage = document.getElementById('fullscreen-image');
+      const downloadBtn = document.getElementById('download-image-btn');
+      const navbar = document.querySelector('.navbar');
+      
+      fullscreenImage.src = imageUrl;
+      
+      // Set up download button
+      if (downloadBtn) {
+        downloadBtn.href = imageUrl;
+        // Extract filename from URL to use as download name
+        const fileName = imageUrl.split('/').pop();
+        downloadBtn.setAttribute('download', fileName);
+      }
+      
+      // Slide navbar up
+      if (navbar) {
+        navbar.style.transition = 'transform 0.3s ease-out';
+        navbar.style.transform = 'translateY(-100%)';
+      }
+      
+      // Show the viewer with transition
+      viewer.style.display = 'block';
+      // Trigger reflow to ensure the transition works
+      viewer.offsetHeight;
+      viewer.classList.add('visible');
+      
+      // Prevent scrolling on the body when modal is open
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeImageViewer() {
+      const viewer = document.getElementById('fullscreen-image-viewer');
+      const navbar = document.querySelector('.navbar');
+      
+      // Slide navbar down
+      if (navbar) {
+        navbar.style.transition = 'transform 0.3s ease-out';
+        navbar.style.transform = 'translateY(0)';
+      }
+      
+      // Hide the viewer with transition
+      viewer.classList.remove('visible');
+      
+      // Wait for the transition to complete before hiding
+      setTimeout(() => {
+        viewer.style.display = 'none';
+      }, 300); // Match the transition duration (0.3s)
+      
+      // Re-enable scrolling on the body
+      document.body.style.overflow = 'auto';
+    }
+
+    // Setup attachment preview listeners function
+    function setupAttachmentPreviewListeners() {
+      const fileInput = document.getElementById('fileInput');
+      const attachmentPreview = document.getElementById('attachmentPreview');
+      
+      if (fileInput && attachmentPreview) {
+        // File input change handler
+        fileInput.addEventListener('change', function(event) {
+          handleAttachment(event);
+        });
+      }
+    }
+
+    // Function to set up click listeners for image attachments
+    function setupImageAttachmentListeners() {
+      const imageAttachments = document.querySelectorAll('.message-attachment img');
+      imageAttachments.forEach(img => {
+        img.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          openImageViewer(this.src);
+        });
+      });
+    }
+
+    // Mark all messages in the current chat as read when it's viewed
+    function markMessagesAsRead() {
+      const activeChatId = document.querySelector('.chat-item.active')?.dataset.chatId;
+      if (!activeChatId) return;
+      
+      fetch(`/mark_messages_read/${activeChatId}/`, {
+        method: 'GET',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken')
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          console.log(`Marked ${data.count} messages as read`);
+        }
+      })
+      .catch(error => {
+        console.error('Error marking messages as read:', error);
+      });
+    }
+
+    // Function to check read receipts for sent messages
+    function checkReadReceipts() {
+      // Get all sent messages in the active chat
+      const sentMessages = document.querySelectorAll('.message-sent');
+      if (!sentMessages.length) return;
+      
+      // Check read status for each sent message
+      sentMessages.forEach(message => {
+        const messageId = message.dataset.messageId;
+        if (!messageId) return;
+        
+        fetch(`/check_message_status/${messageId}/`, {
+          method: 'GET',
+          headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            const readReceipt = document.getElementById(`read-receipt-${messageId}`);
+            if (readReceipt) {
+              if (data.is_read) {
+                // Message is read - blue tick
+                readReceipt.classList.add('read');
+              } else {
+                // Message is delivered but not read - grey tick
+                readReceipt.classList.remove('read');
+              }
+            }
+          }
+        })
+        .catch(error => {
+          console.error(`Error checking read status for message ${messageId}:`, error);
+        });
+      });
+    }
+
+    // Helper function to get CSRF token from cookies
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+
     // Scroll messages container to bottom when loading chat
     document.addEventListener("DOMContentLoaded", function() {
       const messagesContainer = document.querySelector(".messages-container");
@@ -2841,14 +3016,18 @@
           // Update the messages container
           messagesContainer.innerHTML = newMessages;
           
-          // Initialize image attachment click handlers for the loaded chat
-          setupImageAttachmentListeners();
+          // Safely call these functions if they exist
+          if (typeof setupImageAttachmentListeners === 'function') {
+            setupImageAttachmentListeners();
+          }
           
-          // Mark all messages in this chat as read
-          markMessagesAsRead();
+          if (typeof markMessagesAsRead === 'function') {
+            markMessagesAsRead();
+          }
           
-          // Start checking read receipts
-          checkReadReceipts();
+          if (typeof checkReadReceipts === 'function') {
+            checkReadReceipts();
+          }
           
           // Update the URL without refreshing the page
           history.pushState({}, '', chatUrl);
@@ -3072,9 +3251,13 @@
           // Clear the chat area
           document.querySelector('.chat-header').innerHTML = '';
           document.querySelector('.messages-container').innerHTML = 
-            '<div class="start-message">Select a chat to start messaging</div>';
+            '<div class="start-message">Select a chat to start messaging or check archived chats</div>';
           document.querySelector('.input-area').style.display = 'none';
           
+          // Close the user actions modal
+          closeUserActionsModal();
+          
+          // Show success message
           showToast('Group chat archived successfully');
         } else {
           showToast(data.message || 'Failed to archive group chat', 'error');
@@ -3132,7 +3315,7 @@
           // Clear the chat area
           document.querySelector('.chat-header').innerHTML = '';
           document.querySelector('.messages-container').innerHTML = 
-            '<div class="start-message">Select a chat to start messaging</div>';
+            '<div class="start-message">Select a chat to start messaging or check archived chats</div>';
           document.querySelector('.input-area').style.display = 'none';
           
           showToast('Group chat deleted successfully');
@@ -3192,7 +3375,7 @@
           // Clear the chat area
           document.querySelector('.chat-header').innerHTML = '';
           document.querySelector('.messages-container').innerHTML = 
-            '<div class="start-message">Select a chat to start messaging</div>';
+            '<div class="start-message">Select a chat to start messaging or check archived chats</div>';
           document.querySelector('.input-area').style.display = 'none';
           
           showToast(data.message || 'You have left the group chat');
@@ -3275,7 +3458,7 @@
           // Clear the chat area
           document.querySelector('.chat-header').innerHTML = '';
           document.querySelector('.messages-container').innerHTML = 
-            '<div class="start-message">Select a chat to start messaging</div>';
+            '<div class="start-message">Select a chat to start messaging or check archived chats</div>';
           document.querySelector('.input-area').style.display = 'none';
           
           // Close both modals
@@ -3349,7 +3532,7 @@
           // Clear the chat area
           document.querySelector('.chat-header').innerHTML = '';
           document.querySelector('.messages-container').innerHTML = 
-            '<div class="start-message">Select a chat to start messaging</div>';
+            '<div class="start-message">Select a chat to start messaging or check archived chats</div>';
           document.querySelector('.input-area').style.display = 'none';
           
           // Close both modals
@@ -3841,18 +4024,6 @@
       setupImageAttachmentListeners();
     });
 
-    // Function to set up click listeners for image attachments
-    function setupImageAttachmentListeners() {
-      const imageAttachments = document.querySelectorAll('.message-attachment img');
-      imageAttachments.forEach(img => {
-        img.addEventListener('click', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          openImageViewer(this.src);
-        });
-      });
-    }
-
     // Update this function to add click listeners to new image attachments
     // This should be called when new messages are added to the chat
     function appendMessage(data) {
@@ -3889,66 +4060,6 @@
       //   startNotificationPolling();
       // }
     });
-
-    // Mark all messages in the current chat as read when it's viewed
-    function markMessagesAsRead() {
-      const activeChatId = document.querySelector('.chat-item.active')?.dataset.chatId;
-      if (!activeChatId) return;
-      
-      fetch(`/mark_messages_read/${activeChatId}/`, {
-        method: 'GET',
-        headers: {
-          'X-CSRFToken': getCookie('csrftoken')
-        }
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.status === 'success') {
-          console.log(`Marked ${data.count} messages as read`);
-        }
-      })
-      .catch(error => {
-        console.error('Error marking messages as read:', error);
-      });
-    }
-
-    // Function to check read receipts for sent messages
-    function checkReadReceipts() {
-      // Get all sent messages in the active chat
-      const sentMessages = document.querySelectorAll('.message-sent');
-      if (!sentMessages.length) return;
-      
-      // Check read status for each sent message
-      sentMessages.forEach(message => {
-        const messageId = message.dataset.messageId;
-        if (!messageId) return;
-        
-        fetch(`/check_message_status/${messageId}/`, {
-          method: 'GET',
-          headers: {
-            'X-CSRFToken': getCookie('csrftoken')
-          }
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.status === 'success') {
-            const readReceipt = document.getElementById(`read-receipt-${messageId}`);
-            if (readReceipt) {
-              if (data.is_read) {
-                // Message is read - blue tick
-                readReceipt.classList.add('read');
-              } else {
-                // Message is delivered but not read - grey tick
-                readReceipt.classList.remove('read');
-              }
-            }
-          }
-        })
-        .catch(error => {
-          console.error(`Error checking read status for message ${messageId}:`, error);
-        });
-      });
-    }
 
     // Start a polling mechanism to check read receipts
     function startReadReceiptPolling() {

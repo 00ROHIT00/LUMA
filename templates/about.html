@@ -249,10 +249,124 @@
   .technologies{
     color : black;
   }
+
+  /* Modal Styles */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    backdrop-filter: blur(5px);
+    justify-content: center;
+    align-items: center;
+  }
+
+  .modal {
+    background: linear-gradient(135deg, #ffffff, #f0f9ff);
+    border-radius: 1rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    padding: 2rem;
+    width: 90%;
+    max-width: 500px;
+    text-align: center;
+    position: relative;
+    transform: translateY(-20px);
+    opacity: 0;
+    transition: all 0.3s ease-out;
+  }
+
+  .modal-show {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .modal-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .modal-title {
+    color: #1f2937;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+
+  .modal-body {
+    margin-bottom: 1.5rem;
+  }
+
+  .modal-body p {
+    color: #4b5563;
+    margin-bottom: 1rem;
+  }
+
+  .donation-amount {
+    font-weight: 600;
+    color: #00e5ff;
+    text-shadow: 0 0 5px rgba(0, 229, 255, 0.3);
+  }
+
+  .modal-footer button {
+    background-color: #00e5ff;
+    color: #1f2937;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+    transition: all 0.2s ease;
+  }
+
+  .modal-footer button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.6);
+  }
+
+  .confetti {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: #00e5ff;
+    opacity: 0.8;
+    top: 0;
+    animation: confetti-fall 3s ease-in-out forwards;
+  }
+
+  @keyframes confetti-fall {
+    0% {
+      transform: translateY(-100px) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(calc(100vh)) rotate(360deg);
+      opacity: 0;
+    }
+  }
 </style>
 
 <div class="background-waves"></div>
 <div class="background-overlay"></div>
+
+<!-- Thank You Modal -->
+<div class="modal-overlay" id="thankYouModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Thank You for Your Donation!</h3>
+    </div>
+    <div class="modal-body">
+      <p>Your generous contribution of <span class="donation-amount" id="donationAmountText">₹500</span> will help make a difference in our community.</p>
+      <p>We appreciate your support and kindness.</p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" id="closeModalBtn">Continue</button>
+    </div>
+  </div>
+</div>
 
 <div class="page-container min-h-screen w-screen py-12">
   <div class="container">
@@ -354,6 +468,212 @@
         </div>
       </div>
     </div>
+
+    <div class="section">
+      <h2>Feeling Generous?</h2>
+      <p>
+        We believe in giving back to the community. If you're enjoying LUMA and would like to make a difference, 
+        consider making a donation to support local charities. Your contribution, no matter how small, can help 
+        those in need and create a positive impact in our community.
+      </p>
+      <div style="text-align: center; margin-top: 1.5rem;">
+        <div style="margin-bottom: 1.5rem;">
+          <label for="donation-amount" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #1f2937;">Select Donation Amount (INR)</label>
+          <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+            <button class="amount-btn" data-amount="10000" style="padding: 0.5rem 1rem; background-color: #f3f4f6; border: 2px solid #d1d5db; border-radius: 0.25rem; font-weight: 500; color: #4b5563; cursor: pointer;">₹100</button>
+            <button class="amount-btn" data-amount="50000" style="padding: 0.5rem 1rem; background-color: #f3f4f6; border: 2px solid #d1d5db; border-radius: 0.25rem; font-weight: 500; color: #4b5563; cursor: pointer;">₹500</button>
+            <button class="amount-btn" data-amount="100000" style="padding: 0.5rem 1rem; background-color: #f3f4f6; border: 2px solid #d1d5db; border-radius: 0.25rem; font-weight: 500; color: #4b5563; cursor: pointer;">₹1,000</button>
+            <div style="position: relative; min-width: 120px;">
+              <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%);">₹</span>
+              <input type="number" id="custom-amount-input" placeholder="Custom" min="1" style="width: 100%; padding: 0.5rem 0.5rem 0.5rem 1.5rem; border: 2px solid #d1d5db; border-radius: 0.25rem; outline: none;">
+            </div>
+          </div>
+        </div>
+        <button id="donate-button" style="display: inline-block; background-color: #00e5ff; color: #1f2937; padding: 0.75rem 1.5rem; 
+        border-radius: 0.5rem; font-weight: 600; text-decoration: none; box-shadow: 0 0 10px rgba(0, 229, 255, 0.5); 
+        transition: all 0.3s ease; border: none; cursor: pointer;">Donate Now</button>
+      </div>
+    </div>
   </div>
 </div>
+
+<!-- Razorpay Script -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+  // Track the selected amount (default to 500)
+  let selectedAmount = 50000;
+  
+  // Add click event listeners to amount buttons
+  document.querySelectorAll('.amount-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      // Remove active class from all buttons
+      document.querySelectorAll('.amount-btn').forEach(btn => {
+        btn.style.backgroundColor = '#f3f4f6';
+        btn.style.borderColor = '#d1d5db';
+        btn.style.color = '#4b5563';
+      });
+      
+      // Add active class to clicked button
+      this.style.backgroundColor = '#e0f7fa';
+      this.style.borderColor = '#00e5ff';
+      this.style.color = '#1f2937';
+      
+      // Update selected amount
+      selectedAmount = parseInt(this.getAttribute('data-amount'));
+      
+      // Clear custom input
+      document.getElementById('custom-amount-input').value = '';
+    });
+  });
+  
+  // Handle custom amount input
+  document.getElementById('custom-amount-input').addEventListener('input', function() {
+    if (this.value) {
+      // Remove active class from all buttons
+      document.querySelectorAll('.amount-btn').forEach(btn => {
+        btn.style.backgroundColor = '#f3f4f6';
+        btn.style.borderColor = '#d1d5db';
+        btn.style.color = '#4b5563';
+      });
+      
+      // Convert to paise (multiply by 100)
+      selectedAmount = Math.floor(parseFloat(this.value) * 100);
+    } else {
+      // Default to 500 if input is cleared
+      selectedAmount = 50000;
+    }
+  });
+
+  // Handle the donate button click
+  document.getElementById('donate-button').addEventListener('click', function(e) {
+    // Ensure we have a valid amount (minimum 1 INR = 100 paise)
+    if (selectedAmount < 100) {
+      alert('Please enter a valid donation amount (minimum ₹1)');
+      return;
+    }
+    
+    // First fetch the Razorpay Key ID from the server
+    fetch('/get_razorpay_key/')
+      .then(response => response.json())
+      .then(data => {
+        var options = {
+          "key": data.key_id, // Get key from server
+          "amount": selectedAmount.toString(),
+          "currency": "INR",
+          "name": "LUMA",
+          "description": "Donation for Local Charity",
+          "image": "", // Add your logo URL here if you have one
+          "handler": function (response){
+            // Show custom thank you modal instead of alert
+            showThankYouModal(selectedAmount);
+            console.log(response);
+          },
+          "prefill": {
+            "name": "Test User",
+            "email": "test@example.com",
+            "contact": "9999999999"
+          },
+          "notes": {
+            "type": "donation",
+            "purpose": "charity"
+          },
+          "theme": {
+            "color": "#00e5ff"
+          }
+        };
+        
+        // Test mode specific information displayed to the user
+        if (data.testmode) {
+          // Add a test card info section
+          const testModeInfo = document.createElement('div');
+          testModeInfo.style.marginTop = '1rem';
+          testModeInfo.style.padding = '1rem';
+          testModeInfo.style.backgroundColor = '#f3f4f6';
+          testModeInfo.style.borderRadius = '0.5rem';
+          testModeInfo.style.fontSize = '0.9rem';
+          
+          // Append before the donate button
+          document.getElementById('donate-button').parentNode.appendChild(testModeInfo);
+          
+          // Also add these test details to the Razorpay options
+          options.prefill = {
+            "name": "Test User",
+            "email": "test@example.com",
+            "contact": "9999999999"
+          };
+        }
+        
+        var rzp = new Razorpay(options);
+        
+        rzp.on('payment.failed', function (response){
+          console.error('Payment failed:', response.error);
+          alert('Payment failed: ' + response.error.description);
+        });
+        
+        rzp.open();
+      })
+      .catch(error => {
+        console.error('Error fetching Razorpay key:', error);
+        alert('Sorry, there was an error processing your donation. Please try again later.');
+      });
+    
+    e.preventDefault();
+  });
+  
+  // Function to show the thank you modal
+  function showThankYouModal(amount) {
+    // Convert amount from paise to rupees and format it
+    const amountInRupees = (amount / 100).toFixed(2);
+    document.getElementById('donationAmountText').textContent = '₹' + amountInRupees;
+    
+    // Show the modal overlay
+    const modal = document.getElementById('thankYouModal');
+    modal.style.display = 'flex';
+    
+    // Add animation class after a short delay
+    setTimeout(() => {
+      modal.querySelector('.modal').classList.add('modal-show');
+    }, 10);
+    
+    // Create confetti effect
+    createConfetti();
+  }
+  
+  // Function to create confetti effect
+  function createConfetti() {
+    const container = document.getElementById('thankYouModal');
+    const colors = ['#00e5ff', '#ff00e5', '#e5ff00', '#00ff8d', '#ff8d00'];
+    
+    for (let i = 0; i < 50; i++) {
+      const confetti = document.createElement('div');
+      confetti.className = 'confetti';
+      
+      // Random position, size, color and delay
+      const size = Math.random() * 10 + 5;
+      confetti.style.width = `${size}px`;
+      confetti.style.height = `${size}px`;
+      confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      confetti.style.left = `${Math.random() * 100}%`;
+      confetti.style.animationDelay = `${Math.random() * 2}s`;
+      
+      container.appendChild(confetti);
+      
+      // Remove confetti after animation completes
+      setTimeout(() => {
+        confetti.remove();
+      }, 5000);
+    }
+  }
+  
+  // Close modal when button is clicked
+  document.getElementById('closeModalBtn').addEventListener('click', function() {
+    const modal = document.getElementById('thankYouModal');
+    modal.querySelector('.modal').classList.remove('modal-show');
+    
+    // Hide the modal after animation completes
+    setTimeout(() => {
+      modal.style.display = 'none';
+    }, 300);
+  });
+</script>
 {% endblock %}

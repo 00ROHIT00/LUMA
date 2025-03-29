@@ -11,9 +11,18 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Import Razorpay credentials from secrets.py
+try:
+    from .secrets import RAZORPAY_KEY_ID, RAZORPAY_SECRET_KEY
+except ImportError:
+    # If secrets.py doesn't exist (e.g. in production), try to get from environment variables
+    RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', '')
+    RAZORPAY_SECRET_KEY = os.environ.get('RAZORPAY_SECRET_KEY', '')
 
 
 # Quick-start development settings - unsuitable for production
@@ -140,8 +149,6 @@ LOGOUT_REDIRECT_URL = '/signin/'
 AUTH_USER_MODEL = 'chat.User'  # Replace your_app_name with your actual app name
 AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend']
 
-
-import os
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

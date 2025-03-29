@@ -273,13 +273,28 @@
         <!-- Rotating Text -->
         <div class="cube-container">
             <div class="cube">
-                <div class="cube-face">PRIVATE</div>
-                <div class="cube-face">SECURE</div>
-                <div class="cube-face">FAST</div>
+                <div class="cube-face">PRIVATE!</div>
+                <div class="cube-face">SECURE!</div>
+                <div class="cube-face">FAST!</div>
             </div>
         </div>
 
         <!-- Get Started Button -->
         <a href="{% url 'signin' %}" class="btn">Get Started!</a>
     </div>
+
+    <script>
+        // Safely call these functions if they exist
+        if (typeof setupImageAttachmentListeners === 'function') {
+            setupImageAttachmentListeners();
+        }
+
+        if (typeof markMessagesAsRead === 'function') {
+            markMessagesAsRead();
+        }
+
+        if (typeof checkReadReceipts === 'function') {
+            checkReadReceipts();
+        }
+    </script>
 {% endblock %}

@@ -1,9 +1,10 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import User, Chat, Message, Report, Notification, Broadcast, BlockedUser, GroupChat, GroupMessage, ArchivedGroupChat, DeletedGroupMessage, GroupMessageReport
 from django.urls import reverse
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 import json
 from django.db import models
 from django.utils import timezone
@@ -13,6 +14,12 @@ from datetime import timedelta
 from django.db.models import Count
 from django.db.models.functions import TruncDate
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.db.models import Q, Count, Max, F, Value, BooleanField, ExpressionWrapper
+from django.db.models.functions import Coalesce, ExtractMonth
+import os
+from django.http import Http404
+from django.conf import settings
 
 def admin_required(view_func):
     @wraps(view_func)
@@ -28,8 +35,6 @@ def admin_required(view_func):
 
 def home(request):
     return render(request, 'index.html')
-
-from django.contrib.auth import authenticate, login
 
 def signin(request):
     if request.method == 'POST':
@@ -58,8 +63,6 @@ def signin(request):
             return render(request, 'signin.html')
 
     return render(request, 'signin.html')
-
-from django.contrib.auth import logout
 
 def logout_view(request):
     logout(request)
@@ -103,15 +106,6 @@ def register(request):
         return redirect('signin')
 
     return render(request, 'register.html')
-
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
-from django.views.decorators.http import require_POST
-from django.db.models import Q
-import json
-from datetime import datetime
-from .models import User, Chat, Message, Report, Notification
 
 @login_required
 def chat_list(request):
@@ -186,48 +180,110 @@ def chat_list(request):
 @login_required
 def chat_detail(request, chat_id):
     # Get the requested chat
-    chat = get_object_or_404(Chat, id=chat_id)
-    
-    # Security check - ensure the user is part of this chat
-    if request.user != chat.sender and request.user != chat.recipient:
+    try:
+        chat = get_object_or_404(Chat, id=chat_id)
+        
+        # Check if user is part of this chat
+        if chat.sender != request.user and chat.recipient != request.user:
+            raise Http404("Chat not found")
+        
+        # Check if the chat is archived by this user
+        if chat.is_archived_by(request.user):
+            chat.unarchive_for_user(request.user)
+            
+        # Get the other user in the chat
+        other_user = chat.recipient if chat.sender == request.user else chat.sender
+        
+        # Check if user is blocked
+        user_is_blocked = BlockedUser.is_blocked(request.user, other_user)
+        
+        # Get messages not deleted for this user
+        messages_list = Message.objects.filter(chat=chat).exclude(
+            deleted_for=request.user
+        ).order_by('sent_at')
+        
+        # Mark all messages as read
+        for message in messages_list:
+            if message.sender != request.user:
+                message.mark_as_read(request.user)
+                
+        # Get all chats for the sidebar
+        # First get the chats where the user is the sender
+        sender_chats = Chat.objects.filter(sender=request.user).exclude(
+            archived_by=request.user
+        )
+        
+        # Then get the chats where the user is the recipient
+        recipient_chats = Chat.objects.filter(recipient=request.user).exclude(
+            archived_by=request.user
+        )
+        
+        # Combine them
+        chats_list = sender_chats.union(recipient_chats)
+        
+        # Sort by updated_at in reverse order (newest first)
+        chats_list = chats_list.order_by('-updated_at')
+        
+        # Enrich the chats with extra info
+        for chat_obj in chats_list:
+            # Get the other user in each chat
+            other_user = chat_obj.recipient if chat_obj.sender == request.user else chat_obj.sender
+            
+            # Add profile pic URLs directly to the chat object for easy access in the template
+            if hasattr(other_user, 'profile_picture') and other_user.profile_picture:
+                if chat_obj.sender == request.user:
+                    chat_obj.recipient_profile_pic = other_user.profile_picture.url
+                else:
+                    chat_obj.sender_profile_pic = other_user.profile_picture.url
+            else:
+                if chat_obj.sender == request.user:
+                    chat_obj.recipient_profile_pic = None
+                else:
+                    chat_obj.sender_profile_pic = None
+            
+            # Get the last message in this chat
+            last_message = Message.objects.filter(chat=chat_obj).exclude(
+                deleted_for=request.user
+            ).order_by('-sent_at').first()
+            
+            # Add last message preview directly to the chat object
+            if last_message:
+                if last_message.deleted_for_everyone:
+                    chat_obj.last_message = "This message was deleted"
+                else:
+                    chat_obj.last_message = last_message.content
+            else:
+                chat_obj.last_message = "No messages yet"
+            
+            # Count unread messages in this chat
+            if chat_obj.sender == request.user:
+                # If user is the sender, count messages from recipient that are not read by user
+                unread_count = Message.objects.filter(
+                    chat=chat_obj, 
+                    sender=chat_obj.recipient
+                ).exclude(
+                    read_by=request.user
+                ).count()
+            else:
+                # If user is the recipient, count messages from sender that are not read by user
+                unread_count = Message.objects.filter(
+                    chat=chat_obj, 
+                    sender=chat_obj.sender
+                ).exclude(
+                    read_by=request.user
+                ).count()
+            
+            chat_obj.unread_count = unread_count
+                
+        return render(request, 'chat.html', {
+            'chats': chats_list,
+            'active_chat': chat,
+            'other_user': other_user,
+            'messages': messages_list,
+            'user_is_blocked': user_is_blocked
+        })
+    except Http404:
         return redirect('chat_list')
-    
-    # Get all chats for the sidebar
-    chats = Chat.objects.filter(
-        Q(sender=request.user) | Q(recipient=request.user)
-    ).order_by('-updated_at')
-    
-    # Add unread message count for each chat in the sidebar
-    for chat_item in chats:
-        # Only count messages from the other user as unread
-        other_user = chat_item.recipient if chat_item.sender == request.user else chat_item.sender
-        unread_count = Message.objects.filter(
-            chat=chat_item,
-            sender=other_user
-        ).exclude(read_by=request.user).count()
-        chat_item.unread_count = unread_count
-    
-    # Get messages for this chat
-    messages = Message.objects.filter(chat=chat).order_by('sent_at')
-    
-    # Mark all messages in this chat as read by the current user
-    # Only mark messages from the other user as read
-    other_user = chat.recipient if chat.sender == request.user else chat.sender
-    unread_messages = Message.objects.filter(
-        chat=chat,
-        sender=other_user
-    ).exclude(read_by=request.user)
-    
-    # Add the current user to read_by for each unread message
-    for message in unread_messages:
-        message.read_by.add(request.user)
-    
-    return render(request, 'chat.html', {
-        'chats': chats,
-        'active_chat': chat,
-        'active_chat_id': chat.id,
-        'messages': messages
-    })
 
 @login_required
 @require_POST
@@ -346,7 +402,7 @@ def send_message(request):
                     'message': 'You cannot send messages to this user'
                 })
             
-            # Create message with content
+            # Create message with encrypted content
             message = Message.objects.create(
                 chat=chat,
                 sender=request.user,
@@ -379,10 +435,10 @@ def send_message(request):
             chat.updated_at = timezone.now()
             chat.save()
             
-            # Prepare response data
+            # Prepare response data - use the original message content for display
             response_data = {
                 'status': 'success',
-                'message': message.content,
+                'message': message_content,  # Send original content back to sender
                 'message_id': message.id,
                 'sent_at': timezone.localtime(message.sent_at).strftime('%I:%M %p')
             }
@@ -532,11 +588,6 @@ def update_user(request, user_id):
         messages.success(request, f"{user.first_name}'s details have been updated successfully.")
         return redirect('manage_users')
     return render(request, 'admin_userEdit.html', {'user': user})
-
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from .models import User
 
 @login_required
 def profile(request):
@@ -1509,18 +1560,21 @@ def get_user_groups(request):
 @login_required
 def get_group_messages(request, group_id):
     try:
-        # Check if user is a participant
         group = GroupChat.objects.get(id=group_id)
+        
+        # Check if user is a participant
         if request.user not in group.participants.all():
             return JsonResponse({'status': 'error', 'message': 'You are not a member of this group'})
         
         # Get messages
-        messages = group.messages.all()
+        messages = group.messages.all().order_by('created_at')
+        
         message_data = []
         for msg in messages:
-            sender_name = msg.sender.first_name + ' ' + msg.sender.last_name
+            # Get sender's name
+            sender_name = f"{msg.sender.first_name} {msg.sender.last_name}"
             if msg.sender == request.user:
-                sender_name = 'You'
+                sender_name = "You"
             
             message_data.append({
                 'id': msg.id,
@@ -1574,7 +1628,6 @@ def send_group_message(request, group_id):
             recent_duplicate = GroupMessage.objects.filter(
                 group=group,
                 sender=request.user,
-                content=content,
                 created_at__gte=timezone.now() - timezone.timedelta(seconds=5)
             ).exists()
             
@@ -1588,7 +1641,7 @@ def send_group_message(request, group_id):
                     'created_at': timezone.now().isoformat()
                 })
             
-            # Create message
+            # Create message with encrypted content
             message = GroupMessage.objects.create(
                 group=group,
                 sender=request.user,
@@ -1602,7 +1655,7 @@ def send_group_message(request, group_id):
                 'status': 'success',
                 'message_id': message.id,
                 'sender_name': 'You',
-                'content': message.content,
+                'content': content,  # Send back the original content to the sender
                 'created_at': message.created_at.isoformat()
             })
             
@@ -1935,3 +1988,15 @@ def report_group_message(request):
             'status': 'error',
             'message': str(e)
         })
+
+@admin_required
+def expose_razorpay_key(request):
+    # This is a placeholder for the new view. It should be implemented to expose the Razorpay key ID safely.
+    return JsonResponse({'status': 'error', 'message': 'This view is not implemented yet'})
+
+def get_razorpay_key(request):
+    """Return the Razorpay key ID to the frontend."""
+    return JsonResponse({
+        'key_id': settings.RAZORPAY_KEY_ID,
+        'testmode': True
+    })
