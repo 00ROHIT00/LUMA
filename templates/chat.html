@@ -524,7 +524,8 @@
   }
 
   .attach-button:hover .tooltip,
-  .send-button:hover .tooltip {
+  .send-button:hover .tooltip,
+  .location-button:hover .tooltip {
     opacity: 1;
     visibility: visible;
   }
@@ -1494,6 +1495,76 @@
     background-color: rgba(255, 255, 255, 0.1);
     color: #fff;
   }
+
+  #groupChatName{
+    text-align: center !important;
+  }
+
+  .location-button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: color 0.2s;
+  }
+
+  .location-button:hover {
+    color: #3498db;
+  }
+
+  .location-button i {
+    font-size: 20px;
+  }
+
+  /* Update CSS for location message */
+  .location-message {
+    margin: 5px 0;
+    max-width: 300px;
+    background: #2a2a2a;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  }
+
+  .location-preview {
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  .location-preview:hover {
+    transform: scale(1.01);
+  }
+
+  .location-preview img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    display: block;
+  }
+
+  .location-coordinates {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0));
+    color: white;
+    padding: 20px 10px 10px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .location-coordinates i {
+    font-size: 14px;
+  }
 </style>
 
 <link
@@ -1672,7 +1743,11 @@
                 {% if message.deleted_for_everyone %}
                   <i>Message deleted</i>
                 {% else %}
-                  {{ message.content }}
+                  {% if "location-message" in message.content %}
+                    {{ message.content|safe }}
+                  {% else %}
+                    {{ message.content }}
+                  {% endif %}
                   {% if message.attachment %}
                     {% if message.attachment_type == 'image' %}
                       <div class="message-attachment">
@@ -1747,6 +1822,10 @@
           >
           <input type="file" id="fileInput" accept="image/*,.pdf,.doc,.docx,.txt" style="display: none;" onchange="handleAttachment(event)">
           <div class="input-buttons">
+            <button class="location-button" onclick="sendLocation()">
+              <span class="tooltip">Current Location</span>
+              <i class="fa-solid fa-location-dot"></i>
+            </button>
             <button class="attach-button" onclick="document.getElementById('fileInput').click()">
               <span class="tooltip">Add attachment</span>
               <svg
@@ -4303,6 +4382,68 @@
       
       // Other existing initialization code...
     });
+
+    function sendLocation() {
+      if (!navigator.geolocation) {
+        showToast('Geolocation is not supported by your browser', 'error');
+        return;
+      }
+
+      // Show loading state
+      const locationButton = document.querySelector('.location-button');
+      const originalIcon = locationButton.innerHTML;
+      locationButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      locationButton.disabled = true;
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          // Create OpenStreetMap link (doesn't require API key)
+          const mapsUrl = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}&zoom=15`;
+          
+          // Create static map URL using OpenStreetMap (doesn't require API key)
+          const staticMapUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${latitude},${longitude}&zoom=15&size=300x200&markers=${latitude},${longitude}`;
+          
+          // Create HTML for the location message with embedded map
+          const locationHTML = `
+            <div class="location-message">
+              <div class="location-preview" onclick="window.open('${mapsUrl}', '_blank')">
+                <img src="${staticMapUrl}" alt="Location Map">
+                <div class="location-coordinates">
+                  <i class="fa-solid fa-location-dot"></i>
+                  ${latitude.toFixed(6)}, ${longitude.toFixed(6)}
+                </div>
+              </div>
+            </div>
+          `;
+
+          // Send the location message as HTML
+          const messageInput = document.getElementById('messageInput');
+          const originalMessage = messageInput.value;
+          messageInput.value = locationHTML;
+          sendMessage();
+          messageInput.value = originalMessage;
+
+          // Reset button state
+          locationButton.innerHTML = originalIcon;
+          locationButton.disabled = false;
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          showToast('Could not get your location. Please check your permissions.', 'error');
+          
+          // Reset button state
+          locationButton.innerHTML = originalIcon;
+          locationButton.disabled = false;
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    }
   </script>
 
   {% endblock %}
