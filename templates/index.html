@@ -280,7 +280,7 @@
         </div>
 
         <!-- Get Started Button -->
-        <a href="{% url 'signin' %}" class="btn">Get Started!</a>
+        <a href="{% if request.user.is_authenticated %}{% url 'chat_list' %}{% else %}{% url 'signin' %}{% endif %}" class="btn">Get Started!</a>
     </div>
 
     <script>

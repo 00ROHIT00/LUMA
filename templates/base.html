@@ -1156,7 +1156,95 @@
       }
       
       function searchFriend() {
-        // Existing search friend code...
+        const username = document.getElementById("friendUsername").value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const searchResult = document.getElementById("search-result");
+        
+        if (!username.trim()) {
+          searchResult.innerHTML = '<div class="search-result-item" style="color: #ff6b6b;">Please enter a username</div>';
+          return;
+        }
+        
+        console.log("Searching for user:", username);
+        searchResult.innerHTML = '<div class="search-result-item">Searching...</div>';
+
+        fetch("/search_user/", {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": csrfToken,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: username,
+          }),
+        })
+        .then(response => response.json())
+        .then((data) => {
+          console.log("Search response data:", data);
+          if (data.status === "success") {
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'search-result-item';
+            resultDiv.textContent = `${data.first_name} ${data.last_name}`;
+            resultDiv.addEventListener('click', function() {
+              console.log('Search result clicked');
+              startChat(data.username);
+            });
+            
+            searchResult.innerHTML = '';
+            searchResult.appendChild(resultDiv);
+          } else {
+            searchResult.innerHTML = `<div class="search-result-item" style="color: #ff6b6b;">${data.message}</div>`;
+          }
+        })
+        .catch((error) => {
+          console.error('Error in searchUser:', error);
+          searchResult.innerHTML = '<div class="search-result-item" style="color: #ff6b6b;">An error occurred. Please try again.</div>';
+        });
+      }
+      
+      // Also need the startChat function
+      function startChat(username) {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        console.log("Starting chat with:", username);
+        
+        fetch("/start_chat/", {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": csrfToken,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: username,
+          }),
+        })
+        .then(response => response.json())
+        .then((data) => {
+          console.log("Start chat response:", data);
+          if (data.status === "success") {
+            // Close the dialog
+            closeFriendDialog();
+            
+            // Show success notification
+            showNotification(`Chat with ${username} started successfully!`, "#4CAF50");
+            
+            // Redirect to the chat page
+            window.location.href = `/chats/${data.chat_id}/`;
+          } else {
+            document.getElementById("search-result").innerHTML = 
+              `<div class="search-result-item" style="color: #ff6b6b;">${data.message}</div>`;
+          }
+        })
+        .catch((error) => {
+          console.error('Error in startChat:', error);
+          document.getElementById("search-result").innerHTML = 
+            '<div class="search-result-item" style="color: #ff6b6b;">An error occurred. Please try again.</div>';
+        });
+      }
+      
+      // Legacy function for backward compatibility
+      function searchUser() {
+        searchFriend();
       }
       
       // Add event listener to regular chat items to restore original sendMessage

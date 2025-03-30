@@ -237,19 +237,34 @@
               "
               >Password</label
             >
-            <input
-              type="password"
-              id="password"
-              name="password"
-              required
-              style="
-                width: 100%;
-                padding: 10px;
-                border: 2px solid #3a3a3a;
-                border-radius: 5px;
-                font-size: 0.9rem;
-              "
-            />
+            <div style="position: relative;">
+              <input
+                type="password"
+                id="password"
+                name="password"
+                required
+                style="
+                  width: 100%;
+                  padding: 10px;
+                  border: 2px solid #3a3a3a;
+                  border-radius: 5px;
+                  font-size: 0.9rem;
+                "
+              />
+              <i class="fa-solid fa-eye eye-icon" id="togglePassword" 
+                 style="
+                   position: absolute;
+                   right: 10px;
+                   top: 50%;
+                   transform: translateY(-50%);
+                   cursor: pointer;
+                   color: #6c757d;
+                   z-index: 5;
+                 "></i>
+            </div>
+            <div class="error-container" style="min-height: 20px;">
+              <span id="password-error" style="color: red; font-size: 0.8rem; display: none;">Password must be at least 8 characters with letters and numbers</span>
+            </div>
           </div>
           <div style="margin-bottom: 15px">
             <label
@@ -262,22 +277,38 @@
               "
               >Confirm Password</label
             >
-            <input
-              type="password"
-              id="confirm_password"
-              name="confirm_password"
-              required
-              style="
-                width: 100%;
-                padding: 10px;
-                border: 2px solid #3a3a3a;
-                border-radius: 5px;
-                font-size: 0.9rem;
-              "
-            />
+            <div style="position: relative;">
+              <input
+                type="password"
+                id="confirm_password"
+                name="confirm_password"
+                required
+                style="
+                  width: 100%;
+                  padding: 10px;
+                  border: 2px solid #3a3a3a;
+                  border-radius: 5px;
+                  font-size: 0.9rem;
+                "
+              />
+              <i class="fa-solid fa-eye eye-icon" id="toggleConfirmPassword" 
+                 style="
+                   position: absolute;
+                   right: 10px;
+                   top: 50%;
+                   transform: translateY(-50%);
+                   cursor: pointer;
+                   color: #6c757d;
+                   z-index: 5;
+                 "></i>
+            </div>
+            <div class="error-container" style="min-height: 20px;">
+              <span id="confirm-password-error" style="color: red; font-size: 0.8rem; display: none;">Passwords do not match</span>
+            </div>
           </div>
           <button
             type="submit"
+            id="submitBtn"
             style="
               width: 100%;
               padding: 10px;
@@ -293,7 +324,7 @@
             Register
           </button>
           <div style="text-align: center; margin-top: 10px">
-            <a href="" style="color: #007bff">Already Have An Account?</a>
+            <a href="{% url 'signin' %}" style="color: #007bff">Already Have An Account?</a>
           </div>
         </form>
       </div>
@@ -409,6 +440,232 @@
           showPopup("{{ message }}", "{{ redirect_url|default:'' }}");
       {% endfor %}
   {% endif %}
+
+  // Form validation
+  document.addEventListener('DOMContentLoaded', function() {
+    // Form elements
+    const form = document.querySelector('form');
+    const firstNameInput = document.getElementById('firstname');
+    const lastNameInput = document.getElementById('lastname');
+    const emailInput = document.getElementById('email');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirm_password');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Password toggle elements
+    const togglePassword = document.getElementById('togglePassword');
+    const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+    
+    // Error elements
+    const passwordError = document.getElementById('password-error');
+    const confirmPasswordError = document.getElementById('confirm-password-error');
+    
+    // Regular expressions for validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+    
+    // Add validation styling
+    function showError(input, message) {
+      input.style.borderColor = '#dc3545';
+      
+      // Find the error container div
+      let errorContainer = input.closest('div').nextElementSibling;
+      if (!errorContainer || !errorContainer.classList.contains('error-container')) {
+        errorContainer = document.createElement('div');
+        errorContainer.className = 'error-container';
+        errorContainer.style.minHeight = '20px';
+        input.parentElement.after(errorContainer);
+      }
+      
+      // Create or update error message
+      let errorSpan = errorContainer.querySelector('.error-message');
+      if (!errorSpan) {
+        errorSpan = document.createElement('span');
+        errorSpan.className = 'error-message';
+        errorSpan.style.color = '#dc3545';
+        errorSpan.style.fontSize = '0.8rem';
+        errorContainer.appendChild(errorSpan);
+      }
+      
+      errorSpan.textContent = message;
+      
+      // Handle the pre-existing error elements differently
+      if (input.id === 'password') {
+        passwordError.style.display = 'none';
+      } else if (input.id === 'confirm_password') {
+        confirmPasswordError.style.display = 'none';
+      }
+    }
+    
+    function hideError(input) {
+      input.style.borderColor = '#3a3a3a';
+      
+      // Find the error container div
+      let errorContainer = input.closest('div').nextElementSibling;
+      if (errorContainer && errorContainer.classList.contains('error-container')) {
+        let errorSpan = errorContainer.querySelector('.error-message');
+        if (errorSpan) {
+          errorSpan.remove();
+        }
+      }
+      
+      // Handle the pre-existing error elements differently
+      if (input.id === 'password') {
+        passwordError.style.display = 'none';
+      } else if (input.id === 'confirm_password') {
+        confirmPasswordError.style.display = 'none';
+      }
+    }
+    
+    // Validation functions
+    function validateName(input, fieldName) {
+      if (input.value.trim() === '') {
+        showError(input, `${fieldName} is required`);
+        return false;
+      } else if (fieldName === 'First Name' && input.value.length < 2) {
+        showError(input, `${fieldName} must be at least 2 characters`);
+        return false;
+      } else {
+        hideError(input);
+        return true;
+      }
+    }
+    
+    function validateEmail() {
+      if (emailInput.value.trim() === '') {
+        showError(emailInput, 'Email is required');
+        return false;
+      } else if (!emailRegex.test(emailInput.value)) {
+        showError(emailInput, 'Please enter a valid email address');
+        return false;
+      } else {
+        hideError(emailInput);
+        return true;
+      }
+    }
+    
+    function validateUsername() {
+      if (usernameInput.value.trim() === '') {
+        showError(usernameInput, 'Username is required');
+        return false;
+      } else if (usernameInput.value.length < 4) {
+        showError(usernameInput, 'Username must be at least 4 characters');
+        return false;
+      } else {
+        hideError(usernameInput);
+        return true;
+      }
+    }
+    
+    function validatePassword() {
+      if (passwordInput.value === '') {
+        showError(passwordInput, 'Password is required');
+        passwordError.style.display = 'none';
+        return false;
+      } else if (!passwordRegex.test(passwordInput.value)) {
+        showError(passwordInput, 'Password must be at least 8 characters with letters and numbers');
+        passwordError.style.display = 'none';
+        return false;
+      } else {
+        hideError(passwordInput);
+        passwordError.style.display = 'none';
+        return true;
+      }
+    }
+    
+    function validateConfirmPassword() {
+      if (confirmPasswordInput.value === '') {
+        showError(confirmPasswordInput, 'Please confirm your password');
+        confirmPasswordError.style.display = 'none';
+        return false;
+      } else if (confirmPasswordInput.value !== passwordInput.value) {
+        showError(confirmPasswordInput, 'Passwords do not match');
+        confirmPasswordError.style.display = 'none';
+        return false;
+      } else {
+        hideError(confirmPasswordInput);
+        confirmPasswordError.style.display = 'none';
+        return true;
+      }
+    }
+    
+    // Password toggle functionality
+    togglePassword.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      passwordInput.type = 'text';
+      togglePassword.classList.remove('fa-eye');
+      togglePassword.classList.add('fa-eye-slash');
+    });
+    
+    togglePassword.addEventListener('mouseup', function(e) {
+      e.preventDefault();
+      passwordInput.type = 'password';
+      togglePassword.classList.remove('fa-eye-slash');
+      togglePassword.classList.add('fa-eye');
+    });
+    
+    togglePassword.addEventListener('mouseout', function(e) {
+      if (passwordInput.type === 'text') {
+        passwordInput.type = 'password';
+        togglePassword.classList.remove('fa-eye-slash');
+        togglePassword.classList.add('fa-eye');
+      }
+    });
+    
+    toggleConfirmPassword.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      confirmPasswordInput.type = 'text';
+      toggleConfirmPassword.classList.remove('fa-eye');
+      toggleConfirmPassword.classList.add('fa-eye-slash');
+    });
+    
+    toggleConfirmPassword.addEventListener('mouseup', function(e) {
+      e.preventDefault();
+      confirmPasswordInput.type = 'password';
+      toggleConfirmPassword.classList.remove('fa-eye-slash');
+      toggleConfirmPassword.classList.add('fa-eye');
+    });
+    
+    toggleConfirmPassword.addEventListener('mouseout', function(e) {
+      if (confirmPasswordInput.type === 'text') {
+        confirmPasswordInput.type = 'password';
+        toggleConfirmPassword.classList.remove('fa-eye-slash');
+        toggleConfirmPassword.classList.add('fa-eye');
+      }
+    });
+    
+    // Form submission
+    form.addEventListener('submit', function(e) {
+      // Validate all fields
+      const isFirstNameValid = validateName(firstNameInput, 'First Name');
+      const isLastNameValid = validateName(lastNameInput, 'Last Name');
+      const isEmailValid = validateEmail();
+      const isUsernameValid = validateUsername();
+      const isPasswordValid = validatePassword();
+      const isConfirmPasswordValid = validateConfirmPassword();
+      
+      // If any validation fails, prevent form submission
+      if (!isFirstNameValid || !isLastNameValid || !isEmailValid || 
+          !isUsernameValid || !isPasswordValid || !isConfirmPasswordValid) {
+        e.preventDefault();
+      }
+    });
+    
+    // Add validation on blur events
+    firstNameInput.addEventListener('blur', function() {
+      validateName(firstNameInput, 'First Name');
+    });
+    
+    lastNameInput.addEventListener('blur', function() {
+      validateName(lastNameInput, 'Last Name');
+    });
+    
+    emailInput.addEventListener('blur', validateEmail);
+    usernameInput.addEventListener('blur', validateUsername);
+    passwordInput.addEventListener('blur', validatePassword);
+    confirmPasswordInput.addEventListener('blur', validateConfirmPassword);
+  });
 </script>
 
 {% endblock %}
