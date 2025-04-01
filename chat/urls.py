@@ -54,5 +54,8 @@ urlpatterns = [
     path('delete_group_message_for_me/', views.delete_group_message_for_me, name='delete_group_message_for_me'),
     path('delete_group_message_for_everyone/', views.delete_group_message_for_everyone, name='delete_group_message_for_everyone'),
     path('report_group_message/', views.report_group_message, name='report_group_message'),
+    path('verify-payment/', views.verify_payment, name='verify_payment'),
+    path('admin-dashboard/donations/', views.admin_donations, name='admin_donations'),
+    path('api/donation-stats/', views.donation_stats, name='donation_stats'),
 ]
 

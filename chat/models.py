@@ -335,3 +335,80 @@ class GroupMessageReport(models.Model):
     
     def __str__(self):
         return f"Report by {self.reporter.username} on group message {self.message.id}"
+
+class Payment(models.Model):
+    PAYMENT_STATUS = [
+        ('pending', 'Pending'),
+        ('success', 'Success'),
+        ('failed', 'Failed'),
+        ('refunded', 'Refunded'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments')
+    razorpay_order_id = models.CharField(max_length=100, blank=True)
+    razorpay_payment_id = models.CharField(max_length=100)
+    razorpay_signature = models.CharField(max_length=255, blank=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=3, default='INR')
+    status = models.CharField(max_length=20, choices=PAYMENT_STATUS, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    notes = models.TextField(blank=True, null=True)
+    error_message = models.TextField(blank=True, null=True)
+    transaction_details = models.JSONField(blank=True, null=True)
+
+    class Meta:
+        db_table = 'chat_payment'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Payment of {self.amount} {self.currency} by {self.user.username} ({self.status})"
+
+    def verify_payment(self):
+        """Verify the payment signature using Razorpay's utility"""
+        try:
+            from razorpay.utility import Utility
+            from django.conf import settings
+            import razorpay
+
+            client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+            utility = Utility(client)
+
+            # For direct payments, we might not have order_id and signature
+            # In that case, just mark the payment as successful
+            if not self.razorpay_signature:
+                # Try to fetch payment details from Razorpay
+                try:
+                    payment_details = client.payment.fetch(self.razorpay_payment_id)
+                    if payment_details.get('status') == 'captured':
+                        self.status = 'success'
+                        self.transaction_details = payment_details
+                        self.save()
+                        return True
+                except Exception as e:
+                    self.error_message = str(e)
+                    self.status = 'failed'
+                    self.save()
+                    return False
+
+            # If we have signature, verify it
+            if self.razorpay_order_id and self.razorpay_signature:
+                parameters = {
+                    'razorpay_order_id': self.razorpay_order_id,
+                    'razorpay_payment_id': self.razorpay_payment_id,
+                    'razorpay_signature': self.razorpay_signature
+                }
+                utility.verify_payment_signature(parameters)
+                self.status = 'success'
+                self.save()
+                return True
+
+            self.status = 'failed'
+            self.error_message = "Could not verify payment - missing data"
+            self.save()
+            return False
+        except Exception as e:
+            self.status = 'failed'
+            self.error_message = str(e)
+            self.save()
+            return False

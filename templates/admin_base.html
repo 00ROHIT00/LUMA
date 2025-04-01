@@ -112,9 +112,9 @@
         padding: 2rem;
         margin-top: 80px; /* To avoid overlap with fixed navbar */
       }
-      
-      {% block extra_css %}{% endblock %}
     </style>
+    
+    {% block extra_css %}{% endblock %}
     {% block extra_head %}{% endblock %}
   </head>
   <body>
@@ -140,6 +140,11 @@
         <li>
           <a href="" data-tooltip="Admin Broadcast" onclick="openBroadcastModal(event)">
             <i class="fa-solid fa-bullhorn"></i>
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'admin_donations' %}" data-tooltip="Donations">
+            <i class="fa-solid fa-hand-holding-dollar"></i>
           </a>
         </li>
         <li>

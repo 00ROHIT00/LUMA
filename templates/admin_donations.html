@@ -1,0 +1,542 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Donation Management - LUMA{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .dashboard-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  .dashboard-header h1 {
+    font-size: 2.5rem;
+    color: #fff;
+  }
+  .dashboard-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .card {
+    background-color: #1e1e1e;
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    padding: 1.5rem;
+    text-align: center;
+  }
+  .card h3 {
+    color: #fff;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+  }
+  .card p {
+    color: #bbb;
+  }
+  .chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+  .stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #fff;
+    margin: 1rem 0;
+  }
+  .stat-value.currency::before {
+    content: '₹';
+    font-size: 1.5rem;
+    vertical-align: super;
+  }
+  .stat-label {
+    font-size: 0.9rem;
+    color: #888;
+  }
+  .stat-change {
+    font-size: 0.9rem;
+    color: #4caf50;
+    margin-top: 0.5rem;
+  }
+  .stat-change.negative {
+    color: #e74c3c;
+  }
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+  .chart-card {
+    background-color: #1e1e1e;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  }
+  .table-container {
+    margin-top: 2rem;
+    background-color: #1e1e1e;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    overflow-x: auto;
+  }
+  .payments-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #fff;
+  }
+  .payments-table th, 
+  .payments-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #333;
+  }
+  .payments-table th {
+    font-weight: 600;
+    color: #888;
+  }
+  .payments-table tbody tr:hover {
+    background-color: #2a2a2a;
+  }
+  .status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .status-badge.success {
+    background-color: rgba(76, 175, 80, 0.2);
+    color: #4caf50;
+  }
+  .status-badge.pending {
+    background-color: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+  }
+  .status-badge.failed {
+    background-color: rgba(244, 67, 54, 0.2);
+    color: #f44336;
+  }
+  .status-badge.refunded {
+    background-color: rgba(156, 39, 176, 0.2);
+    color: #9c27b0;
+  }
+  .pagination {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+  }
+  .pagination-btn {
+    background-color: #333;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  .pagination-btn:hover,
+  .pagination-btn.active {
+    background-color: #4a69a3;
+  }
+  .pagination-btn:disabled {
+    background-color: #222;
+    color: #666;
+    cursor: not-allowed;
+  }
+  .no-data {
+    text-align: center;
+    padding: 2rem;
+    color: #888;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+  <h1>Donation Management</h1>
+</div>
+
+<!-- Quick Stats Cards -->
+<div class="dashboard-cards">
+  <div class="card">
+    <h3>Total Donations</h3>
+    <div id="totalAmountDisplay" class="stat-value currency">0.00</div>
+    <div class="stat-label">Total Amount Received</div>
+  </div>
+  
+  <div class="card">
+    <h3>Donation Count</h3>
+    <div id="donationCountDisplay" class="stat-value">0</div>
+    <div class="stat-label">Total Donations</div>
+  </div>
+  
+  <div class="card">
+    <h3>Average Donation</h3>
+    <div id="averageDonationDisplay" class="stat-value currency">0.00</div>
+    <div class="stat-label">Average Amount per Donation</div>
+  </div>
+  
+  <div class="card">
+    <h3>Recent Activity</h3>
+    <div id="recentDonationDisplay" class="stat-value currency">0.00</div>
+    <div class="stat-label">Last 24 Hours</div>
+    <div id="donationTrendDisplay" class="stat-change">No recent donations</div>
+  </div>
+</div>
+
+<!-- Chart -->
+<div class="chart-grid">
+  <div class="chart-card">
+    <h3>Donation Trends (Last 30 Days)</h3>
+    <div class="chart-container">
+      <canvas id="donationTrendsChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Payments Table -->
+<div class="table-container">
+  <h3 style="margin-bottom: 1rem; color: #fff;">Recent Payments</h3>
+  <table class="payments-table" id="paymentsTable">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>User</th>
+        <th>Amount</th>
+        <th>Date</th>
+        <th>Payment ID</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="paymentsTableBody">
+      <tr>
+        <td colspan="6" class="no-data">Loading payment data...</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="pagination" id="paymentsPagination">
+    <!-- Pagination buttons will be added dynamically -->
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+let donationTrendsChart = null;
+let currentPage = 1;
+const pageSize = 10;
+let totalPages = 1;
+let allPayments = [];
+
+function formatCurrency(amount) {
+  return parseFloat(amount).toFixed(2);
+}
+
+function formatNumber(num) {
+  return num.toLocaleString();
+}
+
+function formatDate(dateString) {
+  const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+  return new Date(dateString).toLocaleDateString(undefined, options);
+}
+
+function getStatusBadgeClass(status) {
+  switch(status) {
+    case 'success': return 'success';
+    case 'pending': return 'pending';
+    case 'failed': return 'failed';
+    case 'refunded': return 'refunded';
+    default: return 'pending';
+  }
+}
+
+function renderDonationTrendsChart(data) {
+  if (donationTrendsChart) {
+    donationTrendsChart.destroy();
+  }
+  
+  const ctx = document.getElementById("donationTrendsChart").getContext("2d");
+  donationTrendsChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: data.map(item => item.date),
+      datasets: [{
+        label: "Amount (₹)",
+        data: data.map(item => item.amount),
+        borderColor: "#4caf50",
+        backgroundColor: "rgba(76, 175, 80, 0.1)",
+        tension: 0.4,
+        fill: true
+      }, {
+        label: "Count",
+        data: data.map(item => item.count),
+        borderColor: "#3b5998",
+        backgroundColor: "rgba(59, 89, 152, 0.1)",
+        tension: 0.4,
+        borderDash: [5, 5],
+        yAxisID: 'y1'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            color: '#bbb'
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.dataset.label || '';
+              if (label) {
+                label += ': ';
+              }
+              if (context.dataset.label === "Amount (₹)") {
+                label += '₹' + formatCurrency(context.raw);
+              } else {
+                label += formatNumber(context.raw);
+              }
+              return label;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: "rgba(255, 255, 255, 0.1)"
+          },
+          ticks: {
+            color: "#bbb",
+            callback: function(value) {
+              return '₹' + formatCurrency(value);
+            }
+          }
+        },
+        y1: {
+          position: 'right',
+          beginAtZero: true,
+          grid: {
+            drawOnChartArea: false
+          },
+          ticks: {
+            color: "#bbb",
+            stepSize: 1
+          }
+        },
+        x: {
+          grid: {
+            color: "rgba(255, 255, 255, 0.1)"
+          },
+          ticks: {
+            color: "#bbb"
+          }
+        }
+      }
+    }
+  });
+}
+
+function updatePaymentsTable() {
+  const tableBody = document.getElementById("paymentsTableBody");
+  tableBody.innerHTML = '';
+  
+  if (allPayments.length === 0) {
+    tableBody.innerHTML = '<tr><td colspan="6" class="no-data">No payment data available</td></tr>';
+    return;
+  }
+  
+  // Calculate pagination
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, allPayments.length);
+  const paymentsToShow = allPayments.slice(startIndex, endIndex);
+  
+  // Render payments
+  paymentsToShow.forEach(payment => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${payment.id}</td>
+      <td>${payment.user}</td>
+      <td>₹${formatCurrency(payment.amount)}</td>
+      <td>${formatDate(payment.created_at)}</td>
+      <td>${payment.razorpay_payment_id.substring(0, 15)}...</td>
+      <td><span class="status-badge ${getStatusBadgeClass(payment.status)}">${payment.status}</span></td>
+    `;
+    tableBody.appendChild(tr);
+  });
+  
+  // Update pagination
+  updatePagination();
+}
+
+function updatePagination() {
+  const paginationDiv = document.getElementById("paymentsPagination");
+  paginationDiv.innerHTML = '';
+  
+  totalPages = Math.ceil(allPayments.length / pageSize);
+  
+  if (totalPages <= 1) {
+    return;
+  }
+  
+  // Previous button
+  const prevBtn = document.createElement('button');
+  prevBtn.classList.add('pagination-btn');
+  prevBtn.innerHTML = '&laquo;';
+  prevBtn.disabled = currentPage === 1;
+  prevBtn.addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage--;
+      updatePaymentsTable();
+    }
+  });
+  paginationDiv.appendChild(prevBtn);
+  
+  // Page buttons
+  for (let i = 1; i <= totalPages; i++) {
+    if (totalPages > 7) {
+      // Show limited pages for large datasets
+      if (
+        i === 1 || 
+        i === totalPages || 
+        (i >= currentPage - 1 && i <= currentPage + 1) ||
+        (currentPage === 1 && i <= 3) ||
+        (currentPage === totalPages && i >= totalPages - 2)
+      ) {
+        const pageBtn = document.createElement('button');
+        pageBtn.classList.add('pagination-btn');
+        if (i === currentPage) {
+          pageBtn.classList.add('active');
+        }
+        pageBtn.textContent = i;
+        pageBtn.addEventListener('click', () => {
+          currentPage = i;
+          updatePaymentsTable();
+        });
+        paginationDiv.appendChild(pageBtn);
+      } else if (
+        (i === 2 && currentPage > 3) ||
+        (i === totalPages - 1 && currentPage < totalPages - 2)
+      ) {
+        const ellipsis = document.createElement('span');
+        ellipsis.textContent = '...';
+        ellipsis.style.color = '#888';
+        ellipsis.style.padding = '0 0.5rem';
+        paginationDiv.appendChild(ellipsis);
+        
+        // Skip numbers that would be replaced by ellipsis
+        if (i === 2) i = currentPage - 2;
+        if (i === totalPages - 1) i = totalPages - 1;
+      }
+    } else {
+      // Show all pages for small datasets
+      const pageBtn = document.createElement('button');
+      pageBtn.classList.add('pagination-btn');
+      if (i === currentPage) {
+        pageBtn.classList.add('active');
+      }
+      pageBtn.textContent = i;
+      pageBtn.addEventListener('click', () => {
+        currentPage = i;
+        updatePaymentsTable();
+      });
+      paginationDiv.appendChild(pageBtn);
+    }
+  }
+  
+  // Next button
+  const nextBtn = document.createElement('button');
+  nextBtn.classList.add('pagination-btn');
+  nextBtn.innerHTML = '&raquo;';
+  nextBtn.disabled = currentPage === totalPages;
+  nextBtn.addEventListener('click', () => {
+    if (currentPage < totalPages) {
+      currentPage++;
+      updatePaymentsTable();
+    }
+  });
+  paginationDiv.appendChild(nextBtn);
+}
+
+function updateStats(data) {
+  // Update total donations
+  document.getElementById("totalAmountDisplay").textContent = formatCurrency(data.total_amount);
+  
+  // Update donation count
+  document.getElementById("donationCountDisplay").textContent = formatNumber(data.payment_count);
+  
+  // Update average donation
+  const avgDonation = data.payment_count > 0 ? data.total_amount / data.payment_count : 0;
+  document.getElementById("averageDonationDisplay").textContent = formatCurrency(avgDonation);
+  
+  // Update recent activity
+  document.getElementById("recentDonationDisplay").textContent = formatCurrency(data.recent_amount);
+  
+  // Update trend
+  if (data.payment_count > 0) {
+    const trendText = data.recent_count > 0 
+      ? `${formatNumber(data.recent_count)} donations in last 24h` 
+      : 'No donations in last 24h';
+    document.getElementById("donationTrendDisplay").textContent = trendText;
+  } else {
+    document.getElementById("donationTrendDisplay").textContent = 'No donations yet';
+  }
+}
+
+function fetchDonationStats() {
+  fetch("/api/donation-stats/")
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      return response.json();
+    })
+    .then((data) => {
+      updateStats(data);
+      renderDonationTrendsChart(data.daily_donations);
+      
+      // Update payments table
+      allPayments = data.recent_payments;
+      updatePaymentsTable();
+    })
+    .catch((error) => {
+      console.error("Error fetching donation stats:", error);
+      // Display error message
+      document.getElementById("totalAmountDisplay").textContent = "Error";
+      document.getElementById("donationCountDisplay").textContent = "Error";
+      document.getElementById("averageDonationDisplay").textContent = "Error";
+      document.getElementById("recentDonationDisplay").textContent = "Error";
+      document.getElementById("donationTrendDisplay").textContent = "Error loading data";
+      
+      // Show error in table
+      document.getElementById("paymentsTableBody").innerHTML = 
+        '<tr><td colspan="6" class="no-data">Error loading payment data. Please try again later.</td></tr>';
+    });
+}
+
+// Initial load
+fetchDonationStats();
+
+// Refresh every 60 seconds
+setInterval(fetchDonationStats, 60000);
+</script>
+{% endblock %} 

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, Chat, Message, Report, Broadcast, Notification, BlockedUser
+from .models import User, Chat, Message, Report, Broadcast, Notification, BlockedUser, Payment
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
@@ -84,3 +84,26 @@ class BlockedUserAdmin(admin.ModelAdmin):
     search_fields = ('blocker__username', 'blocked__username')
     ordering = ('-blocked_at',)
     raw_id_fields = ('blocker', 'blocked')
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'amount', 'currency', 'status', 'created_at')
+    list_filter = ('status', 'currency', 'created_at')
+    search_fields = ('user__username', 'razorpay_order_id', 'razorpay_payment_id')
+    ordering = ('-created_at',)
+    raw_id_fields = ('user',)
+    readonly_fields = ('created_at', 'updated_at')
+    fieldsets = (
+        (None, {
+            'fields': ('user', 'amount', 'currency', 'status')
+        }),
+        ('Payment Details', {
+            'fields': ('razorpay_order_id', 'razorpay_payment_id', 'razorpay_signature')
+        }),
+        ('Additional Information', {
+            'fields': ('notes',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at')
+        })
+    )

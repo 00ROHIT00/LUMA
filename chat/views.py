@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import User, Chat, Message, Report, Notification, Broadcast, BlockedUser, GroupChat, GroupMessage, ArchivedGroupChat, DeletedGroupMessage, GroupMessageReport
+from .models import User, Chat, Message, Report, Notification, Broadcast, BlockedUser, GroupChat, GroupMessage, ArchivedGroupChat, DeletedGroupMessage, GroupMessageReport, Payment
 from django.urls import reverse
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -1999,4 +1999,139 @@ def get_razorpay_key(request):
     return JsonResponse({
         'key_id': settings.RAZORPAY_KEY_ID,
         'testmode': True
+    })
+
+@require_POST
+def verify_payment(request):
+    """Verify and store payment information"""
+    try:
+        data = json.loads(request.body)
+        print(f"Payment data received: {data}")
+        
+        # Check if all required data is present
+        if not data.get('razorpay_payment_id'):
+            print("Missing payment ID in request")
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Payment ID is required'
+            }, status=400)
+        
+        # Create payment record
+        payment = Payment.objects.create(
+            user=request.user,
+            razorpay_order_id=data.get('razorpay_order_id', ''),
+            razorpay_payment_id=data.get('razorpay_payment_id'),
+            razorpay_signature=data.get('razorpay_signature', ''),
+            amount=data.get('amount', 0) / 100,  # Convert from paise to rupees
+            currency=data.get('currency', 'INR'),
+            notes=json.dumps(data.get('notes', {}))  # Convert dict to JSON string
+        )
+        
+        print(f"Payment record created with ID: {payment.id}")
+        
+        # In test mode, we'll just mark it as successful
+        if settings.RAZORPAY_TEST_MODE:
+            payment.status = 'success'
+            payment.save()
+            print("Test mode: Payment marked as successful")
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Payment recorded successfully (Test Mode)',
+                'payment_id': payment.id
+            })
+        
+        # Verify the payment
+        try:
+            if payment.verify_payment():
+                print(f"Payment verified successfully: {payment.id}")
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Payment verified successfully',
+                    'payment_id': payment.id
+                })
+            else:
+                print(f"Payment verification failed: {payment.id}")
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Payment verification failed'
+                }, status=400)
+        except Exception as e:
+            print(f"Error during payment verification: {str(e)}")
+            payment.status = 'failed'
+            payment.save()
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Payment verification error: {str(e)}'
+            }, status=500)
+            
+    except Exception as e:
+        print(f"Error processing payment: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=400)
+
+@admin_required
+def admin_donations(request):
+    """Admin page to view and manage donations"""
+    return render(request, 'admin_donations.html')
+
+@admin_required
+def donation_stats(request):
+    """API endpoint to get donation statistics"""
+    # Get total number of payments and total amount
+    payments = Payment.objects.all()
+    total_amount = sum(payment.amount for payment in payments)
+    payment_count = len(payments)
+    
+    # Get recent payments (last 24 hours)
+    recent_time = timezone.now() - timezone.timedelta(hours=24)
+    recent_payments = Payment.objects.filter(created_at__gte=recent_time)
+    recent_amount = sum(payment.amount for payment in recent_payments)
+    recent_count = len(recent_payments)
+    
+    # Get daily donations for the last 30 days
+    start_date = timezone.now().date() - timezone.timedelta(days=30)
+    end_date = timezone.now().date()
+    
+    # Initialize daily data with zeros
+    daily_donations = []
+    current_date = start_date
+    while current_date <= end_date:
+        daily_donations.append({
+            'date': current_date.strftime('%b %d'),
+            'amount': 0,
+            'count': 0
+        })
+        current_date += timezone.timedelta(days=1)
+    
+    # Fill in actual data
+    for payment in payments:
+        payment_date = payment.created_at.date()
+        if start_date <= payment_date <= end_date:
+            index = (payment_date - start_date).days
+            if index < len(daily_donations):
+                daily_donations[index]['amount'] += float(payment.amount)
+                daily_donations[index]['count'] += 1
+    
+    # Format payment data for the table
+    payment_data = []
+    for payment in payments.order_by('-created_at'):
+        payment_data.append({
+            'id': payment.id,
+            'user': payment.user.username,
+            'amount': float(payment.amount),
+            'created_at': payment.created_at.isoformat(),
+            'razorpay_payment_id': payment.razorpay_payment_id,
+            'razorpay_order_id': payment.razorpay_order_id,
+            'status': payment.status
+        })
+    
+    return JsonResponse({
+        'total_amount': total_amount,
+        'payment_count': payment_count,
+        'recent_amount': recent_amount,
+        'recent_count': recent_count,
+        'daily_donations': daily_donations,
+        'recent_payments': payment_data
     })

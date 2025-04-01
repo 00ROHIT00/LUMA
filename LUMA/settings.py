@@ -24,6 +24,8 @@ except ImportError:
     RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', '')
     RAZORPAY_SECRET_KEY = os.environ.get('RAZORPAY_SECRET_KEY', '')
 
+# Razorpay Settings
+RAZORPAY_TEST_MODE = True
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/

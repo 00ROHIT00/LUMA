@@ -327,14 +327,16 @@
     box-shadow: 0 0 15px rgba(0, 229, 255, 0.6);
   }
 
+  /* Confetti Animation */
   .confetti {
-    position: absolute;
+    position: fixed;
     width: 10px;
     height: 10px;
     background-color: #00e5ff;
     opacity: 0.8;
     top: 0;
-    animation: confetti-fall 3s ease-in-out forwards;
+    z-index: 1000;
+    animation: confetti-fall 5s ease-in-out forwards;
   }
 
   @keyframes confetti-fall {
@@ -342,8 +344,11 @@
       transform: translateY(-100px) rotate(0deg);
       opacity: 1;
     }
+    50% {
+      opacity: 1;
+    }
     100% {
-      transform: translateY(calc(100vh)) rotate(360deg);
+      transform: translateY(100vh) rotate(360deg);
       opacity: 0;
     }
   }
@@ -500,6 +505,22 @@
 <!-- Razorpay Script -->
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
+  // Function to get CSRF token from cookies
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
   // Track the selected amount (default to 500)
   let selectedAmount = 50000;
   
@@ -564,9 +585,38 @@
           "description": "Donation for Local Charity",
           "image": "", // Add your logo URL here if you have one
           "handler": function (response){
-            // Show custom thank you modal instead of alert
-            showThankYouModal(selectedAmount);
-            console.log(response);
+            // Send payment verification data to backend
+            fetch('/verify-payment/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_signature: response.razorpay_signature,
+                    amount: selectedAmount,
+                    currency: 'INR',
+                    notes: {
+                        type: 'donation',
+                        purpose: 'charity'
+                    }
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Show custom thank you modal
+                    showThankYouModal(selectedAmount);
+                } else {
+                    alert('Payment verification failed. Please contact support.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while verifying the payment. Please contact support.');
+            });
           },
           "prefill": {
             "name": "Test User",
@@ -641,27 +691,44 @@
   
   // Function to create confetti effect
   function createConfetti() {
-    const container = document.getElementById('thankYouModal');
+    const container = document.body;
     const colors = ['#00e5ff', '#ff00e5', '#e5ff00', '#00ff8d', '#ff8d00'];
     
-    for (let i = 0; i < 50; i++) {
+    // Clear any existing confetti first
+    document.querySelectorAll('.confetti').forEach(c => c.remove());
+    
+    // Create more confetti for a better effect
+    for (let i = 0; i < 150; i++) {
       const confetti = document.createElement('div');
       confetti.className = 'confetti';
       
       // Random position, size, color and delay
-      const size = Math.random() * 10 + 5;
+      const size = Math.random() * 15 + 5;
+      const left = Math.random() * 100;
+      
       confetti.style.width = `${size}px`;
       confetti.style.height = `${size}px`;
       confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-      confetti.style.left = `${Math.random() * 100}%`;
-      confetti.style.animationDelay = `${Math.random() * 2}s`;
+      confetti.style.left = `${left}%`;
+      confetti.style.animationDelay = `${Math.random() * 3}s`;
+      confetti.style.animationDuration = `${3 + Math.random() * 5}s`;
+      
+      // Random rotation
+      confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+      
+      // Random shape
+      if (Math.random() > 0.5) {
+        confetti.style.borderRadius = '50%';
+      } else if (Math.random() > 0.5) {
+        confetti.style.borderRadius = '5px';
+      }
       
       container.appendChild(confetti);
       
       // Remove confetti after animation completes
       setTimeout(() => {
         confetti.remove();
-      }, 5000);
+      }, 8000);
     }
   }
   
