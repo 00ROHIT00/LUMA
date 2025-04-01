@@ -585,37 +585,61 @@
           "description": "Donation for Local Charity",
           "image": "", // Add your logo URL here if you have one
           "handler": function (response){
+            console.log("Payment successful from Razorpay!", response);
+            
+            // Immediately get a fresh CSRF token to ensure it's valid
+            const csrftoken = getCookie('csrftoken');
+            console.log("Using CSRF token:", csrftoken ? "Found" : "Not found");
+            
+            // Prepare payment data
+            const paymentData = {
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id || '',
+              razorpay_signature: response.razorpay_signature || '',
+              amount: selectedAmount,
+              currency: 'INR',
+              notes: {
+                type: 'donation',
+                purpose: 'charity'
+              }
+            };
+            
+            console.log("Sending verification data:", paymentData);
+            
             // Send payment verification data to backend
             fetch('/verify-payment/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
+                    'X-CSRFToken': csrftoken
                 },
-                body: JSON.stringify({
-                    razorpay_order_id: response.razorpay_order_id,
-                    razorpay_payment_id: response.razorpay_payment_id,
-                    razorpay_signature: response.razorpay_signature,
-                    amount: selectedAmount,
-                    currency: 'INR',
-                    notes: {
-                        type: 'donation',
-                        purpose: 'charity'
-                    }
-                })
+                body: JSON.stringify(paymentData)
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log("Verification response status:", response.status);
+                if (!response.ok) {
+                    throw new Error(`Server responded with status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log("Verification response data:", data);
                 if (data.status === 'success') {
                     // Show custom thank you modal
                     showThankYouModal(selectedAmount);
                 } else {
-                    alert('Payment verification failed. Please contact support.');
+                    alert('Payment verification failed: ' + data.message);
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while verifying the payment. Please contact support.');
+                console.error('Verification error:', error);
+                // Try to show thank you modal anyway since Razorpay confirmed payment
+                // This ensures good UX even if verification has issues
+                showThankYouModal(selectedAmount);
+                // Still show error for troubleshooting
+                setTimeout(() => {
+                    alert('Payment was successful, but there was an error saving it: ' + error.message);
+                }, 1000);
             });
           },
           "prefill": {
@@ -676,11 +700,11 @@
     const amountInRupees = (amount / 100).toFixed(2);
     document.getElementById('donationAmountText').textContent = '₹' + amountInRupees;
     
-    // Show the modal overlay
+    // Show the modal overlay with flex display
     const modal = document.getElementById('thankYouModal');
     modal.style.display = 'flex';
     
-    // Add animation class after a short delay
+    // Add animation class after a short delay for proper rendering
     setTimeout(() => {
       modal.querySelector('.modal').classList.add('modal-show');
     }, 10);
@@ -713,10 +737,10 @@
       confetti.style.animationDelay = `${Math.random() * 3}s`;
       confetti.style.animationDuration = `${3 + Math.random() * 5}s`;
       
-      // Random rotation
+      // Add some rotation
       confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
       
-      // Random shape
+      // Add some random shapes 
       if (Math.random() > 0.5) {
         confetti.style.borderRadius = '50%';
       } else if (Math.random() > 0.5) {
@@ -725,9 +749,11 @@
       
       container.appendChild(confetti);
       
-      // Remove confetti after animation completes
+      // Clean up confetti after animation completes to avoid memory issues
       setTimeout(() => {
-        confetti.remove();
+        if (confetti && confetti.parentNode) {
+          confetti.remove();
+        }
       }, 8000);
     }
   }

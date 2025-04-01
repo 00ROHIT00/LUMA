@@ -18,11 +18,31 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Import Razorpay credentials from secrets.py
 try:
-    from .secrets import RAZORPAY_KEY_ID, RAZORPAY_SECRET_KEY
+    from .secrets import (
+        RAZORPAY_KEY_ID, 
+        RAZORPAY_SECRET_KEY,
+        EMAIL_HOST,
+        EMAIL_PORT,
+        EMAIL_USE_TLS,
+        EMAIL_HOST_USER,
+        EMAIL_HOST_PASSWORD,
+        DEFAULT_FROM_EMAIL
+    )
 except ImportError:
     # If secrets.py doesn't exist (e.g. in production), try to get from environment variables
     RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', '')
     RAZORPAY_SECRET_KEY = os.environ.get('RAZORPAY_SECRET_KEY', '')
+    
+    # Email Settings from environment
+    EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+    EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'LUMA App <noreply@lumaapp.com>')
+
+# Email Backend Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
 # Razorpay Settings
 RAZORPAY_TEST_MODE = True

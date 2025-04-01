@@ -1,0 +1,520 @@
+{% extends "base.html" %} {% block content %}
+<style>
+  /* Fade In Animation for the entire page */
+  @keyframes fadeInPage {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .page-container {
+    animation: fadeInPage 1.2s ease-in-out;
+  }
+
+  /* Background Animation */
+  .background-waves {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(-45deg, #121212, #1a3a4a, #2b1942, #0d2e3f, #4a1942);
+    background-size: 300% 300%;
+    filter: blur(60px);
+    z-index: 0;
+    animation: gradient-move 12s ease infinite;
+    opacity: 0.8;
+  }
+
+  .background-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 30% 50%, rgba(0, 229, 255, 0.2), transparent 70%);
+    z-index: 1;
+  }
+
+  @keyframes gradient-move {
+    0% {
+      background-position: 0% 50%;
+    }
+    25% {
+      background-position: 50% 100%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    75% {
+      background-position: 50% 0%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  .error-message {
+    color: #dc3545;
+    font-size: 0.9rem;
+    margin-top: 5px;
+    display: none;
+  }
+
+  /* OTP Input Style */
+  .otp-container {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .otp-input {
+    width: 50px;
+    height: 60px;
+    border: 2px solid #3a3a3a;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #333;
+  }
+
+  .otp-input:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+  }
+
+  .timer-container {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 1rem;
+    color: #333;
+  }
+
+  .timer {
+    font-weight: bold;
+    color: #007bff;
+  }
+
+  .resend-link {
+    color: #007bff;
+    text-decoration: none;
+    cursor: pointer;
+    display: none;
+  }
+
+  .resend-link.visible {
+    display: inline;
+  }
+  
+  .expired-message {
+    color: #dc3545;
+    display: none;
+  }
+</style>
+
+<div
+  class="page-container"
+  style="
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    width: 100%;
+    background-color: #000;
+    color: white;
+    padding: 0;
+    margin: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: auto;
+  "
+>
+  <div style="display: flex; width: 100%; height: 100vh">
+    <!-- Left Side (Text Section) -->
+    <div
+      style="
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 50px;
+        overflow: hidden;
+        position: relative;
+        background-color: #121212;
+      "
+    >
+      <div class="background-waves"></div>
+      <div class="background-overlay"></div>
+      <h1
+        style="
+          font-weight: bold;
+          font-size: 3rem;
+          text-align: center;
+          max-width: 600px;
+          position: relative;
+          z-index: 2;
+          text-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+        "
+      >
+        Verify Your Identity
+      </h1>
+      <p
+        style="
+          font-size: 1.2rem;
+          line-height: 1.5;
+          text-align: center;
+          max-width: 600px;
+          position: relative;
+          z-index: 2;
+          text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        "
+      >
+        We've sent a 6-digit verification code to your email. 
+        Please enter it below to continue with your password reset.
+      </p>
+    </div>
+    <!-- Right Side (Form) -->
+    <div
+      style="
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #1a1a1a;
+        overflow: auto;
+      "
+    >
+      <div
+        style="
+          width: 100%;
+          max-width: 400px;
+          background-color: white;
+          padding: 40px;
+          border-radius: 10px;
+          box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+          margin: 20px;
+        "
+      >
+        <h1
+          style="
+            text-align: center;
+            font-weight: bold;
+            font-size: 2.5rem;
+            color: black;
+          "
+        >
+          LUMA
+        </h1>
+        <h4
+          style="
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: black;
+          "
+        >
+          Enter Verification Code
+        </h4>
+        
+        <div class="timer-container">
+          <span>Code expires in: </span>
+          <span id="timer" class="timer">2:00</span>
+          <div id="expired-message" class="expired-message">Code expired. 
+            <a id="resend-link" class="resend-link">Resend code</a>
+          </div>
+        </div>
+
+        <form id="verifyOtpForm" method="POST" action="{% url 'verify_otp' %}">
+          {% csrf_token %}
+          <input type="hidden" name="username" value="{{ username }}">
+          <input type="hidden" name="email" value="{{ email }}">
+          
+          <div class="otp-container">
+            <input type="text" class="otp-input" name="otp1" id="otp1" maxlength="1" pattern="[0-9]" inputmode="numeric" autocomplete="off" required>
+            <input type="text" class="otp-input" name="otp2" id="otp2" maxlength="1" pattern="[0-9]" inputmode="numeric" autocomplete="off" required>
+            <input type="text" class="otp-input" name="otp3" id="otp3" maxlength="1" pattern="[0-9]" inputmode="numeric" autocomplete="off" required>
+            <input type="text" class="otp-input" name="otp4" id="otp4" maxlength="1" pattern="[0-9]" inputmode="numeric" autocomplete="off" required>
+            <input type="text" class="otp-input" name="otp5" id="otp5" maxlength="1" pattern="[0-9]" inputmode="numeric" autocomplete="off" required>
+            <input type="text" class="otp-input" name="otp6" id="otp6" maxlength="1" pattern="[0-9]" inputmode="numeric" autocomplete="off" required>
+            <!-- Hidden field for combined OTP -->
+            <input type="hidden" name="otp" id="combinedOtp">
+          </div>
+          
+          <div id="otp-error" class="error-message" style="text-align: center;"></div>
+          
+          <button
+            type="submit"
+            id="submitBtn"
+            style="
+              width: 100%;
+              padding: 12px;
+              background-color: #007bff;
+              color: white;
+              font-weight: bold;
+              border: none;
+              border-radius: 5px;
+              font-size: 1rem;
+              cursor: pointer;
+              margin-top: 10px;
+            "
+          >
+            Verify Code
+          </button>
+          
+          <div style="text-align: center; margin-top: 15px">
+            <a id="resend-link-bottom" class="resend-link">Resend Code</a>
+          </div>
+          
+          <!-- Add a debug message display -->
+          <div id="debug-message" style="
+            margin-top: 10px;
+            padding: 5px;
+            font-size: 0.8rem;
+            color: #666;
+            text-align: center;
+            display: none;
+          "></div>
+        </form>
+
+        <!-- Error Modal -->
+        <div id="errorModal" style="
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.5);
+          z-index: 1000;
+          justify-content: center;
+          align-items: center;
+        ">
+          <div style="
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            position: relative;
+          ">
+            <h3 style="color: #dc3545; margin-bottom: 15px;">Error</h3>
+            <p id="errorModalText" style="color: #333; margin-bottom: 20px;">{% if messages %}{% for message in messages %}{% if message.tags == 'error' %}{{ message }}{% endif %}{% endfor %}{% endif %}</p>
+            <button onclick="closeErrorModal()" style="
+              padding: 8px 30px;
+              background: #007bff;
+              color: white;
+              border: none;
+              border-radius: 5px;
+              cursor: pointer;
+              font-size: 1rem;
+            ">Okay</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('verifyOtpForm');
+    const otpInputs = document.querySelectorAll('.otp-input');
+    const otpError = document.getElementById('otp-error');
+    const submitBtn = document.getElementById('submitBtn');
+    const timerElement = document.getElementById('timer');
+    const expiredMessage = document.getElementById('expired-message');
+    const resendLink = document.getElementById('resend-link');
+    const resendLinkBottom = document.getElementById('resend-link-bottom');
+    
+    // Set up timer (2 minutes)
+    let timeLeft = 120; // 2 minutes in seconds
+    let timerId;
+    
+    function startTimer() {
+      clearInterval(timerId);
+      timeLeft = 120;
+      updateTimer();
+      expiredMessage.style.display = 'none';
+      resendLinkBottom.style.display = 'none';
+      submitBtn.disabled = false;
+      
+      timerId = setInterval(function() {
+        timeLeft--;
+        updateTimer();
+        
+        if (timeLeft <= 0) {
+          clearInterval(timerId);
+          expiredMessage.style.display = 'block';
+          resendLinkBottom.style.display = 'inline';
+          submitBtn.disabled = true;
+        }
+      }, 1000);
+    }
+    
+    function updateTimer() {
+      const minutes = Math.floor(timeLeft / 60);
+      let seconds = timeLeft % 60;
+      seconds = seconds < 10 ? '0' + seconds : seconds;
+      timerElement.textContent = minutes + ':' + seconds;
+    }
+    
+    // Start the timer when the page loads
+    startTimer();
+    
+    // Handle OTP input behavior
+    otpInputs.forEach(function(input, index) {
+      // Auto-focus next input when a digit is entered
+      input.addEventListener('input', function(e) {
+        const digit = e.target.value;
+        
+        if (digit !== '' && /^\d$/.test(digit)) {
+          if (index < otpInputs.length - 1) {
+            otpInputs[index + 1].focus();
+          }
+        }
+      });
+      
+      // Handle backspace
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Backspace' && !e.target.value && index > 0) {
+          otpInputs[index - 1].focus();
+        }
+      });
+      
+      // Handle paste event
+      input.addEventListener('paste', function(e) {
+        e.preventDefault();
+        const pastedData = e.clipboardData.getData('text');
+        
+        if (/^\d+$/.test(pastedData)) {
+          // Fill inputs with pasted digits
+          const digits = pastedData.split('');
+          
+          otpInputs.forEach(function(input, idx) {
+            if (idx < digits.length) {
+              input.value = digits[idx];
+              
+              // Focus on the next empty input or the last one
+              if (idx < otpInputs.length - 1 && idx >= digits.length - 1) {
+                otpInputs[idx + 1].focus();
+              } else if (idx === otpInputs.length - 1 || idx === digits.length - 1) {
+                input.focus();
+              }
+            }
+          });
+        }
+      });
+    });
+    
+    // Form validation
+    form.addEventListener('submit', function(e) {
+      let isValid = true;
+      let otp = '';
+      
+      // Check if all inputs are filled
+      otpInputs.forEach(function(input) {
+        otp += input.value;
+        if (input.value === '' || !/^\d$/.test(input.value)) {
+          isValid = false;
+        }
+      });
+      
+      if (!isValid) {
+        e.preventDefault();
+        otpError.textContent = 'Please enter a valid 6-digit code';
+        otpError.style.display = 'block';
+      } else if (timeLeft <= 0) {
+        e.preventDefault();
+        otpError.textContent = 'This code has expired. Please request a new one.';
+        otpError.style.display = 'block';
+      } else {
+        // Set the value of the hidden combined OTP field
+        document.getElementById('combinedOtp').value = otp;
+        
+        // Show debug message
+        const debugElement = document.getElementById('debug-message');
+        debugElement.textContent = 'Submitting OTP: ' + otp;
+        debugElement.style.display = 'block';
+        
+        console.log('Submitting OTP:', otp); // Debug log
+        // Let the form submit normally
+      }
+    });
+    
+    // Handle resend link
+    function handleResend() {
+      const username = document.querySelector('input[name="username"]').value;
+      const email = document.querySelector('input[name="email"]').value;
+      
+      fetch('{% url "resend_otp" %}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+          username: username,
+          email: email
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          startTimer();
+          showMessage('A new verification code has been sent to your email.');
+        } else {
+          showErrorModal(data.message || 'Failed to send verification code. Please try again.');
+        }
+      })
+      .catch(error => {
+        showErrorModal('An error occurred. Please try again.');
+      });
+    }
+    
+    resendLink.addEventListener('click', handleResend);
+    resendLinkBottom.addEventListener('click', handleResend);
+    
+    function showMessage(message) {
+      showErrorModal(message);
+    }
+  });
+  
+  function showErrorModal(message) {
+    document.getElementById('errorModalText').innerText = message || '';
+    document.getElementById('errorModal').style.display = 'flex';
+  }
+
+  function closeErrorModal() {
+    document.getElementById('errorModal').style.display = 'none';
+  }
+</script>
+
+{% if messages %}
+<script>
+  // Store messages in JavaScript variables
+  var errorMessages = [];
+  {% for message in messages %}
+    {% if message.tags == 'error' %}
+      errorMessages.push("{{ message }}");
+    {% endif %}
+  {% endfor %}
+  
+  // Display messages when document is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    errorMessages.forEach(function(message) {
+      showErrorModal(message);
+    });
+  });
+</script>
+{% endif %}
+{% endblock %} 

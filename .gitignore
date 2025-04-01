@@ -1,46 +1,46 @@
-# Secrets file
-LUMA/secrets.py
-
-# Python bytecode
-__pycache__/
+# Python
 *.py[cod]
 *$py.class
+__pycache__/
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
 
 # Django
 *.log
+*.pot
+*.pyc
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
 media
 
-# Environment
+# Secrets and environment files
+LUMA/secrets.py
 .env
-.venv
-env/
-venv/
-ENV/
+.env.*
+!.env.example
 
-# Distribution / packaging
-dist/
-build/
-*.egg-info/
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-
-# VS Code
-.vscode/
-
-# PyCharm
+# IDE specific files
 .idea/
-*.iml
+.vscode/
+*.swp
+*.swo
 
-# DS_Store
-.DS_Store 
+# OS specific files
+.DS_Store
+Thumbs.db 
