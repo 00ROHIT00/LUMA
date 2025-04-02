@@ -1,4 +1,84 @@
-{% extends "base.html" %} {% load tz %} {% load chat_filters %} {% block content %}
+{% extends "base.html" %}
+{% load tz %}
+{% load chat_filters %}
+{% load static %}
+{% block content %}
+<script>
+// Global search function that can be called by the button
+function performSearch() {
+  console.log("Search function called");
+  const searchInput = document.getElementById('contactSearch');
+  if (!searchInput) {
+    console.error("Search input not found");
+    return false;
+  }
+  
+  const searchQuery = searchInput.value.toLowerCase().trim();
+  console.log("Search query:", searchQuery);
+  
+  // Get all chat items
+  const chatItems = document.querySelectorAll('.chat-item');
+  console.log("Total chat items:", chatItems.length);
+  
+  let matchCount = 0;
+  
+  // Loop through each chat item
+  chatItems.forEach(function(chatItem) {
+    const nameElement = chatItem.querySelector('.chat-item-name');
+    if (!nameElement) return;
+    
+    const chatName = nameElement.textContent.toLowerCase().trim();
+    console.log("Checking chat:", chatName);
+    
+    // Simple search - just check if name contains query
+    if (searchQuery === '' || chatName.includes(searchQuery)) {
+      chatItem.style.display = 'flex';
+      matchCount++;
+      console.log("Match found:", chatName);
+    } else {
+      chatItem.style.display = 'none';
+    }
+  });
+  
+  console.log("Search complete. Found " + matchCount + " matches.");
+  
+  // Show/hide "no results" message
+  let noResultsMsg = document.getElementById('noSearchResults');
+  if (matchCount === 0 && searchQuery !== '') {
+    if (!noResultsMsg) {
+      noResultsMsg = document.createElement('div');
+      noResultsMsg.id = 'noSearchResults';
+      noResultsMsg.style.textAlign = 'center';
+      noResultsMsg.style.color = '#666';
+      noResultsMsg.style.padding = '20px';
+      noResultsMsg.textContent = 'No matching contacts found';
+      const chatList = document.querySelector('.chat-list');
+      if (chatList) chatList.appendChild(noResultsMsg);
+    } else {
+      noResultsMsg.style.display = 'block';
+    }
+  } else if (noResultsMsg) {
+    noResultsMsg.style.display = 'none';
+  }
+  
+  // If there's exactly one match, highlight it
+  if (matchCount === 1 && searchQuery !== '') {
+    const matchedItem = Array.from(chatItems).find(item => item.style.display === 'flex');
+    if (matchedItem) {
+      matchedItem.style.transition = 'background-color 0.3s';
+      matchedItem.style.backgroundColor = '#3a5998';
+      setTimeout(() => {
+        matchedItem.style.backgroundColor = '';
+        // Open the matched chat
+        matchedItem.click();
+      }, 800);
+    }
+  }
+  
+  return false; // Prevent form submission
+}
+</script>
+
 <style>
   * {
     margin: 0;
@@ -1565,6 +1645,13 @@
   .location-coordinates i {
     font-size: 14px;
   }
+
+  /* Add this to your CSS styles */
+  #searchButton {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
 </style>
 
 <link
@@ -1607,6 +1694,23 @@
   <!-- Chat List Panel (30% width) -->
   <div class="chat-list-panel">
     <div class="chat-list-title">Chats</div>
+    
+    <!-- Search bar for contacts -->
+    <div class="search-container" style="margin-bottom: 15px; position: relative;">
+      <input type="text" id="contactSearch" placeholder="Search contacts..." 
+             style="width: 100%; padding: 10px; padding-left: 35px; padding-right: 35px; border-radius: 20px; border: none; 
+                    background-color: #2a2a2a; color: white; font-size: 14px; outline: none;"
+             onkeydown="if(event.key==='Enter'){event.preventDefault();performSearch();return false;}">
+      <i class="fa-solid fa-search" 
+         style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #999;"></i>
+      <button type="button" id="searchButton" onclick="performSearch();return false;"
+              style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); 
+                     background-color: #007bff; color: white; border: none; border-radius: 50%; 
+                     width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+        <i class="fa-solid fa-arrow-right" style="font-size: 12px;"></i>
+      </button>
+    </div>
+    
     <div class="chat-list">
       <!-- Debug information -->
       <div style="display: none;">
@@ -4645,8 +4749,227 @@
         }
       );
     }
+
+    // Handle chat search functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const searchInput = document.getElementById('contactSearch');
+      const searchButton = document.getElementById('searchButton');
+      
+      if (searchInput && searchButton) {
+        // Function to perform the search
+        function performSearch() {
+          console.log("Performing search...");
+          const searchQuery = searchInput.value.toLowerCase().trim();
+          const chatItems = document.querySelectorAll('.chat-item');
+          let matchCount = 0;
+          
+          // Clear debugging info
+          console.log("Search query:", searchQuery);
+          console.log("Total chat items:", chatItems.length);
+          
+          chatItems.forEach(function(chatItem) {
+            const nameElement = chatItem.querySelector('.chat-item-name');
+            if (!nameElement) return;
+            
+            const chatName = nameElement.textContent.toLowerCase().trim();
+            console.log("Checking chat:", chatName);
+            
+            // Simple direct string comparison - more reliable
+            if (searchQuery === '' || chatName.includes(searchQuery)) {
+              chatItem.style.display = 'flex';
+              matchCount++;
+              console.log(`Match found: ${chatName}`);
+            } else {
+              chatItem.style.display = 'none';
+            }
+          });
+          
+          console.log(`Search complete. Found ${matchCount} matches.`);
+          
+          // Show/hide "no results" message
+          let noResultsMsg = document.getElementById('noSearchResults');
+          
+          if (matchCount === 0 && searchQuery !== '') {
+            if (!noResultsMsg) {
+              noResultsMsg = document.createElement('div');
+              noResultsMsg.id = 'noSearchResults';
+              noResultsMsg.style.textAlign = 'center';
+              noResultsMsg.style.color = '#666';
+              noResultsMsg.style.padding = '20px';
+              noResultsMsg.textContent = 'No matching contacts found';
+              const chatList = document.querySelector('.chat-list');
+              if (chatList) chatList.appendChild(noResultsMsg);
+            } else {
+              noResultsMsg.style.display = 'block';
+            }
+          } else if (noResultsMsg) {
+            noResultsMsg.style.display = 'none';
+          }
+          
+          // If there's exactly one match and a search query, flash that item
+          if (matchCount === 1 && searchQuery !== '') {
+            const matchedItem = Array.from(chatItems).find(item => item.style.display === 'flex');
+            if (matchedItem) {
+              matchedItem.style.transition = 'background-color 0.3s';
+              matchedItem.style.backgroundColor = '#3a5998';
+              setTimeout(() => {
+                matchedItem.style.backgroundColor = '';
+                // If there's exactly one visible chat after search, open it
+                if (searchQuery.length > 0) {
+                  matchedItem.click();
+                }
+              }, 800);
+            }
+          }
+          
+          return matchCount;
+        }
+        
+        // Set up event listeners
+        searchButton.addEventListener('click', function(e) {
+          e.preventDefault();
+          performSearch();
+        });
+        
+        // Direct onclick handler (more reliable than addEventListener in some browsers)
+        searchButton.onclick = performSearch;
+        
+        // Handle form submission (pressing Enter)
+        searchInput.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') {
+            e.preventDefault(); // Prevent form submission
+            performSearch();
+          }
+        });
+        
+        // Add clear button functionality
+        const searchContainer = document.querySelector('.search-container');
+        if (searchContainer) {
+          // Add a clear button if it doesn't exist
+          if (!document.getElementById('clearSearch')) {
+            const clearBtn = document.createElement('i');
+            clearBtn.className = 'fa-solid fa-times';
+            clearBtn.id = 'clearSearch';
+            clearBtn.style.position = 'absolute';
+            clearBtn.style.right = '38px'; // Position to the left of the search button
+            clearBtn.style.top = '50%';
+            clearBtn.style.transform = 'translateY(-50%)';
+            clearBtn.style.color = '#999';
+            clearBtn.style.cursor = 'pointer';
+            clearBtn.style.display = 'none';
+            clearBtn.style.zIndex = '5';
+            
+            clearBtn.addEventListener('click', function() {
+              searchInput.value = '';
+              this.style.display = 'none';
+              performSearch(); // Show all chats again
+              searchInput.focus();
+            });
+            
+            searchContainer.appendChild(clearBtn);
+          }
+        }
+        
+        searchInput.addEventListener('input', function() {
+          const clearBtn = document.getElementById('clearSearch');
+          if (clearBtn) {
+            clearBtn.style.display = this.value ? 'block' : 'none';
+          }
+        });
+      }
+    });
   </script>
 
-  {% endblock %}
+  <!-- Just before the closing </div> at the end of the file -->
+
+  <script>
+  // Define global search function that can be called directly
+  function searchContacts() {
+    console.log("Search function called directly");
+    const searchInput = document.getElementById('contactSearch');
+    const searchQuery = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    
+    // Log search query for debugging
+    console.log("Search query:", searchQuery);
+    
+    // Get all chat items
+    const chatItems = document.querySelectorAll('.chat-item');
+    console.log("Total chat items:", chatItems.length);
+    
+    let matchCount = 0;
+    
+    // Loop through each chat item
+    chatItems.forEach(function(chatItem) {
+      const nameElement = chatItem.querySelector('.chat-item-name');
+      if (!nameElement) return;
+      
+      const chatName = nameElement.textContent.toLowerCase().trim();
+      console.log("Checking chat:", chatName);
+      
+      // Simple search - just check if the name contains the query
+      if (searchQuery === '' || chatName.includes(searchQuery)) {
+        chatItem.style.display = 'flex';
+        matchCount++;
+      } else {
+        chatItem.style.display = 'none';
+      }
+    });
+    
+    console.log(`Search complete. Found ${matchCount} matches.`);
+    
+    // Show/hide "no results" message
+    let noResultsMsg = document.getElementById('noSearchResults');
+    if (matchCount === 0 && searchQuery !== '') {
+      if (!noResultsMsg) {
+        noResultsMsg = document.createElement('div');
+        noResultsMsg.id = 'noSearchResults';
+        noResultsMsg.style.textAlign = 'center';
+        noResultsMsg.style.color = '#666';
+        noResultsMsg.style.padding = '20px';
+        noResultsMsg.textContent = 'No matching contacts found';
+        const chatList = document.querySelector('.chat-list');
+        if (chatList) chatList.appendChild(noResultsMsg);
+      } else {
+        noResultsMsg.style.display = 'block';
+      }
+    } else if (noResultsMsg) {
+      noResultsMsg.style.display = 'none';
+    }
+    
+    // If there's exactly one match, highlight it
+    if (matchCount === 1 && searchQuery !== '') {
+      const matchedItem = Array.from(chatItems).find(item => item.style.display === 'flex');
+      if (matchedItem) {
+        matchedItem.style.transition = 'background-color 0.3s';
+        matchedItem.style.backgroundColor = '#3a5998';
+        setTimeout(() => {
+          matchedItem.style.backgroundColor = '';
+        }, 800);
+      }
+    }
+    
+    return false; // Prevent form submission
+  }
+
+  // Set up the search button with direct onclick handler
+  document.addEventListener('DOMContentLoaded', function() {
+    const searchButton = document.getElementById('searchButton');
+    if (searchButton) {
+      searchButton.onclick = searchContacts;
+    }
+    
+    const searchInput = document.getElementById('contactSearch');
+    if (searchInput) {
+      searchInput.onkeydown = function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          searchContacts();
+        }
+      };
+    }
+  });
+  </script>
+
 </div>
+{% endblock %}
 
