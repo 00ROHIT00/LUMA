@@ -22,7 +22,7 @@ from django.http import Http404
 from django.conf import settings
 import random
 import string
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMultiAlternatives
 import datetime
 import logging
 from django.db.models import Q, Count, Sum, Avg
@@ -2232,13 +2232,103 @@ def forgot_password(request):
             }
             
             # Send OTP via email
-            send_mail(
-                'LUMA Password Reset Code',
-                f'Your password reset code is: {otp}\n\nThis code is valid for 2 minutes.',
-                settings.DEFAULT_FROM_EMAIL,  # From email
-                [email],  # To email
-                fail_silently=False,
-            )
+            subject = 'LUMA Password Reset Code'
+            text_content = f'Your password reset code is: {otp}\n\nThis code is valid for 2 minutes.'
+            
+            # Create HTML content with attractive styling
+            html_content = f'''
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Password Reset Code</title>
+                <style>
+                    body {{
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        line-height: 1.6;
+                        color: #333333;
+                        margin: 0;
+                        padding: 0;
+                        background-color: #f9f9f9;
+                    }}
+                    .container {{
+                        max-width: 600px;
+                        margin: 20px auto;
+                        background-color: #ffffff;
+                        border-radius: 8px;
+                        overflow: hidden;
+                        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+                    }}
+                    .header {{
+                        background-color: #007bff;
+                        color: white;
+                        padding: 20px;
+                        text-align: center;
+                    }}
+                    .content {{
+                        padding: 30px;
+                    }}
+                    .code-box {{
+                        background-color: #f0f7ff;
+                        border: 1px solid #cce5ff;
+                        border-radius: 5px;
+                        font-family: 'Courier New', monospace;
+                        font-size: 24px;
+                        font-weight: bold;
+                        letter-spacing: 5px;
+                        color: #007bff;
+                        padding: 15px;
+                        margin: 25px 0;
+                        text-align: center;
+                    }}
+                    .footer {{
+                        background-color: #f5f5f5;
+                        padding: 15px;
+                        text-align: center;
+                        font-size: 12px;
+                        color: #777777;
+                    }}
+                    .highlight {{
+                        color: #007bff;
+                        font-weight: bold;
+                    }}
+                    .button {{
+                        display: inline-block;
+                        padding: 10px 20px;
+                        background-color: #007bff;
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 5px;
+                        margin-top: 15px;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>LUMA Password Reset</h1>
+                    </div>
+                    <div class="content">
+                        <p>Hello,</p>
+                        <p>We received a request to reset your password. Here is your verification code:</p>
+                        <div class="code-box">{otp}</div>
+                        <p><strong>This code is valid for 2 minutes.</strong></p>
+                        <p>If you didn't request a password reset, please ignore this email.</p>
+                    </div>
+                    <div class="footer">
+                        <p>This is an automated message. Please do not reply to this email.</p>
+                        <p>&copy; {datetime.datetime.now().year} LUMA Chat. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            '''
+            
+            # Send email with both text and HTML versions
+            email = EmailMultiAlternatives(subject, text_content, settings.DEFAULT_FROM_EMAIL, [email])
+            email.attach_alternative(html_content, "text/html")
+            email.send(fail_silently=False)
             
             # Redirect to OTP verification page
             return render(request, 'verify_otp.html', {
@@ -2359,13 +2449,103 @@ def resend_otp(request):
             }
             
             # Send OTP via email
-            send_mail(
-                'LUMA Password Reset Code',
-                f'Your new password reset code is: {otp}\n\nThis code is valid for 2 minutes.',
-                settings.DEFAULT_FROM_EMAIL,
-                [email],
-                fail_silently=False,
-            )
+            subject = 'LUMA Password Reset Code'
+            text_content = f'Your new password reset code is: {otp}\n\nThis code is valid for 2 minutes.'
+            
+            # Create HTML content with attractive styling
+            html_content = f'''
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Password Reset Code</title>
+                <style>
+                    body {{
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        line-height: 1.6;
+                        color: #333333;
+                        margin: 0;
+                        padding: 0;
+                        background-color: #f9f9f9;
+                    }}
+                    .container {{
+                        max-width: 600px;
+                        margin: 20px auto;
+                        background-color: #ffffff;
+                        border-radius: 8px;
+                        overflow: hidden;
+                        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+                    }}
+                    .header {{
+                        background-color: #007bff;
+                        color: white;
+                        padding: 20px;
+                        text-align: center;
+                    }}
+                    .content {{
+                        padding: 30px;
+                    }}
+                    .code-box {{
+                        background-color: #f0f7ff;
+                        border: 1px solid #cce5ff;
+                        border-radius: 5px;
+                        font-family: 'Courier New', monospace;
+                        font-size: 24px;
+                        font-weight: bold;
+                        letter-spacing: 5px;
+                        color: #007bff;
+                        padding: 15px;
+                        margin: 25px 0;
+                        text-align: center;
+                    }}
+                    .footer {{
+                        background-color: #f5f5f5;
+                        padding: 15px;
+                        text-align: center;
+                        font-size: 12px;
+                        color: #777777;
+                    }}
+                    .highlight {{
+                        color: #007bff;
+                        font-weight: bold;
+                    }}
+                    .button {{
+                        display: inline-block;
+                        padding: 10px 20px;
+                        background-color: #007bff;
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 5px;
+                        margin-top: 15px;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>LUMA Password Reset</h1>
+                    </div>
+                    <div class="content">
+                        <p>Hello,</p>
+                        <p>We have re-sent your verification code as requested. Here is your new code:</p>
+                        <div class="code-box">{otp}</div>
+                        <p><strong>This code is valid for 2 minutes.</strong></p>
+                        <p>If you didn't request a password reset, please ignore this email.</p>
+                    </div>
+                    <div class="footer">
+                        <p>This is an automated message. Please do not reply to this email.</p>
+                        <p>&copy; {datetime.datetime.now().year} LUMA Chat. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            '''
+            
+            # Send email with both text and HTML versions
+            email = EmailMultiAlternatives(subject, text_content, settings.DEFAULT_FROM_EMAIL, [email])
+            email.attach_alternative(html_content, "text/html")
+            email.send(fail_silently=False)
             
             return JsonResponse({
                 'success': True,

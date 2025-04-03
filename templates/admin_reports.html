@@ -3,371 +3,377 @@
 {% block title %}Reported Messages - LUMA Admin{% endblock %}
 
 {% block extra_css %}
-.reports-header {
-    text-align: center;
-    margin-bottom: 2rem;
-}
-
-.reports-header h1 {
-    font-size: 2.5rem;
-    color: #fff;
-}
-
-.reports-container {
-    display: flex;
-    gap: 2rem;
-}
-
-.filters {
-    flex: 0 0 250px;
-    background: #1e1e1e;
-    padding: 1.5rem;
-    border-radius: 10px;
-    height: fit-content;
-}
-
-.filters h3 {
-    color: #fff;
-    margin-bottom: 1rem;
-    font-size: 1.2rem;
-}
-
-.filter-group {
-    margin-bottom: 1.5rem;
-}
-
-.filter-group label {
-    display: block;
-    color: #bbb;
-    margin-bottom: 0.5rem;
-}
-
-.filter-group select {
-    width: 100%;
-    padding: 0.5rem;
-    background: #2c2c2c;
-    border: 1px solid #444;
-    border-radius: 5px;
-    color: #fff;
-}
-
-.reports-list {
-    flex: 1;
-}
-
-.report-card {
-    background: #1e1e1e;
-    border-radius: 10px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.report-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 1rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #333;
-}
-
-.report-info {
-    flex: 1;
-}
-
-.report-id {
-    color: #888;
-    font-size: 0.9rem;
-}
-
-.report-status {
-    padding: 0.3rem 0.8rem;
-    border-radius: 15px;
-    font-size: 0.8rem;
-    font-weight: 500;
-}
-
-.status-pending {
-    background: #ffa500;
-    color: #000;
-}
-
-.status-reviewed {
-    background: #3498db;
-    color: #fff;
-}
-
-.status-resolved {
-    background: #2ecc71;
-    color: #fff;
-}
-
-.status-dismissed {
-    background: #95a5a6;
-    color: #fff;
-}
-
-.message-content {
-    background: #2c2c2c;
-    padding: 1rem;
-    border-radius: 5px;
-    margin: 1rem 0;
-    color: #fff;
-}
-
-.report-details {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
-}
-
-.detail-group {
-    color: #bbb;
-}
-
-.detail-label {
-    font-size: 0.9rem;
-    color: #888;
-    margin-bottom: 0.3rem;
-}
-
-.detail-value {
-    color: #fff;
-}
-
-.action-buttons {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1.5rem;
-}
-
-.action-btn {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: opacity 0.3s;
-}
-
-.action-btn:hover {
-    opacity: 0.8;
-}
-
-.resolve-btn {
-    background: #2ecc71;
-    color: #fff;
-}
-
-.dismiss-btn {
-    background: #95a5a6;
-    color: #fff;
-}
-
-.delete-btn {
-    background: #e74c3c;
-    color: #fff;
-}
-
-.notes-section {
-    margin-top: 1rem;
-}
-
-.notes-section textarea {
-    width: 100%;
-    background: #2c2c2c;
-    border: 1px solid #444;
-    border-radius: 5px;
-    color: #fff;
-    padding: 0.5rem;
-    margin-top: 0.5rem;
-    resize: vertical;
-}
-
-.pagination {
-    display: flex;
-    justify-content: center;
-    gap: 0.5rem;
-    margin-top: 2rem;
-}
-
-.page-btn {
-    padding: 0.5rem 1rem;
-    background: #2c2c2c;
-    border: 1px solid #444;
-    border-radius: 5px;
-    color: #fff;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-.page-btn:hover {
-    background: #3c3c3c;
-}
-
-.page-btn.active {
-    background: #3b5998;
-    border-color: #3b5998;
-}
-
-.no-reports {
-    text-align: center;
-    color: #888;
-    padding: 2rem;
-    background: #1e1e1e;
-    border-radius: 10px;
-}
-
-/* Modal styling fixes */
-.modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7); /* Darker semi-transparent background */
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    padding: 20px; /* Add padding around the modal */
-}
-
-.modal {
-    background: #1e1e1e;
-    padding: 2rem;
-    border-radius: 15px; /* Increased border-radius */
-    width: 800px; /* Set a fixed width */
-    max-width: 90%; /* But still responsive */
-    max-height: 90vh; /* Limit height */
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3); /* Enhanced shadow */
-    display: flex;
-    flex-direction: column;
-    overflow: auto; /* Add scrolling if content overflows */
-    position: relative; /* For positioning elements inside */
-}
-
-.modal-header {
-    margin-bottom: 2rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #333;
-    text-align: center; /* Center the header */
-}
-
-.modal-header h2 {
-    color: #fff;
-    font-size: 1.8rem;
-    margin: 0;
-}
-
-.modal-body {
-    margin-bottom: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-/* Layout the items in a cleaner format */
-@media (min-width: 768px) {
-    .modal-body {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 2rem;
-        align-items: start;
+<style>
+    /* Header styling */
+    .reports-header {
+        text-align: center;
+        margin-bottom: 2rem;
     }
     
-    /* Make the notes full width */
-    .modal-body .action-group:last-child {
-        grid-column: 1 / span 2;
+    .reports-header h1 {
+        font-size: 2.5rem;
+        color: #fff;
     }
-}
-
-.action-group {
-    background: #252525; /* Slightly darker background */
-    padding: 1.5rem;
-    border-radius: 10px;
-    border: 1px solid #333;
-    display: flex;
-    flex-direction: column;
-}
-
-.action-group label {
-    display: flex;
-    align-items: center;
-    color: #fff; /* Brighter color */
-    margin-bottom: 1rem;
-    font-size: 1.1rem;
-}
-
-.ban-duration {
-    width: 100%;
-    padding: 0.8rem;
-    background: #2c2c2c;
-    border: 1px solid #444;
-    border-radius: 5px;
-    color: #fff;
-    margin-top: 0.8rem;
-    font-size: 1rem;
-}
-
-.modal-actions {
-    display: flex;
-    gap: 1.5rem;
-    justify-content: center; /* Center the buttons */
-    margin-top: 1rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid #333;
-}
-
-.modal-btn {
-    padding: 0.8rem 1.5rem;
-    border: none;
-    border-radius: 8px; /* Rounder corners */
-    cursor: pointer;
-    font-size: 1.1rem;
-    transition: all 0.2s ease;
-    font-weight: bold;
-    min-width: 120px;
-    text-transform: uppercase; /* Make buttons uppercase */
-    letter-spacing: 1px; /* Spacing between letters */
-}
-
-.modal-btn:hover {
-    opacity: 1;
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-}
-
-.modal-btn.cancel {
-    background: #4e5a5a; /* More subdued color */
-    color: #fff;
-}
-
-.modal-btn.confirm {
-    background: #27ae60; /* Brighter green */
-    color: #fff;
-}
-
-.warning-checkbox, .ban-checkbox {
-    margin-right: 0.8rem;
-    transform: scale(1.2);
-    accent-color: #27ae60; /* Match the confirm button color */
-}
-
-.textarea {
-    width: 100%;
-    background: #2c2c2c;
-    border: 1px solid #444;
-    border-radius: 8px; /* Rounder corners */
-    color: #fff;
-    padding: 1rem;
-    resize: vertical;
-    font-size: 1rem;
-    min-height: 120px; /* Not too tall */
-    line-height: 1.5;
-}
+    
+    /* Container and layout */
+    .reports-container {
+        display: flex;
+        gap: 2rem;
+    }
+    
+    .filters {
+        flex: 0 0 250px;
+        background: #1e1e1e;
+        padding: 1.5rem;
+        border-radius: 10px;
+        height: fit-content;
+    }
+    
+    .filters h3 {
+        color: #fff;
+        margin-bottom: 1rem;
+        font-size: 1.2rem;
+    }
+    
+    .filter-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .filter-group label {
+        display: block;
+        color: #bbb;
+        margin-bottom: 0.5rem;
+    }
+    
+    .filter-group select {
+        width: 100%;
+        padding: 0.5rem;
+        background: #2c2c2c;
+        border: 1px solid #444;
+        border-radius: 5px;
+        color: #fff;
+    }
+    
+    .reports-list {
+        flex: 1;
+    }
+    
+    /* Report card styling */
+    .report-card {
+        background: #1e1e1e;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    .report-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #333;
+    }
+    
+    .report-info {
+        flex: 1;
+    }
+    
+    .report-id {
+        color: #888;
+        font-size: 0.9rem;
+    }
+    
+    .report-status {
+        padding: 0.3rem 0.8rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .status-pending {
+        background: #ffa500;
+        color: #000;
+    }
+    
+    .status-reviewed {
+        background: #3498db;
+        color: #fff;
+    }
+    
+    .status-resolved {
+        background: #2ecc71;
+        color: #fff;
+    }
+    
+    .status-dismissed {
+        background: #95a5a6;
+        color: #fff;
+    }
+    
+    .message-content {
+        background: #2c2c2c;
+        padding: 1rem;
+        border-radius: 5px;
+        margin: 1rem 0;
+        color: #fff;
+    }
+    
+    .report-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .detail-group {
+        color: #bbb;
+    }
+    
+    .detail-label {
+        font-size: 0.9rem;
+        color: #888;
+        margin-bottom: 0.3rem;
+    }
+    
+    .detail-value {
+        color: #fff;
+    }
+    
+    /* Action buttons */
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+    
+    .action-btn {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: opacity 0.3s;
+    }
+    
+    .action-btn:hover {
+        opacity: 0.8;
+    }
+    
+    .resolve-btn {
+        background: #2ecc71;
+        color: #fff;
+    }
+    
+    .dismiss-btn {
+        background: #95a5a6;
+        color: #fff;
+    }
+    
+    .delete-btn {
+        background: #e74c3c;
+        color: #fff;
+    }
+    
+    /* Notes section */
+    .notes-section {
+        margin-top: 1rem;
+    }
+    
+    .notes-section textarea {
+        width: 100%;
+        background: #2c2c2c;
+        border: 1px solid #444;
+        border-radius: 5px;
+        color: #fff;
+        padding: 0.5rem;
+        margin-top: 0.5rem;
+        resize: vertical;
+    }
+    
+    /* Pagination */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 2rem;
+    }
+    
+    .page-btn {
+        padding: 0.5rem 1rem;
+        background: #2c2c2c;
+        border: 1px solid #444;
+        border-radius: 5px;
+        color: #fff;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+    
+    .page-btn:hover {
+        background: #3c3c3c;
+    }
+    
+    .page-btn.active {
+        background: #3b5998;
+        border-color: #3b5998;
+    }
+    
+    .no-reports {
+        text-align: center;
+        color: #888;
+        padding: 2rem;
+        background: #1e1e1e;
+        border-radius: 10px;
+    }
+    
+    /* Custom modal styling for reports */
+    .report-modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        padding: 20px;
+    }
+    
+    .report-modal {
+        background: #1e1e1e;
+        padding: 2rem;
+        border-radius: 15px;
+        width: 800px;
+        max-width: 90%;
+        max-height: 90vh;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+        overflow: auto;
+        position: relative;
+    }
+    
+    .report-modal-header {
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #333;
+        text-align: center;
+    }
+    
+    .report-modal-header h2 {
+        color: #fff;
+        font-size: 1.8rem;
+        margin: 0;
+    }
+    
+    .report-modal-body {
+        margin-bottom: 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    @media (min-width: 768px) {
+        .report-modal-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+        
+        .report-modal-body .action-group:last-child {
+            grid-column: 1 / span 2;
+        }
+    }
+    
+    .action-group {
+        background: #252525;
+        padding: 1.5rem;
+        border-radius: 10px;
+        border: 1px solid #333;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .action-group label {
+        display: flex;
+        align-items: center;
+        color: #fff;
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+    }
+    
+    .ban-duration {
+        width: 100%;
+        padding: 0.8rem;
+        background: #2c2c2c;
+        border: 1px solid #444;
+        border-radius: 5px;
+        color: #fff;
+        margin-top: 0.8rem;
+        font-size: 1rem;
+    }
+    
+    .report-modal-actions {
+        display: flex;
+        gap: 1.5rem;
+        justify-content: center;
+        margin-top: 1rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #333;
+    }
+    
+    .report-modal-btn {
+        padding: 0.8rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1.1rem;
+        transition: all 0.2s ease;
+        font-weight: bold;
+        min-width: 120px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .report-modal-btn:hover {
+        opacity: 1;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    .report-modal-btn.cancel {
+        background: #4e5a5a;
+        color: #fff;
+    }
+    
+    .report-modal-btn.confirm {
+        background: #27ae60;
+        color: #fff;
+    }
+    
+    .warning-checkbox, .ban-checkbox {
+        margin-right: 0.8rem;
+        transform: scale(1.2);
+        accent-color: #27ae60;
+    }
+    
+    .textarea {
+        width: 100%;
+        background: #2c2c2c;
+        border: 1px solid #444;
+        border-radius: 8px;
+        color: #fff;
+        padding: 1rem;
+        resize: vertical;
+        font-size: 1rem;
+        min-height: 120px;
+        line-height: 1.5;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -493,13 +499,13 @@
     </div>
 </div>
 
-<!-- Add this before the closing body tag -->
-<div id="resolveModal" class="modal-backdrop">
-    <div class="modal">
-        <div class="modal-header">
+<!-- Resolve Modal -->
+<div id="resolveModal" class="report-modal-backdrop">
+    <div class="report-modal">
+        <div class="report-modal-header">
             <h2>Resolve Report</h2>
         </div>
-        <div class="modal-body">
+        <div class="report-modal-body">
             <div class="action-group">
                 <label>
                     <input type="checkbox" class="warning-checkbox" id="warnUser">
@@ -524,40 +530,40 @@
                 <textarea id="adminNotes" class="textarea" rows="3" placeholder="Add notes about your decision..."></textarea>
             </div>
         </div>
-        <div class="modal-actions">
-            <button class="modal-btn cancel" onclick="closeResolveModal()">Cancel</button>
-            <button class="modal-btn confirm" onclick="confirmResolve()">Confirm</button>
+        <div class="report-modal-actions">
+            <button class="report-modal-btn cancel" onclick="closeResolveModal()">Cancel</button>
+            <button class="report-modal-btn confirm" onclick="confirmResolve()">Confirm</button>
         </div>
     </div>
 </div>
 
 <!-- Dismiss Modal -->
-<div id="dismissModal" class="modal-backdrop">
-    <div class="modal">
-        <div class="modal-header">
+<div id="dismissModal" class="report-modal-backdrop">
+    <div class="report-modal">
+        <div class="report-modal-header">
             <h2>Dismiss Report</h2>
         </div>
-        <div class="modal-body">
+        <div class="report-modal-body">
             <div class="action-group">
                 <p style="color: #fff; margin-bottom: 1rem;">Are you sure you want to dismiss this report? This action will mark the report as dismissed and no further action will be taken.</p>
                 <label for="dismissNotes">Admin Notes (Optional)</label>
                 <textarea id="dismissNotes" class="textarea" rows="3" placeholder="Add notes about your decision..."></textarea>
             </div>
         </div>
-        <div class="modal-actions">
-            <button class="modal-btn cancel" onclick="closeCustomModal('dismissModal')">Cancel</button>
-            <button class="modal-btn confirm" onclick="confirmDismiss()">Confirm</button>
+        <div class="report-modal-actions">
+            <button class="report-modal-btn cancel" onclick="closeCustomModal('dismissModal')">Cancel</button>
+            <button class="report-modal-btn confirm" onclick="confirmDismiss()">Confirm</button>
         </div>
     </div>
 </div>
 
 <!-- Delete Modal -->
-<div id="deleteModal" class="modal-backdrop">
-    <div class="modal">
-        <div class="modal-header">
+<div id="deleteModal" class="report-modal-backdrop">
+    <div class="report-modal">
+        <div class="report-modal-header">
             <h2>Delete Message</h2>
         </div>
-        <div class="modal-body">
+        <div class="report-modal-body">
             <div class="action-group">
                 <p style="color: #fff; margin-bottom: 1rem;">Are you sure you want to delete this message? This action cannot be undone and will remove the message completely.</p>
             </div>
@@ -572,13 +578,12 @@
                 <textarea id="deleteNotes" class="textarea" rows="3" placeholder="Add notes about your decision..."></textarea>
             </div>
         </div>
-        <div class="modal-actions">
-            <button class="modal-btn cancel" onclick="closeCustomModal('deleteModal')">Cancel</button>
-            <button class="modal-btn confirm" style="background-color: #e74c3c;" onclick="confirmDelete()">Delete</button>
+        <div class="report-modal-actions">
+            <button class="report-modal-btn cancel" onclick="closeCustomModal('deleteModal')">Cancel</button>
+            <button class="report-modal-btn confirm" style="background-color: #e74c3c;" onclick="confirmDelete()">Delete</button>
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block scripts %}
