@@ -6,67 +6,70 @@
         padding: 0;
         height: 100%;
         width: 100%;
-        background-color: #2E2E2E;
+        background-color: #121212;
         color: #FFFFFF;
-        font-family: Arial, sans-serif;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
    
     .profile-container {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        background-color: #121212;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 100;
+    }
+    
+    /* Left Sidebar */
+    .profile-sidebar {
+        background-color: #1E1E1E;
+        padding: 40px 20px;
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding-top: 20px; /* Fixed 20px spacing from navbar */
-        min-height: calc(100vh - 60px); /* Adjust based on your navbar height */
+        border-right: 1px solid #333;
+        position: relative;
+        overflow-y: auto;
     }
-   
-    .profile-content {
-        width: 100%;
-        max-width: 400px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 20px;
-        border: 2px solid white;
-        border-radius: 5px;
-    }
-   
-    h2 {
-        margin-top: 0;
-        margin-bottom: 30px;
-    }
-   
+    
     .profile-picture-container {
         position: relative;
         margin-bottom: 30px;
+        width: 180px;
+        height: 180px;
     }
-   
-    .profile-picture-label {
-        display: block;
-        text-align: center;
-        margin-bottom: 15px;
-        font-size: 18px;
-        font-weight: bold;
-    }
-   
+    
     .profile-picture {
-        width: 150px;
-        height: 150px;
+        width: 100%;
+        height: 100%;
         border-radius: 50%;
-        background-color: #4a4a4a;
+        background-color: #2d2d2d;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         overflow: hidden;
         position: relative;
+        border: 4px solid #3a5998;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
     }
-   
+    
+    .profile-picture:hover {
+        transform: scale(1.03);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    }
+    
     .profile-picture img {
         width: 100%;
         height: 100%;
         object-fit: cover;
     }
-   
+    
     .profile-picture-overlay {
         position: absolute;
         top: 0;
@@ -80,71 +83,176 @@
         opacity: 0;
         transition: opacity 0.3s ease;
         border-radius: 50%;
+        font-weight: bold;
     }
-   
+    
     .profile-picture:hover .profile-picture-overlay {
         opacity: 1;
     }
-   
-    .profile-details {
-        width: 100%;
-        margin-bottom: 30px;
-    }
-   
-    .profile-field {
-        margin-bottom: 20px;
-        display: flex;
-    }
-   
-    .profile-field-label {
+    
+    .user-name {
+        font-size: 24px;
         font-weight: bold;
-        min-width: 120px;
+        margin-bottom: 5px;
+        text-align: center;
     }
-   
-    .profile-field-value {
-        flex-grow: 1;
+    
+    .user-username {
+        color: #aaa;
+        margin-bottom: 25px;
+        font-size: 16px;
     }
-   
-    .profile-buttons {
+    
+    .sidebar-nav {
+        width: 100%;
+        margin-top: 20px;
+    }
+    
+    .nav-item {
         display: flex;
-        flex-direction: column;
         align-items: center;
-        gap: 15px;
-        width: 100%;
-    }
-   
-    .profile-button {
-        width: 100%;
         padding: 15px;
-        border-radius: 5px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .nav-item:hover, .nav-item.active {
+        background-color: #3a5998;
+    }
+    
+    .nav-item i {
+        margin-right: 15px;
+        font-size: 20px;
+        width: 25px;
+        text-align: center;
+    }
+    
+    /* Main Content */
+    .profile-content {
+        padding: 40px;
+        overflow-y: auto;
+    }
+    
+    .content-section {
+        background-color: #1E1E1E;
+        border-radius: 12px;
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        animation: fadeIn 0.5s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #333;
+    }
+    
+    .section-title {
+        font-size: 22px;
+        font-weight: bold;
+        color: #fff;
+    }
+    
+    .edit-link {
+        color: #3a5998;
+        cursor: pointer;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .edit-link i {
+        margin-right: 5px;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 25px;
+    }
+    
+    .info-item {
+        margin-bottom: 20px;
+    }
+    
+    .info-label {
+        color: #aaa;
+        font-size: 14px;
+        margin-bottom: 5px;
+    }
+    
+    .info-value {
+        font-size: 16px;
+        font-weight: 500;
+    }
+    
+    .danger-zone {
+        background-color: rgba(220, 53, 69, 0.1);
+        border: 1px solid rgba(220, 53, 69, 0.3);
+        border-radius: 12px;
+    }
+    
+    .danger-title {
+        color: #dc3545;
+    }
+    
+    .btn {
+        padding: 12px 25px;
+        border-radius: 8px;
         border: none;
         font-size: 16px;
+        font-weight: 600;
         cursor: pointer;
-        font-weight: bold;
-        transition: background-color 0.3s ease;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
-   
-    .edit-button {
-        background-color: #5C85FF;
+    
+    .btn i {
+        margin-right: 10px;
     }
-   
-    .edit-button:hover {
-        background-color: #4a6cd9;
+    
+    .btn-primary {
+        background-color: #3a5998;
+        color: white;
     }
-   
-    .delete-button {
-        background-color: #FF5C5C;
+    
+    .btn-primary:hover {
+        background-color: #2d4373;
     }
-   
-    .delete-button:hover {
-        background-color: #d94a4a;
+    
+    .btn-outline {
+        background-color: transparent;
+        border: 2px solid #3a5998;
+        color: #3a5998;
     }
-   
-    .hidden-file-input {
-        display: none;
+    
+    .btn-outline:hover {
+        background-color: #3a5998;
+        color: white;
     }
-
-    /* Modal Styles */
+    
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    .btn-danger:hover {
+        background-color: #bd2130;
+    }
+    
     .modal {
         display: none;
         position: fixed;
@@ -154,56 +262,100 @@
         height: 100%;
         background-color: rgba(0, 0, 0, 0.7);
         z-index: 1000;
+        backdrop-filter: blur(5px);
+        align-items: center;
+        justify-content: center;
     }
-
+    
     .modal-content {
-        background-color: #2E2E2E;
-        margin: 15% auto;
-        padding: 20px;
-        border: 2px solid white;
-        border-radius: 5px;
-        width: 80%;
+        background-color: #1E1E1E;
+        padding: 30px;
+        border-radius: 12px;
+        width: 90%;
         max-width: 500px;
         position: relative;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        animation: modalFadeIn 0.3s ease;
     }
-
+    
+    @keyframes modalFadeIn {
+        from { opacity: 0; transform: translateY(-50px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
     .modal-title {
         color: white;
         font-size: 24px;
-        margin-bottom: 20px;
+        margin-bottom: 25px;
     }
-
+    
     .modal-form {
         display: flex;
         flex-direction: column;
-        gap: 15px;
+        gap: 20px;
     }
-
+    
     .form-group {
         display: flex;
         flex-direction: column;
-        gap: 5px;
+        gap: 8px;
     }
-
+    
     .form-group label {
         color: #aaa;
-        font-weight: bold;
+        font-weight: 500;
     }
-
+    
     .form-group input {
-        padding: 10px;
-        border-radius: 5px;
-        border: 1px solid #555;
-        background-color: #1a1a1a;
+        padding: 12px 15px;
+        border-radius: 8px;
+        border: 1px solid #444;
+        background-color: #252525;
+        color: white;
+        font-size: 16px;
+        transition: border-color 0.2s ease;
+    }
+    
+    .form-group input:focus {
+        border-color: #3a5998;
+        outline: none;
+    }
+    
+    .password-field {
+        position: relative;
+    }
+    
+    .password-field input {
+        padding-right: 40px;
+    }
+    
+    .password-toggle {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #aaa;
+        cursor: pointer;
+        transition: color 0.2s ease;
+    }
+    
+    .password-toggle:hover {
         color: white;
     }
-
+    
+    .form-error {
+        color: #dc3545;
+        font-size: 12px;
+        margin-top: 5px;
+        display: none;
+    }
+    
     .modal-buttons {
         display: flex;
-        gap: 10px;
-        margin-top: 20px;
+        gap: 15px;
+        margin-top: 25px;
     }
-
+    
     .modal-close {
         position: absolute;
         right: 20px;
@@ -211,55 +363,257 @@
         color: #aaa;
         font-size: 24px;
         cursor: pointer;
+        transition: color 0.2s ease;
     }
-
+    
     .modal-close:hover {
         color: white;
+    }
+    
+    .back-button {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        z-index: 10;
+        background-color: rgba(0,0,0,0.5);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 18px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+    
+    .back-button:hover {
+        background-color: #3a5998;
+    }
+    
+    /* Custom notification styles */
+    .custom-toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background-color: #1E1E1E;
+        color: white;
+        padding: 15px 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        display: flex;
+        align-items: center;
+        z-index: 2000;
+        transform: translateX(150%);
+        transition: transform 0.4s ease;
+        border-left: 4px solid #3a5998;
+    }
+    
+    .custom-toast.show {
+        transform: translateX(0);
+    }
+    
+    .custom-toast .icon {
+        font-size: 20px;
+        margin-right: 15px;
+        color: #3a5998;
+    }
+    
+    .custom-toast .text {
+        flex: 1;
+    }
+    
+    .success-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 2000;
+        background-color: rgba(0, 0, 0, 0.7);
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(5px);
+    }
+    
+    .success-modal-content {
+        background-color: #1E1E1E;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 400px;
+        padding: 30px;
+        text-align: center;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+        animation: successModalFadeIn 0.5s ease;
+    }
+    
+    @keyframes successModalFadeIn {
+        from { opacity: 0; transform: scale(0.8); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    
+    .success-icon {
+        width: 70px;
+        height: 70px;
+        background-color: rgba(58, 89, 152, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+    }
+    
+    .success-icon i {
+        font-size: 35px;
+        color: #3a5998;
+    }
+    
+    .success-title {
+        font-size: 22px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #fff;
+    }
+    
+    .success-message {
+        color: #aaa;
+        margin-bottom: 20px;
+    }
+    
+    .success-button {
+        padding: 10px 25px;
+        background-color: #3a5998;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+    
+    .success-button:hover {
+        background-color: #2d4373;
+    }
+    
+    /* Responsive styles */
+    @media (max-width: 768px) {
+        .profile-container {
+            grid-template-columns: 1fr;
+        }
+        
+        .profile-sidebar {
+            padding: 30px 20px;
+            border-right: none;
+            border-bottom: 1px solid #333;
+        }
+        
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 
 <div class="profile-container">
-    <div class="profile-content">
-        <h2>User Profile</h2>
-       
+    <!-- Back Button -->
+    <a href="{% url 'chat_list' %}" class="back-button">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+    
+    <!-- Left Sidebar -->
+    <div class="profile-sidebar">
         <div class="profile-picture-container">
             <div class="profile-picture" id="profilePicContainer">
                 {% if user.profile_picture %}
                     <img src="{{ user.profile_picture.url }}" alt="{{ user.username }}'s profile picture">
                 {% else %}
-                    <span>{{ user.first_name|first }}{{ user.last_name|first }}</span>
+                    <span style="font-size: 50px; color: #fff;">{{ user.first_name|first }}{{ user.last_name|first }}</span>
                 {% endif %}
-                <div class="profile-picture-overlay">Change Profile Picture</div>
+                <div class="profile-picture-overlay">
+                    <i class="fas fa-camera" style="margin-right: 8px;"></i> Update Photo
+                </div>
             </div>
             <form id="profilePictureForm" method="post" action="" enctype="multipart/form-data">
                 {% csrf_token %}
-                <input type="file" name="profile_picture" id="profilePictureInput" class="hidden-file-input" accept="image/jpeg,image/png,image/gif,image/jpg,image/webp">
+                <input type="file" name="profile_picture" id="profilePictureInput" class="hidden-file-input" accept="image/jpeg,image/png,image/gif,image/jpg,image/webp" style="display: none;">
             </form>
         </div>
-       
-        <div class="profile-details">
-            <div class="profile-field">
-                <div class="profile-field-label">First Name:</div>
-                <div class="profile-field-value">{{ user.first_name }}</div>
+        
+        <div class="user-name">{{ user.first_name }} {{ user.last_name }}</div>
+        <div class="user-username">@{{ user.username }}</div>
+        
+        <div class="sidebar-nav">
+            <div class="nav-item active" onclick="showSection('personal-info')">
+                <i class="fas fa-user"></i> Personal Information
             </div>
-            <div class="profile-field">
-                <div class="profile-field-label">Last Name:</div>
-                <div class="profile-field-value">{{ user.last_name }}</div>
-            </div>
-            <div class="profile-field">
-                <div class="profile-field-label">Username:</div>
-                <div class="profile-field-value">{{ user.username }}</div>
-            </div>
-            <div class="profile-field">
-                <div class="profile-field-label">Email:</div>
-                <div class="profile-field-value">{{ user.email }}</div>
+            <div class="nav-item" onclick="showSection('account-settings')">
+                <i class="fas fa-cog"></i> Account Settings
             </div>
         </div>
-       
-        <div class="profile-buttons">
-            <button onclick="openEditProfileModal()" class="profile-button edit-button">Edit Profile</button>
-            <button onclick="openChangePasswordModal()" class="profile-button edit-button" style="background-color: #FFA500;">Change Password</button>
-            <button onclick="openDeleteAccountModal()" class="profile-button delete-button">Delete Account</button>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="profile-content">
+        <!-- Personal Information Section -->
+        <div id="personal-info" class="content-section">
+            <div class="section-header">
+                <h2 class="section-title">Personal Information</h2>
+                <div class="edit-link" onclick="openEditProfileModal()">
+                    <i class="fas fa-edit"></i> Edit
+                </div>
+            </div>
+            
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">First Name</div>
+                    <div class="info-value">{{ user.first_name }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Last Name</div>
+                    <div class="info-value">{{ user.last_name }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Username</div>
+                    <div class="info-value">{{ user.username }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Email Address</div>
+                    <div class="info-value">{{ user.email }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Member Since</div>
+                    <div class="info-value">{{ user.created_at|date:"F j, Y" }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Account Settings Section -->
+        <div id="account-settings" class="content-section" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">Account Settings</h2>
+            </div>
+            
+            <div style="margin-bottom: 25px;">
+                <button class="btn btn-primary" onclick="openChangePasswordModal()">
+                    <i class="fas fa-key"></i> Change Password
+                </button>
+            </div>
+            
+            <!-- Danger Zone -->
+            <div class="content-section danger-zone">
+                <div class="section-header">
+                    <h2 class="section-title danger-title">Danger Zone</h2>
+                </div>
+                <p style="margin-bottom: 20px; color: #aaa;">
+                    Once you delete your account, there is no going back. Please be certain.
+                </p>
+                <button class="btn btn-danger" onclick="openDeleteAccountModal()">
+                    <i class="fas fa-trash-alt"></i> Delete Account
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -288,8 +642,8 @@
                 <input type="email" id="email" name="email" value="{{ user.email }}" required>
             </div>
             <div class="modal-buttons">
-                <button type="submit" class="profile-button edit-button">Save Changes</button>
-                <button type="button" class="profile-button delete-button" onclick="closeModal('editProfileModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <button type="button" class="btn btn-outline" onclick="closeModal('editProfileModal')">Cancel</button>
             </div>
         </form>
     </div>
@@ -300,23 +654,35 @@
     <div class="modal-content">
         <span class="modal-close" onclick="closeModal('changePasswordModal')">&times;</span>
         <h2 class="modal-title">Change Password</h2>
-        <form class="modal-form" method="post" action="{% url 'change_password' %}">
+        <form class="modal-form" method="post" action="{% url 'change_password' %}" id="changePasswordForm">
             {% csrf_token %}
             <div class="form-group">
                 <label for="current_password">Current Password</label>
-                <input type="password" id="current_password" name="current_password" required>
+                <div class="password-field">
+                    <input type="password" id="current_password" name="current_password" required>
+                    <i class="fas fa-eye password-toggle" onclick="togglePasswordVisibility('current_password')"></i>
+                </div>
+                <span class="form-error" id="current_password_error">Please enter your current password</span>
             </div>
             <div class="form-group">
                 <label for="new_password">New Password</label>
-                <input type="password" id="new_password" name="new_password" required>
+                <div class="password-field">
+                    <input type="password" id="new_password" name="new_password" required minlength="8">
+                    <i class="fas fa-eye password-toggle" onclick="togglePasswordVisibility('new_password')"></i>
+                </div>
+                <span class="form-error" id="new_password_error">Password must be at least 8 characters long</span>
             </div>
             <div class="form-group">
                 <label for="confirm_password">Confirm New Password</label>
-                <input type="password" id="confirm_password" name="confirm_password" required>
+                <div class="password-field">
+                    <input type="password" id="confirm_password" name="confirm_password" required>
+                    <i class="fas fa-eye password-toggle" onclick="togglePasswordVisibility('confirm_password')"></i>
+                </div>
+                <span class="form-error" id="confirm_password_error">Passwords do not match</span>
             </div>
             <div class="modal-buttons">
-                <button type="submit" class="profile-button edit-button">Change Password</button>
-                <button type="button" class="profile-button delete-button" onclick="closeModal('changePasswordModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Change Password</button>
+                <button type="button" class="btn btn-outline" onclick="closeModal('changePasswordModal')">Cancel</button>
             </div>
         </form>
     </div>
@@ -326,20 +692,59 @@
 <div id="deleteAccountModal" class="modal">
     <div class="modal-content">
         <span class="modal-close" onclick="closeModal('deleteAccountModal')">&times;</span>
-        <h2 class="modal-title">Delete Account</h2>
-        <p style="color: #FF5C5C; margin-bottom: 20px;">Warning: This action cannot be undone!</p>
+        <h2 class="modal-title" style="color: #dc3545;">Delete Account</h2>
+        <p style="color: #dc3545; margin-bottom: 20px;">
+            <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>
+            Warning: This action cannot be undone!
+        </p>
+        <p style="color: #aaa; margin-bottom: 20px;">
+            All your data, including messages, chats, and profile information will be permanently deleted.
+        </p>
         <form class="modal-form" method="post" action="{% url 'delete_account' %}">
             {% csrf_token %}
             <div class="form-group">
-                <label for="delete_password">Enter Your Password</label>
-                <input type="password" id="delete_password" name="password" required>
+                <label for="delete_password">Enter Your Password to Confirm</label>
+                <div class="password-field">
+                    <input type="password" id="delete_password" name="password" required>
+                    <i class="fas fa-eye password-toggle" onclick="togglePasswordVisibility('delete_password')"></i>
+                </div>
             </div>
             <div class="modal-buttons">
-                <button type="submit" class="profile-button delete-button">Delete Account</button>
-                <button type="button" class="profile-button edit-button" onclick="closeModal('deleteAccountModal')">Cancel</button>
+                <button type="submit" class="btn btn-danger">Delete My Account</button>
+                <button type="button" class="btn btn-outline" onclick="closeModal('deleteAccountModal')">Cancel</button>
             </div>
         </form>
     </div>
+</div>
+
+<!-- Success Modal for Profile Picture -->
+<div id="profilePictureSuccessModal" class="success-modal">
+    <div class="success-modal-content">
+        <div class="success-icon">
+            <i class="fas fa-check"></i>
+        </div>
+        <div class="success-title">Profile Picture Updated</div>
+        <div class="success-message">Your profile picture has been successfully updated.</div>
+        <button class="success-button" onclick="closeSuccessModal('profilePictureSuccessModal')">Got it!</button>
+    </div>
+</div>
+
+<!-- Success Modal for Profile Info -->
+<div id="profileInfoSuccessModal" class="success-modal">
+    <div class="success-modal-content">
+        <div class="success-icon">
+            <i class="fas fa-check"></i>
+        </div>
+        <div class="success-title">Profile Updated</div>
+        <div class="success-message">Your profile information has been successfully saved.</div>
+        <button class="success-button" onclick="closeSuccessModal('profileInfoSuccessModal')">Got it!</button>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div id="customToast" class="custom-toast">
+    <div class="icon"><i class="fas fa-check-circle"></i></div>
+    <div class="text" id="toastMessage"></div>
 </div>
 
 <script>
@@ -389,15 +794,16 @@
                         profileImg.src = data.profile_picture_url;
                         profileImg.style.display = 'block';
                         
-                        // Show success message
-                        alert(data.message);
+                        // Show success modal instead of alert
+                        showSuccessModal('profilePictureSuccessModal');
                     } else {
-                        alert('Failed to update profile picture. Please try again.');
+                        // Show toast notification for error
+                        showToast('Failed to update profile picture. Please try again.');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('An error occurred while updating profile picture. Please try again.');
+                    showToast('An error occurred while updating profile picture. Please try again.');
                 })
                 .finally(() => {
                     // Reset loading state
@@ -405,11 +811,139 @@
                 });
             }
         });
+        
+        // Intercept profile edit form submission
+        const editProfileForm = document.querySelector('#editProfileModal form');
+        if (editProfileForm) {
+            editProfileForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                
+                fetch('{% url "edit_profile" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Close the modal
+                        closeModal('editProfileModal');
+                        
+                        // Update the profile information on the page
+                        const firstName = formData.get('first_name');
+                        const lastName = formData.get('last_name');
+                        const username = formData.get('username');
+                        const email = formData.get('email');
+                        
+                        document.querySelector('.user-name').textContent = `${firstName} ${lastName}`;
+                        document.querySelector('.user-username').textContent = `@${username}`;
+                        
+                        // Update values in the info section
+                        document.querySelectorAll('.info-item').forEach(item => {
+                            const label = item.querySelector('.info-label').textContent.trim();
+                            if (label === 'First Name') {
+                                item.querySelector('.info-value').textContent = firstName;
+                            } else if (label === 'Last Name') {
+                                item.querySelector('.info-value').textContent = lastName;
+                            } else if (label === 'Username') {
+                                item.querySelector('.info-value').textContent = username;
+                            } else if (label === 'Email Address') {
+                                item.querySelector('.info-value').textContent = email;
+                            }
+                        });
+                        
+                        // Show success modal
+                        showSuccessModal('profileInfoSuccessModal');
+                        
+                        return response.json();
+                    } else {
+                        throw new Error('Failed to update profile');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('An error occurred while updating your profile. Please try again.');
+                });
+            });
+        }
+        
+        // Password form validation
+        const changePasswordForm = document.getElementById('changePasswordForm');
+        if (changePasswordForm) {
+            changePasswordForm.addEventListener('submit', function(e) {
+                let isValid = true;
+                
+                // Current password validation
+                const currentPassword = document.getElementById('current_password');
+                const currentPasswordError = document.getElementById('current_password_error');
+                
+                if (!currentPassword.value) {
+                    currentPasswordError.style.display = 'block';
+                    isValid = false;
+                } else {
+                    currentPasswordError.style.display = 'none';
+                }
+                
+                // New password validation
+                const newPassword = document.getElementById('new_password');
+                const newPasswordError = document.getElementById('new_password_error');
+                
+                if (newPassword.value.length < 8) {
+                    newPasswordError.style.display = 'block';
+                    isValid = false;
+                } else {
+                    newPasswordError.style.display = 'none';
+                }
+                
+                // Confirm password validation
+                const confirmPassword = document.getElementById('confirm_password');
+                const confirmPasswordError = document.getElementById('confirm_password_error');
+                
+                if (newPassword.value !== confirmPassword.value) {
+                    confirmPasswordError.style.display = 'block';
+                    isValid = false;
+                } else {
+                    confirmPasswordError.style.display = 'none';
+                }
+                
+                if (!isValid) {
+                    e.preventDefault();
+                }
+            });
+        }
     });
+
+    // Toast notification function
+    function showToast(message) {
+        const toast = document.getElementById('customToast');
+        const msgElement = document.getElementById('toastMessage');
+        
+        msgElement.textContent = message;
+        toast.classList.add('show');
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
+    
+    // Success modal functions
+    function showSuccessModal(modalId) {
+        document.getElementById(modalId).style.display = 'flex';
+    }
+    
+    function closeSuccessModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
 
     // Modal functions
     function openModal(modalId) {
-        document.getElementById(modalId).style.display = 'block';
+        const modal = document.getElementById(modalId);
+        modal.style.display = 'flex';
     }
 
     function closeModal(modalId) {
@@ -427,18 +961,57 @@
     function openDeleteAccountModal() {
         openModal('deleteAccountModal');
     }
+    
+    // Password visibility toggle
+    function togglePasswordVisibility(inputId) {
+        const input = document.getElementById(inputId);
+        const icon = input.nextElementSibling;
+        
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
 
     // Close modal when clicking outside
     window.onclick = function(event) {
         if (event.target.className === 'modal') {
             event.target.style.display = 'none';
+        } else if (event.target.className === 'success-modal') {
+            event.target.style.display = 'none';
         }
     }
+    
+    // Section navigation
+    function showSection(sectionId) {
+        // Hide all sections
+        const sections = document.querySelectorAll('.content-section');
+        sections.forEach(section => {
+            section.style.display = 'none';
+        });
+        
+        // Show the selected section
+        document.getElementById(sectionId).style.display = 'block';
+        
+        // Update active state in navigation
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // Find and activate the clicked nav item
+        event.currentTarget.classList.add('active');
+    }
 
-    // Display Django messages as toasts
+    // Display Django messages as toasts instead of alerts
     {% if messages %}
         {% for message in messages %}
-            alert("{{ message }}");
+            showToast("{{ message }}");
         {% endfor %}
     {% endif %}
 </script>
