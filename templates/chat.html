@@ -4076,10 +4076,14 @@ function performSearch() {
       const messageInput = document.getElementById('messageInput');
       const fileNameDisplay = document.getElementById('fileNameDisplay');
       
+      // Reset file input
       fileInput.value = '';
+      
+      // Reset message input
       messageInput.placeholder = 'Type a message...';
       messageInput.style.paddingRight = '';
       
+      // Remove file name display
       if (fileNameDisplay) {
         fileNameDisplay.remove();
       }
