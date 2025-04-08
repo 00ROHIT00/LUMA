@@ -56,7 +56,7 @@ SECRET_KEY = 'django-insecure-e2pqmletjzbpp-j&pu+$_o5$ytv8sma8yafux*-5_jbfkidxyk
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['django-mini-blog-o4my.onrender.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['luma-b1oo.onrender.com', 'localhost', '127.0.0.1']
 
 
 # Application definition
