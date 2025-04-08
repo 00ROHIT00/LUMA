@@ -390,10 +390,10 @@
                 <label for="status">Status</label>
                 <select name="status" id="status">
                     <option value="">All</option>
-                    <option value="pending">Pending</option>
-                    <option value="reviewed">Reviewed</option>
-                    <option value="resolved">Resolved</option>
-                    <option value="dismissed">Dismissed</option>
+                    <option value="pending" {% if request.GET.status == 'pending' or not request.GET.status %}selected{% endif %}>Pending</option>
+                    <option value="reviewed" {% if request.GET.status == 'reviewed' %}selected{% endif %}>Reviewed</option>
+                    <option value="resolved" {% if request.GET.status == 'resolved' %}selected{% endif %}>Resolved</option>
+                    <option value="dismissed" {% if request.GET.status == 'dismissed' %}selected{% endif %}>Dismissed</option>
                 </select>
             </div>
             <div class="filter-group">
@@ -590,6 +590,18 @@
 {{ block.super }}
 <script>
 let currentReportId = null;
+
+// Auto-submit filter form when page loads if no filter is already applied
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if there's any query parameter already
+    const urlParams = new URLSearchParams(window.location.search);
+    if (!urlParams.has('status') && !urlParams.has('date')) {
+        // Set status to pending
+        document.getElementById('status').value = 'pending';
+        // Submit the form
+        document.getElementById('filterForm').submit();
+    }
+});
 
 document.getElementById('status').addEventListener('change', function() {
     document.getElementById('filterForm').submit();

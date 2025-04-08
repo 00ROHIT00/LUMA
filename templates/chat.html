@@ -2738,6 +2738,14 @@ function performSearch() {
       const messageId = menuItem.dataset.messageId;
       if (!messageId) return;
       
+      // Check if this is a temporary message ID (for messages that haven't been saved to the server yet)
+      if (messageId.startsWith('temp-')) {
+        // For temporary messages, show a message that you can't pin unsent messages
+        showToast('Cannot pin unsent messages', 'error');
+        hideContextMenu();
+        return;
+      }
+      
       // Find the message element
       const messageElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
       if (!messageElement) return;
@@ -2761,20 +2769,7 @@ function performSearch() {
       pinnedMessageContainer.classList.add('active');
       
       // Show success notification
-      const notification = document.createElement('div');
-      notification.style.position = 'fixed';
-      notification.style.bottom = '20px';
-      notification.style.left = '50%';
-      notification.style.transform = 'translateX(-50%)';
-      notification.style.backgroundColor = '#3498db';
-      notification.style.color = 'white';
-      notification.style.padding = '10px 20px';
-      notification.style.borderRadius = '5px';
-      notification.style.zIndex = '10000';
-      notification.textContent = 'Message pinned!';
-      document.body.appendChild(notification);
-      
-      setTimeout(() => notification.remove(), 2000);
+      showToast('Message pinned!', 'success');
       hideContextMenu();
     }
     
@@ -2789,20 +2784,7 @@ function performSearch() {
       pinnedMessageContainer.classList.remove('active');
       
       // Show feedback notification
-      const notification = document.createElement('div');
-      notification.style.position = 'fixed';
-      notification.style.bottom = '20px';
-      notification.style.left = '50%';
-      notification.style.transform = 'translateX(-50%)';
-      notification.style.backgroundColor = '#666';
-      notification.style.color = 'white';
-      notification.style.padding = '10px 20px';
-      notification.style.borderRadius = '5px';
-      notification.style.zIndex = '10000';
-      notification.textContent = 'Message unpinned';
-      document.body.appendChild(notification);
-      
-      setTimeout(() => notification.remove(), 2000);
+      showToast('Message unpinned', 'info');
     }
 
     function copyMessage(menuItem) {
@@ -2810,23 +2792,12 @@ function performSearch() {
       if (messageContent) {
         navigator.clipboard.writeText(messageContent)
           .then(() => {
-            // Show a brief notification that the message was copied
-            const notification = document.createElement('div');
-            notification.style.position = 'fixed';
-            notification.style.bottom = '20px';
-            notification.style.left = '50%';
-            notification.style.transform = 'translateX(-50%)';
-            notification.style.backgroundColor = '#333';
-            notification.style.color = 'white';
-            notification.style.padding = '10px 20px';
-            notification.style.borderRadius = '5px';
-            notification.style.zIndex = '10000';
-            notification.textContent = 'Message copied!';
-            document.body.appendChild(notification);
-            
-            setTimeout(() => notification.remove(), 2000);
+            showToast('Message copied!', 'success');
           })
-          .catch(err => console.error('Failed to copy message:', err));
+          .catch(err => {
+            console.error('Failed to copy message:', err);
+            showToast('Failed to copy message', 'error');
+          });
       }
       hideContextMenu();
     }
@@ -2875,6 +2846,17 @@ function performSearch() {
       
       if (!messageId) return;
       
+      // Check if this is a temporary message ID (for messages that haven't been saved to the server yet)
+      if (messageId.startsWith('temp-')) {
+        // For temporary messages, just remove from UI without server call
+        const messageElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
+        if (messageElement) {
+          messageElement.style.display = 'none';
+        }
+        hideContextMenu();
+        return;
+      }
+      
       // Different endpoint for group vs individual chat
       const endpoint = isGroup ? '/delete_group_message_for_me/' : '/delete_message_for_me/';
       const dataKey = isGroup ? 'message_id' : 'message_id';
@@ -2913,6 +2895,17 @@ function performSearch() {
       const isGroup = menuItem.dataset.isGroup === 'true';
       
       if (!messageId) return;
+      
+      // Check if this is a temporary message ID (for messages that haven't been saved to the server yet)
+      if (messageId.startsWith('temp-')) {
+        // For temporary messages, just remove from UI without server call
+        const messageElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
+        if (messageElement) {
+          messageElement.remove(); // Completely remove the message
+        }
+        hideContextMenu();
+        return;
+      }
       
       // Different endpoint for group vs individual chat
       const endpoint = isGroup ? '/delete_group_message_for_everyone/' : '/delete_message_for_everyone/';
@@ -2956,6 +2949,14 @@ function performSearch() {
       const isGroup = menuItem.dataset.isGroup === 'true';
       
       if (!messageId) return;
+      
+      // Check if this is a temporary message ID (for messages that haven't been saved to the server yet)
+      if (messageId.startsWith('temp-')) {
+        // For temporary messages, show a message that you can't report unsent messages
+        showToast('Cannot report unsent messages', 'error');
+        hideContextMenu();
+        return;
+      }
       
       // Show the custom modal instead of the browser confirm
       const modal = document.getElementById('reportConfirmationModal');
